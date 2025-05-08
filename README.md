@@ -91,11 +91,10 @@ Before you begin, ensure you have the following installed:
 2. **Set Environment Variables:**
 
    ```bash
-   export OPENAI_API_KEY="your_openai_api_key"
-   export VIA_API_CHAT_BASE="your_via_api_base_url"
+   export VIA_API_CHAT_BASE="http://localhost:5000"
    ```
 
-   Replace `"your_openai_api_key"` and `"your_via_api_base_url"` with your actual credentials.  Consider adding these to your shell's configuration file (e.g., `.bashrc`, `.zshrc`) for persistent access.
+   See also $OPENAI_API_KEY.
 
 3. **Make Scripts Executable:**
 
