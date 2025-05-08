@@ -2,7 +2,8 @@
 
 **Answer** is a command-line agent framework that leverages language models via api and posix pipes to generate, execute, and retrieve the results of code snippets directly from your terminal. It provides a conversational, shell-focused workflow for rapid prototyping and experimentation.
 
-** Example Workflow**
+**Example Workflow**
+
 ```
     $ ask write fib in python | answer | unblock
     ```python
@@ -30,10 +31,12 @@
 
     print(fibonacci(20))
     ```
-    r$ (ask write fib in python |
+
+    $ (ask write fib in python |
       ask call it with 20 and note the output |
       ask just print the output | answer)
     6765
+
     $ (ask write fib in python |
      ask print just the code ready to execute plus 'print(fib(20))'  |
      answer |
