@@ -125,7 +125,12 @@ You can combine these commands to build complex workflows.  Explore `story.txt` 
 How this README was created:
 
 ```bash
-( bashblock cat story.txt; bashblock cat ask; bashblock cat answer; bashblock cat unfence) | ./ask -i Read this code: | ./ask Write a README.md file for this new 'answer' github project.  | ./answer | ./ask -i "Re-write this README file to be really good:" | ./answer > README.md
+( bashblock cat story.txt; bashblock cat ask; bashblock cat answer; bashblock cat unfence) |
+  ./ask -i Read this code: | \
+  ./ask Write a README.md file for this new 'answer' github project.  | \
+  ./answer | \
+  ./ask -i "Re-write this README file to be really good:" | \
+  ./answer > README.md
 ```
 
 ## License
