@@ -1,0 +1,5 @@
+ask () 
+{ 
+    export ANSWER=$(ask.sh "$*");
+    printf "%s\n" "${ANSWER}"
+}

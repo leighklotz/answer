@@ -57,9 +57,9 @@
 
 ## Components
 
-* **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array).
+* **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array). Sets result to `$ANSWER` as well as printing to stdout.
 * **`bashfence`:** Executs the specified commnd and args, and wraps the result in a bash code fence.
-* **`answer`:**  Extracts the latest message content from the JSON conversation history. Useful for retrieving generated code or responses.
+* **`answer`:**  Extracts the latest message content from the JSON conversation history. Useful for retrieving generated code or responses. If no stdin, looks in `$ANSWER`.
 * **`unfence`:** Removes code blocks enclosed in triple backticks (```) from the input. Crucial for preparing model output for execution.
 * **`story.txt`:**  A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
 
@@ -87,6 +87,7 @@ Before you begin, ensure you have the following installed:
    ```bash
    git clone <repository_url>
    cd answer
+   source aliases
    ```
 
 2. **Set Environment Variables:**
