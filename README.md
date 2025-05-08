@@ -94,7 +94,7 @@ Before you begin, ensure you have the following installed:
    export VIA_API_CHAT_BASE="http://localhost:5000"
    ```
 
-   See also $OPENAI_API_KEY.
+   See also `$OPENAI_API_KEY`.
 
 3. **Make Scripts Executable:**
 
