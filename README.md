@@ -58,7 +58,7 @@
 ## Components
 
 * **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array).
-* **`bashblock`:** Executs the specified commnd and args, and wraps the result in a bash code fence.
+* **`bashfence`:** Executs the specified commnd and args, and wraps the result in a bash code fence.
 * **`answer`:**  Extracts the latest message content from the JSON conversation history. Useful for retrieving generated code or responses.
 * **`unfence`:** Removes code blocks enclosed in triple backticks (```) from the input. Crucial for preparing model output for execution.
 * **`story.txt`:**  A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
@@ -120,7 +120,7 @@ You can combine these commands to build complex workflows.  Explore `story.txt` 
 How this README was created:
 
 ```bash
-( bashblock cat story.txt; bashblock cat ask; bashblock cat answer; bashblock cat unfence) |
+( bashfence cat story.txt; bashfence cat ask; bashfence cat answer; bashfence cat unfence) |
   ./ask -i Read this code: | \
   ./ask Write a README.md file for this new 'answer' github project.  | \
   ./answer | \
