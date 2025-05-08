@@ -1,0 +1,4 @@
+#!/bin/bash
+
+jq -r '.[-1].content'
+

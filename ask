@@ -1,0 +1,55 @@
+#!/bin/bash
+
+. ~/wip/llamafiles/scripts/env.sh
+
+# usage: ./ask [-i] words words words words
+# usage: ./ask ... | ./ask [-i] words words words words
+PLAIN_INPUT=""
+if [ "$1" = "-i" ]; then
+    shift;
+    PLAIN_INPUT="1"
+fi 
+
+# Read the existing chat history from stdin or create a new one
+if [ -t 0 ]; then
+    # No stdin, read prompt from arguments
+    prompt="$*"
+    messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
+else
+    # Read chat history from stdin
+    read -r -d '' input || true
+    prompt="$*"
+    if [ -n "${PLAIN_INPUT}" ]; then
+        printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
+        messages=$(jq -n  --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
+    else
+        new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
+        messages=$(jq --argjson new_message "$new_message" '. + [$new_message]' <<< "$input")
+    fi
+fi
+
+# API setup
+api_key="${OPENAI_API_KEY:-}"
+VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
+
+# Perform API call
+response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
+    -H "Authorization: Bearer $api_key" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -n --argjson messages "$messages" \
+    --arg model "gpt-3.5-turbo" \
+    --argjson temperature 0.7 \
+    --argjson max_tokens 4096 \
+    '{model: $model, mode: "instruct", temperature: $temperature, max_tokens: $max_tokens, messages: $messages}')")"
+
+# Extract and append the reply
+assistant_reply="$(jq -r '.choices[0].message.content // empty' <<< "$response")"
+
+if [ -z "$assistant_reply" ]; then
+  echo "No response received from the API." >&2
+  exit 1
+else
+  new_assistant_message=$(jq -n --arg content "$assistant_reply" '{"role":"assistant","content":$content}')
+  messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")
+  echo "$messages"
+fi

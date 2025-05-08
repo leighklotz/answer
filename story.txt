@@ -1,0 +1,31 @@
+klotz@Mac:~/wip/answer$ ask write fib in python | answer | unblock
+```python
+def fibonacci(n):
+  """
+  Calculates the nth Fibonacci number.
+
+  Args:
+    n: The index of the Fibonacci number to calculate (non-negative integer).
+
+  Returns:
+    The nth Fibonacci number.  Returns n if n is 0 or 1.  Returns -1 if n is negative.
+  """
+
+  if n < 0:
+    return -1  # Handle negative input
+  elif n <= 1:
+    return n  # Base cases: F(0) = 0, F(1) = 1
+  else:
+    # Iterative approach (more efficient)
+    a, b = 0, 1
+    for _ in range(2, n + 1):
+      a, b = b, a + b
+    return b
+
+print(fibonacci(20))
+```
+klotz@Mac:~/wip/answer$ ask write fib in python | ask call it with 20 and note the output | ask just print the output | answer
+6765
+klotz@Mac:~/wip/answer$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))'  | answer | unfence | python
+6765
+klotz@Mac:~/wip/answer$ 
