@@ -69,7 +69,7 @@
 
 Before you begin, ensure you have the following installed:
 
-* **OpenAI API Key:**  Required for accessing the language model.
+* **OpenAI API Key:**  May be required for accessing the language model.
 * **VIA API Access:** Access to a VIA API instance.
 * **`jq`:**  A lightweight and flexible command-line JSON processor.  Install via your package manager:
     * **Debian/Ubuntu:** `sudo apt-get install jq`
