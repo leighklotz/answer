@@ -58,6 +58,7 @@
 ## Components
 
 * **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array).
+* **`bashblock`:** Executs the specified commnd and args, and wraps the result in a bash code fence.
 * **`answer`:**  Extracts the latest message content from the JSON conversation history. Useful for retrieving generated code or responses.
 * **`unfence`:** Removes code blocks enclosed in triple backticks (```) from the input. Crucial for preparing model output for execution.
 * **`story.txt`:**  A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
@@ -95,12 +96,6 @@ Before you begin, ensure you have the following installed:
    ```
 
    See also `$OPENAI_API_KEY`.
-
-3. **Make Scripts Executable:**
-
-   ```bash
-   chmod +x ask answer unfence
-   ```
 
 ## Usage
 

@@ -40,7 +40,30 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
     --arg model "gpt-3.5-turbo" \
     --argjson temperature 0.7 \
     --argjson max_tokens 4096 \
-    '{model: $model, mode: "instruct", temperature: $temperature, max_tokens: $max_tokens, messages: $messages}')")"
+    '{model: $model,
+      mode: "instruct",
+      temperature: $temperature,
+      max_tokens: $max_tokens,
+      messages: $messages,
+      top_k: 20,
+      top_p: 0.95,
+      min_p: 0.1,
+      tfs_z: 1,
+      typical_p: 1.0,
+      repeat_penalty: 1.0,
+      repeat_last_n: 1024,
+      presence_penalty: 0.0,
+      frequency_penalty: 0.0,
+      dry_multiplier: 0,
+      dry_base: 1.75,
+      dry_allowed_length: 2,
+      dry_penalty_last_n: 1024,
+      xtc_probability: 0,
+      xtc_threshold: 0.1,
+      seed: -1,
+      ignore_eos: false,
+      n_predict: 10482,
+      cache_prompt: true}')")"
 
 # Extract and append the reply
 assistant_reply="$(jq -r '.choices[0].message.content // empty' <<< "$response")"
