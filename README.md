@@ -5,8 +5,7 @@
 **Example Workflow**
 
 ```
-    $ ask write fib in python | answer | unblock
-    ```python
+    $ ask write fib in python | answer | unfence
     def fibonacci(n):
       """
       Calculates the nth Fibonacci number.
@@ -30,7 +29,6 @@
         return b
 
     print(fibonacci(20))
-    ```
 
     $ (ask write fib in python |
       ask call it with 20 and note the output |
