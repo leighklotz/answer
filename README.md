@@ -101,17 +101,17 @@ Before you begin, ensure you have the following installed:
 The `story.txt` file provides a detailed walkthrough of various use cases.  Here's a basic example to get you started:
 
 ```bash
-./ask write a python function to calculate the factorial of a number | ./answer | ./unfence > factorial.py
+ask write a python function to calculate the factorial of a number | answer | unfence > factorial.py
 ./python factorial.py
 ```
 
 **Explanation:**
 
-1.  `./ask write a python function to calculate the factorial of a number`:  Sends a prompt to the language model requesting a Python function for factorial calculation.
-2.  `./answer`: Extracts the generated code from the model's JSON response.
-3.  `./unfence`:  Removes any surrounding code fences (triple backticks) to ensure valid Python code.
+1.  `ask write a python function to calculate the factorial of a number`:  Sends a prompt to the language model requesting a Python function for factorial calculation.
+2.  `answer`: Extracts the generated code from the model's JSON response.
+3.  `unfence`:  Removes any surrounding code fences (triple backticks) to ensure valid Python code.
 4.  `> factorial.py`:  Saves the cleaned code to a file named `factorial.py`.
-5.  `./python factorial.py`:  Executes the Python code.
+5.  `python factorial.py`:  Executes the Python code.
 
 You can combine these commands to build complex workflows.  Explore `story.txt` for more advanced scenarios.
 
@@ -120,11 +120,11 @@ How this README was created:
 
 ```bash
 ( bashfence cat story.txt; bashfence cat ask; bashfence cat answer; bashfence cat unfence) |
-  ./ask -i Read this code: | \
-  ./ask Write a README.md file for this new 'answer' github project.  | \
-  ./answer | \
-  ./ask -i "Re-write this README file to be really good:" | \
-  ./answer > README.md
+  ask -i Read this code: | \
+  ask Write a README.md file for this new 'answer' github project.  | \
+  answer | \
+  ask -i "Re-write this README file to be really good:" | \
+  answer > README.md
 ```
 
 ## License
