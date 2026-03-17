@@ -6,7 +6,7 @@ if ! command -v ask.sh &> /dev/null; then
 fi
 
 ask ()
-{ 
+{
     ANSWER=$(ask.sh "$*")
     if [ $? -ne 0 ]; then
       echo "$0: $(date) ERROR: ask.sh failed with exit code $?" >&2
@@ -23,3 +23,13 @@ answer ()
         return 1
     fi
 }
+
+bashfence ()
+{
+    bashfence.sh "$*"
+    if [ $? -ne 0 ]; then
+        echo "$0: $(date) ERROR: bashfence.sh failed with exit code $?" >&2
+        return 1
+    fi
+}
+
