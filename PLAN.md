@@ -79,7 +79,7 @@ Because `ask.sh` always issues a live API call, re-running the first two stages 
 ### Plan
 
 - [ ] **Conversation caching** — Allow `ask.sh` to optionally write the conversation JSON to a named cache file (`--save <file>`) and to resume from it (`--resume <file>`). This avoids re-issuing earlier turns when extending a conversation.
-- [ ] **`lastanswer` helper** — Introduce a `lastanswer` command (or `ask --resume`) that reads the most recently saved conversation and feeds it into the next `ask`, making it straightforward to append a single new turn without replaying earlier ones.
+- [ ] **`lastanswer` helper** — Introduce a `lastanswer` command (or `ask --resume`) that reads the most recently saved conversation and feeds it into the next `ask`, making it straightforward to append a single new turn without replaying earlier ones. Consider using shell environment vars to keep the last conversation, and perhas show it in $PS1.
 - [ ] **Deterministic sampling** — Document and optionally enforce a fixed `seed` value so that replaying a pipeline with the same prompts produces identical model outputs, making idempotency easier to reason about.
 - [ ] **Content addressing** — Consider keying the cache on a hash of the full prompt chain so that identical prompt sequences always map to the same cached result, while any change in any prompt correctly invalidates the cache.
 
