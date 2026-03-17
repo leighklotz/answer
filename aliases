@@ -33,3 +33,12 @@ bashfence ()
     fi
 }
 
+unfence ()
+{
+    unfence.sh "$*"
+    if [ $? -ne 0 ]; then
+        echo "$0: $(date) ERROR: unfence.sh failed with exit code $?" >&2
+        return 1
+    fi
+}
+
