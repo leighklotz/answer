@@ -85,12 +85,14 @@ Because `ask.sh` always issues a live API call, re-running the first two stages 
 
 ### Example (target UX)
 
+This looks workable and allows multiple ongoing conversations but is too fiddly. Maybe do something with a default save env variable.
+
 ```bash
-# First run: save conversation state
-ask "write fib in python" | ask "call it with 20" --save ~/convs/fib.json | answer
+# First run: save conversation state (JSON) into specified file while outputting answer to stdout
+$ ask "write fib in python" | ask "call it with 20" | answer --save ~/convs/fib.json
 
 # Later: extend without replaying earlier turns
-ask --resume ~/convs/fib.json "now add memoisation" | answer
+$ ask --resume ~/convs/fib.json "now add memoisation" | answer
 ```
 
 ---
