@@ -1,5 +1,25 @@
-ask () 
+# source this file to define the functions
+
+# Check if ask.sh is available
+if ! command -v ask.sh &> /dev/null; then
+    echo "$0: $(date) WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
+fi
+
+ask ()
 { 
-    export ANSWER=$(ask.sh "$*");
+    ANSWER=$(ask.sh "$*")
+    if [ $? -ne 0 ]; then
+      echo "$0: $(date) ERROR: ask.sh failed with exit code $?" >&2
+      return 1
+    fi
     printf "%s\n" "${ANSWER}"
+}
+
+answer ()
+{
+    answer.sh "$*"  # Assuming answer.sh takes arguments
+    if [ $? -ne 0 ]; then
+        echo "$0: $(date) ERROR: answer.sh failed with exit code $?" >&2
+        return 1
+    fi
 }

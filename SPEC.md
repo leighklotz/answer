@@ -8,7 +8,7 @@
 
 ## Components
 
-### `ask` / `ask.sh`
+### `ask`
 
 The core component. Sends a user prompt to a language-model API and returns the full conversation history as a JSON array.
 
@@ -31,7 +31,7 @@ When invoked directly as `ask.sh`, only stdout is used.
 
 #### Input
 
-`ask` / `ask.sh` reads from stdin in two modes:
+`ask` reads from stdin in two modes:
 
 | Condition | Behaviour |
 |-----------|-----------|
@@ -175,7 +175,7 @@ Each `ask` in the pipeline:
 
 ## API Contract
 
-`ask.sh` targets any OpenAI-compatible `/v1/chat/completions` endpoint. The request body is a JSON object containing:
+`ask` and `ask.sh` target any OpenAI-compatible `/v1/chat/completions` endpoint. The request body is a JSON object containing:
 
 | Field | Value |
 |-------|-------|
