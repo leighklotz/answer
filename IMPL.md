@@ -4,12 +4,13 @@
 
 ```
 answer/
-├── aliases       # Bash source: defines the `ask` shell function
-├── answer        # Script: extracts last message content from conversation JSON
+├── aliases       # Bash source: defines the ask/answer/tools shell functions
+├── answer.sh     # Script: extracts last message content from conversation JSON; supports --tee
 ├── ask.sh        # Script: sends prompts to LLM API, manages conversation history
-├── bashfence     # Script: runs a command and wraps output in a bash code fence
+├── bashfence.sh  # Script: runs a command and wraps output in a bash code fence
+├── tools.sh      # Script: pipeline wrapper around toolex.py for tool-call resolution
 ├── story.txt     # Usage examples and walkthroughs
-├── unfence       # Script: strips Markdown code fences from input
+├── unfence.sh    # Script: strips Markdown code fences from input
 ├── LICENSE       # MIT License
 └── README.md     # Project overview and usage guide
 ```
@@ -49,6 +50,7 @@ else
     if [ -n "${PLAIN_INPUT}" ]; then
         # combine raw stdin text with prompt → new conversation
     else
+        # validate that stdin starts with '[' (JSON array)
         # stdin is existing JSON history → append new user message
     fi
 fi
@@ -91,20 +93,65 @@ echo "$messages"
 
 ---
 
-## `answer`
+## `answer.sh`
 
 **Language:** Bash  
 **Dependencies:** `jq`
 
 ```bash
+TEE_MODE=""
+if [ "$1" = "--tee" ] || [ "$1" = "-t" ]; then
+    TEE_MODE="1"
+    shift
+fi
+
 if [ -t 0 ] && [ -n "${ANSWER}" ]; then
-  printf "%s" "${ANSWER}" | jq -r '.[-1].content'
+    json="$(printf "%s" "${ANSWER}")"
 else
-  jq -r '.[-1].content'
+    json="$(cat)"
+fi
+
+if [ -n "$TEE_MODE" ]; then
+    # Mid-pipeline: text to stderr for human, JSON to stdout for next stage
+    printf "%s" "$json" | jq -r '.[-1].content' >&2
+    printf "%s\n" "$json"
+else
+    # Terminal: just print the text
+    printf "%s" "$json" | jq -r '.[-1].content'
 fi
 ```
 
+When `--tee` / `-t` is given, the script acts as a mid-pipeline stage:
+- The plain-text content of the last message is printed to **stderr** (visible to the human).
+- The full JSON conversation array is written to **stdout** (consumed by the next pipeline stage).
+
+Without `--tee`, behaviour is unchanged from the original: plain text is printed to stdout and the conversation JSON is discarded.
+
 `jq -r` (raw output) strips the surrounding JSON string quotes. `.[-1].content` selects the last message's content field.
+
+---
+
+## `tools.sh`
+
+**Language:** Bash  
+**Dependencies:** `toolex.py` (external), `bash`
+
+```bash
+# Build --tools flags
+TOOLS_ARGS=()
+for module in "$@"; do
+    TOOLS_ARGS+=("--tools" "$module")
+done
+
+exec toolex.py --pipe "${TOOLS_ARGS[@]}"
+```
+
+Acts as a thin pipeline wrapper around `toolex.py`. Reads a JSON conversation array from stdin, forwards it to `toolex.py --pipe` along with `--tools <module>` flags, and writes the updated JSON conversation array to stdout.
+
+Guards:
+- Exits with a helpful message if no module names are given.
+- Exits with a helpful message if stdin is a terminal (not a pipe).
+- Exits with a helpful message if `toolex.py` is not found on `$PATH`.
 
 ---
 
@@ -159,6 +206,8 @@ The result is exported as `$ANSWER` so that a subsequent `answer` invocation in 
 
 ## Data Flow
 
+### Basic pipeline
+
 ```
 ┌──────────┐   JSON history   ┌──────────┐   JSON history   ┌──────────┐
 │  ask.sh  │ ───────────────► │  ask.sh  │ ───────────────► │  ask.sh  │
@@ -169,8 +218,22 @@ The result is exported as `$ANSWER` so that a subsequent `answer` invocation in 
                                                                    │
                                                                    ▼
                                                             ┌──────────┐
-                                                            │  answer  │  ──► plain text
+                                                            │  answer  │  ──► plain text (stdout)
                                                             └──────────┘
+```
+
+### Mid-pipeline with `--tee`
+
+```
+┌──────────┐   JSON   ┌──────────┐   JSON   ┌────────────────┐   JSON   ┌──────────┐
+│  ask.sh  │ ────────►│ tools.sh │ ────────►│ answer --tee   │ ────────►│  ask.sh  │ ──► ...
+└──────────┘          └──────────┘          └────────────────┘          └──────────┘
+                                                    │
+                                              plain text
+                                               (stderr)
+                                                    │
+                                                    ▼
+                                              human terminal
 ```
 
 Each `ask.sh` invocation is stateless beyond what it receives on stdin. The entire conversation context is serialised into the pipe stream, so no files or environment variables are required for multi-turn pipelines.

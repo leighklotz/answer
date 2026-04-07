@@ -67,9 +67,15 @@ Extracts the content of the last message from a JSON conversation array.
 #### Synopsis
 
 ```
-answer
-<conversation-json> | answer
+answer [--tee|-t]
+<conversation-json> | answer [--tee|-t]
 ```
+
+#### Options
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `-t` | `--tee` | Mid-pipeline mode: print plain text to **stderr** (for the human) and pass the full JSON conversation array through to **stdout** (for the next pipeline stage). |
 
 #### Input
 
@@ -80,7 +86,38 @@ answer
 
 #### Output
 
-The `.content` field of the last element of the JSON array (plain text, not JSON).
+| Mode | stdout | stderr |
+|------|--------|--------|
+| Default (no `--tee`) | Plain text content of the last message | _(nothing)_ |
+| `--tee` | Full JSON conversation array (passed through) | Plain text content of the last message |
+
+---
+
+### `tools`
+
+A pipeline wrapper around `toolex.py` that resolves tool calls embedded in a conversation and returns the updated conversation array.
+
+#### Synopsis
+
+```
+<conversation-json> | tools <module> [<module>...]
+```
+
+#### Arguments
+
+One or more tool module names to load. These are forwarded to `toolex.py` as `--tools <module>` flags.
+
+#### Input
+
+A JSON conversation array on stdin (as produced by `ask`).
+
+#### Output
+
+An updated JSON conversation array on stdout, with tool-call results appended as `role: "tool"` messages and a final assistant reply.
+
+#### Requirements
+
+`toolex.py` must be installed and available on `$PATH`. `toolex.py` must support `--pipe` mode (reads JSON conversation from stdin, writes updated JSON to stdout).
 
 ---
 
@@ -170,6 +207,34 @@ Each `ask` in the pipeline:
 5. Writes the updated JSON history to stdout.
 
 `answer` terminates the pipeline by extracting and printing the final reply.
+
+### Mid-pipeline (`--tee`) pattern
+
+When `answer --tee` is used mid-pipeline, human-readable text is printed to stderr while the JSON conversation array continues to flow on stdout:
+
+```
+dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about md0?" | answer
+```
+
+```
+                      JSON conversation array flows left→right on stdout
+                      Human-readable output goes to stderr
+
+ask -i "SCSI issues"  |  tools linux_tools  |  answer --tee  |  ask "about md0?"  |  answer
+      ↓                       ↓                    ↓               ↓                    ↓
+ [user msg +            [+ tool_calls +        prints text     [+ user msg +        prints final
+  assistant reply]       tool results +         to stderr;      assistant reply]     text to stdout
+                         final assistant]       passes JSON
+                                                to stdout
+```
+
+### `tools` pipeline stage
+
+The `tools` command acts as a pipeline stage between `ask` and `answer`, resolving any tool calls in the conversation:
+
+```
+ask "Spot SCSI issues with dmesg" | tools linux_tools | answer
+```
 
 ---
 

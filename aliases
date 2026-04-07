@@ -7,7 +7,7 @@ fi
 
 ask ()
 {
-    ANSWER=$(ask.sh "$*")
+    ANSWER=$(ask.sh "$@")
     if [ $? -ne 0 ]; then
       echo "$0: $(date) ERROR: ask.sh failed with exit code $?" >&2
       return 1
@@ -17,7 +17,7 @@ ask ()
 
 answer ()
 {
-    answer.sh "$*"  # Assuming answer.sh takes arguments
+    answer.sh "$@"
     if [ $? -ne 0 ]; then
         echo "$0: $(date) ERROR: answer.sh failed with exit code $?" >&2
         return 1
@@ -26,7 +26,7 @@ answer ()
 
 bashfence ()
 {
-    bashfence.sh "$*"
+    bashfence.sh "$@"
     if [ $? -ne 0 ]; then
         echo "$0: $(date) ERROR: bashfence.sh failed with exit code $?" >&2
         return 1
@@ -35,9 +35,18 @@ bashfence ()
 
 unfence ()
 {
-    unfence.sh "$*"
+    unfence.sh "$@"
     if [ $? -ne 0 ]; then
         echo "$0: $(date) ERROR: unfence.sh failed with exit code $?" >&2
+        return 1
+    fi
+}
+
+tools ()
+{
+    tools.sh "$@"
+    if [ $? -ne 0 ]; then
+        echo "$0: $(date) ERROR: tools.sh failed with exit code $?" >&2
         return 1
     fi
 }

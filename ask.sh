@@ -47,6 +47,13 @@ else
         printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
         messages=$(jq -n  --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
     else
+        # Validate that stdin looks like a JSON array
+        first_char="$(printf "%s" "$input" | head -c 1000 | tr -d '[:space:]' | cut -c1)"
+        if [ "$first_char" != "[" ]; then
+            echo "ask: stdin does not look like a JSON conversation array (first non-whitespace char: '${first_char}')." >&2
+            echo "ask: if you are piping plain text, use the -i / --input flag." >&2
+            exit 1
+        fi
         new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
         messages=$(jq --argjson new_message "$new_message" '. + [$new_message]' <<< "$input")
     fi

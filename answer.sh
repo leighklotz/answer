@@ -1,7 +1,22 @@
 #!/bin/bash
 
+TEE_MODE=""
+if [ "$1" = "--tee" ] || [ "$1" = "-t" ]; then
+    TEE_MODE="1"
+    shift
+fi
+
 if [ -t 0 ] && [ -n "${ANSWER}" ]; then
-  printf "%s" "${ANSWER}" | jq -r '.[-1].content'
+    json="$(printf "%s" "${ANSWER}")"
 else
-  jq -r '.[-1].content'
+    json="$(cat)"
+fi
+
+if [ -n "$TEE_MODE" ]; then
+    # Mid-pipeline: text to stderr for human, JSON to stdout for next stage
+    printf "%s" "$json" | jq -r '.[-1].content' >&2
+    printf "%s\n" "$json"
+else
+    # Terminal: just print the text
+    printf "%s" "$json" | jq -r '.[-1].content'
 fi

@@ -56,10 +56,40 @@
 ## Components
 
 * **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array). Sets result to `$ANSWER` as well as printing to stdout.
-* **`bashfence`:** Executs the specified commnd and args, and wraps the result in a bash code fence.
-* **`answer`:**  Extracts the latest message content from the JSON conversation history. Useful for retrieving generated code or responses. If no stdin, looks in `$ANSWER`.
+* **`bashfence`:** Executes the specified command and args, and wraps the result in a bash code fence.
+* **`answer`:**  Extracts the latest message content from the JSON conversation history. Useful for retrieving generated code or responses. If no stdin, looks in `$ANSWER`. Use `answer --tee` mid-pipeline to print text to stderr and pass JSON through on stdout.
+* **`tools`:** Pipeline wrapper around `toolex.py`. Reads a JSON conversation array from stdin, resolves tool calls via toolex, and writes the updated conversation array to stdout.
 * **`unfence`:** Removes code blocks enclosed in triple backticks (```) from the input. Crucial for preparing model output for execution.
 * **`story.txt`:**  A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
+
+
+## Pipeline Patterns
+
+### Basic question and answer
+
+```bash
+ask "Write fib in Python" | answer
+```
+
+### Piping command output into a question (use `-i`)
+
+```bash
+dmesg | ask -i "Spot any SCSI issues" | answer
+```
+
+### Chained follow-up questions
+
+Use `answer --tee` mid-pipeline so the conversation JSON continues to flow on stdout while the human-readable reply appears on stderr:
+
+```bash
+dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about the md0 device?" | answer
+```
+
+### Tool-call resolution with toolex
+
+```bash
+ask "Spot any SCSI issues with dmesg" | tools linux_tools | answer --tee | ask "What can I do about the md0 device?" | answer
+```
 
 
 

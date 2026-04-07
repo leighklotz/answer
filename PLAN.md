@@ -18,10 +18,34 @@ However, several edge cases break this flow:
 
 ### Plan
 
-- [ ] Add input validation in `ask.sh`: if stdin is not a terminal and the first non-whitespace character of stdin is not `[`, print an error and exit rather than silently producing a broken conversation.
+- [x] Add input validation in `ask.sh`: if stdin is not a terminal and the first non-whitespace character of stdin is not `[`, print an error and exit rather than silently producing a broken conversation.
 - [ ] Propagate non-zero exit codes through the pipeline (use `set -o pipefail` where appropriate, or check `${PIPESTATUS[@]}` in the wrapper function).
 - [ ] Add an integration test / smoke-test script (`test/pipeline_test.sh`) that mocks the API and verifies that a three-stage `ask | ask | ask | answer` pipeline produces the correct final content.
 - [ ] Document the expected input format prominently in the `--help` output of `ask.sh`.
+
+---
+
+## 1a. Pipeline architecture — `answer --tee` and `tools` wrapper
+
+### Status: Implemented
+
+- [x] Add `--tee` / `-t` flag to `answer.sh`: prints plain text to stderr for the human, passes JSON through on stdout for the next pipeline stage.
+- [x] Create `tools.sh`: a thin pipeline wrapper around `toolex.py --pipe` that accepts one or more module names and forwards the JSON conversation array through toolex for tool-call resolution.
+- [x] Update `aliases` to use `"$@"` instead of `"$*"` (fixes multi-word argument handling) and add a `tools` shell function.
+- [x] Update `SPEC.md`, `IMPL.md`, `README.md` with documentation of the new features.
+
+### Target pipeline patterns (now supported)
+
+```bash
+# Plain data piped in:
+dmesg | ask -i "Spot any SCSI issues" | answer
+
+# Chained follow-ups after answer:
+dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about the md0 device?" | answer
+
+# Integration with toolex:
+ask "Spot any SCSI issues with dmesg" | tools linux_tools | answer --tee | ask "What can I do about the md0 device?" | answer
+```
 
 ---
 
