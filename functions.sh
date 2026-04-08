@@ -1,5 +1,11 @@
 # source this file to define the functions
 
+# Require bash 4+
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+    echo "$0: ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
+    return 1 2>/dev/null || exit 1
+fi
+
 # Check if ask.sh is available
 if ! command -v ask.sh &> /dev/null; then
     echo "$0: $(date) WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
