@@ -1,4 +1,4 @@
-klotz@Mac:~/wip/answer$ ask write fib in python | answer | unblock
+klotz@Mac:~/wip/answer$ ask write fib in python | answer | unfence
 ```python
 def fibonacci(n):
   """
