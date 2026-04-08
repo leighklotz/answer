@@ -71,12 +71,11 @@ function pipetest() {
         printf >&2 "pipetest: could not create temporary directory\n"
         exit 1
     fi
+    trap 'rm -rf "$tmpdir"' EXIT
     if ! tmpfile=$(mktemp --tmpdir="$tmpdir" pipetest.XXXXXX 2>/dev/null) ; then
         printf >&2 "pipetest: could not create temporary file\n"
-        rm -rf "$tmpdir"
         exit 1
     fi
-    trap 'rm -rf "$tmpdir"' EXIT
 
     # 2. Read all of stdin into the temp file.
     cat >"$tmpfile"
