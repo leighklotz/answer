@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 # (bx git status; bx git diff --numstat; bx git diff) | help "${GIT_COMMIT_PROMPT}"

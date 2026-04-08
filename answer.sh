@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 TEE_MODE=""
 if [ "$1" = "--tee" ] || [ "$1" = "-t" ]; then

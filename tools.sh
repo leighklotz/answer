@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 # tools.sh — pipeline-compatible wrapper around toolex
 # Usage: ask "prompt" | tools <module> [<module>...] | answer
 #
