@@ -1,2 +1,3 @@
 export PATH="~/wip/answer:${PATH}"
-source ~/wip/answer/aliases
+source ~/wip/answer/functions.sh
+
