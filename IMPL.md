@@ -4,13 +4,16 @@
 
 ```
 answer/
-├── aliases       # Bash source: defines the ask/answer/tools shell functions
 ├── answer.sh     # Script: extracts last message content from conversation JSON; supports --tee
 ├── ask.sh        # Script: sends prompts to LLM API, manages conversation history
-├── bashfence.sh  # Script: runs a command and wraps output in a bash code fence
+├── bx.sh         # Script: runs a command and wraps output in a bash code fence
+├── enable.sh     # Script: (New) environment setup/enabler
+├── functions.sh  # Bash source: defines the ask/answer/tools shell functions
+├── help-commit.sh # Script: (New) helper for commit messages
+├── logging.sh    # Script: (New) logging utilities
 ├── tools.sh      # Script: pipeline wrapper around toolex.py for tool-call resolution
-├── story.txt     # Usage examples and walkthroughs
 ├── unfence.sh    # Script: strips Markdown code fences from input
+├── story.txt     # Usage examples and walkthroughs
 ├── LICENSE       # MIT License
 └── README.md     # Project overview and usage guide
 ```
@@ -169,7 +172,7 @@ Key edge cases handled:
 
 ---
 
-## `bashfence`
+## `bx`
 
 **Language:** Bash  
 **Dependencies:** none beyond `bash`
@@ -186,7 +189,7 @@ The wrapped command's exit status is captured in `$s` and used by the final `exi
 
 ---
 
-## `aliases`
+## `functions.sh`
 
 **Language:** Bash
 
@@ -242,10 +245,9 @@ Each `ask.sh` invocation is stateless beyond what it receives on stdin. The enti
 
 ## Known Limitations
 
-1. **Hard-coded model name** — `gpt-3.5-turbo` is embedded in the API request body. There is no flag to choose a different model at runtime.
-2. **Hard-coded sampler parameters** — Temperature, `top_k`, `top_p`, and other sampler settings are all literals with no override mechanism.
-3. **No file attachment** — There is no built-in way to include the content of a named file as part of the conversation context; users must rely on `bashfence cat <file>` piped into `ask -i`.
-4. **No tool / function calling** — The API request does not include a `tools` field, so the model cannot invoke external functions.
-5. **`$ANSWER` is single-valued** — The `aliases` function stores only the most recent API response. Chaining interactive `ask` calls overwrites `$ANSWER` each time, so only the last response is available to `answer` without a pipe.
-6. **Pipeline idempotency** — Re-running a pipeline that begins with `ask` always starts a fresh conversation; there is no mechanism to resume a prior conversation or to make repeated invocations idempotent.
-7. **`env.sh` coupling** — `ask.sh` unconditionally sources `~/wip/llamafiles/scripts/env.sh`, which may not exist on all machines. Missing this file causes `ask.sh` to fail even when all required environment variables are already set.
+- **Hard-coded model name** — `gpt-3.5-turbo` is embedded in the API request body. There is no flag to choose a different model at runtime.
+- **Hard-coded sampler parameters** — Temperature, `top_k`, `top_p`, and other sampler settings are all literals with no override mechanism.
+- **No tool / function calling** — The API request does not include a `tools` field, so the model cannot invoke external functions.
+- **`$ANSWER` is single-valued** — The `aliases` function stores only the most recent API response. Chaining interactive `ask` calls overwrites `$ANSWER` each time, so only the last response is available to `answer` without a pipe.
+- **Pipeline idempotency** — Re-running a pipeline that begins with `ask` always starts a fresh conversation; there is no mechanism to resume a prior conversation or to make repeated invocations idempotent.
+- **`env.sh` coupling** — `ask.sh` unconditionally sources `~/wip/llamafiles/scripts/env.sh`, which may not exist on all machines. Missing this file causes `ask.sh` to fail even when all required environment variables are already set.

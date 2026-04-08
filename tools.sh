@@ -6,6 +6,8 @@
 # --pipe mode (which resolves tool calls and returns the updated conversation
 # array), and writes the result to stdout.
 
+TOOLEX_SH=~/wip/toolex/toolex.sh
+
 if [ $# -eq 0 ]; then
     echo "Usage: tools <module_name> [<module_name>...]" >&2
     exit 1
@@ -29,4 +31,4 @@ done
 
 # Pass through to toolex in pipe mode:
 # toolex.py --pipe reads JSON conversation from stdin, writes updated JSON to stdout
-exec toolex.py --pipe "${TOOLS_ARGS[@]}"
+exec "${TOOLEX_SH} --pipe "${TOOLS_ARGS[@]}"

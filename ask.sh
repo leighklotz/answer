@@ -3,17 +3,17 @@
 . ~/wip/llamafiles/scripts/env.sh
 
 # usage: ask your question | answer
-# usage: bashfence cat foo.sh | ask -i your question about foo.sh | answer
-# usage: ask -i your question about foo.sh < (bashfence cat foo.sh) | answer
-# usage: bashfence cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
-# usage: bashfence cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | answer
+# usage: ask -i your question about foo.sh < (bx cat foo.sh) | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
 
 # todo: write usage
 function usage {
   echo "Usage: ask [options] [prompt]"
   echo ""
   echo "  ask -i <prompt>                Ask a question directly."
-  echo "  bashfence cat <file> | ask -i <question>  Ask a question about the output of a bash command."
+  echo "  bx cat <file> | ask -i <question>  Ask a question about the output of a bash command."
   echo "  <bash command> | ask -i <question>  Same as above, piping the command's output."
   echo "  ask -i <question> < (bash command)  Alternative way to pipe the command's output."
   echo "  -i, --input <prompt>           Specify the prompt to ask."
@@ -21,7 +21,7 @@ function usage {
   echo ""
   echo "Example:"
   echo "  ask -i 'What is the capital of France?'"
-  echo "  bashfence cat my_script.sh | ask -i 'What does this script do?'"
+  echo "  bx cat my_script.sh | ask -i 'What does this script do?'"
 }
 
 
