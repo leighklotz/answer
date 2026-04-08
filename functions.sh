@@ -13,11 +13,20 @@ fi
 
 ask ()
 {
-    ANSWER=$(ask.sh "$@")
+    # If stdin is a terminal, we pipe the JSON through 'answer' to get text
+    if [ -t 1 ]; then
+        ANSWER=$(ask.sh "$@" | answer)
+    else
+        # In a pipeline, we want;5u the raw JSON to flow through
+        ANSWER=$(ask.sh "$@")
+    fi
+
+    # Check if the command failed
     if [ $? -ne 0 ]; then
-      echo "$0: $(date) ERROR: ask.sh failed with exit code $?" >&2
+      echo "$0: $(date) ERROR: ask.sh failed" >&2
       return 1
     fi
+
     printf "%s\n" "${ANSWER}"
 }
 
@@ -63,7 +72,7 @@ tools ()
 # to stdout.  Otherwise nothing is written.
 
 function pipetest() {
-    local user_query="$*"
+    local user_query="$@"
 
     # 1. Capture stdin into a temporary file – this allows very large input.
     local tmpdir tmpfile
