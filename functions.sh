@@ -82,8 +82,8 @@ function pipetest() {
     printf "\n" >&2
 
     # 4. If the first character is 'y' or 'Y', output the captured data.
-    case "${reply,,}" in
-        y*) cat "$tmpfile" ;;
+    case "${reply}" in
+        y*|Y*) cat "$tmpfile" ;;
         *) printf "🚫 discarded\n" >&2 ;;
     esac
 }
