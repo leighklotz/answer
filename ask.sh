@@ -1,19 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 . ~/wip/llamafiles/scripts/env.sh
 
 # usage: ask your question | answer
-# usage: bashfence cat foo.sh | ask -i your question about foo.sh | answer
-# usage: ask -i your question about foo.sh < (bashfence cat foo.sh) | answer
-# usage: bashfence cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
-# usage: bashfence cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | answer
+# usage: ask -i your question about foo.sh < (bx cat foo.sh) | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
 
 # todo: write usage
 function usage {
   echo "Usage: ask [options] [prompt]"
   echo ""
   echo "  ask -i <prompt>                Ask a question directly."
-  echo "  bashfence cat <file> | ask -i <question>  Ask a question about the output of a bash command."
+  echo "  bx cat <file> | ask -i <question>  Ask a question about the output of a bash command."
   echo "  <bash command> | ask -i <question>  Same as above, piping the command's output."
   echo "  ask -i <question> < (bash command)  Alternative way to pipe the command's output."
   echo "  -i, --input <prompt>           Specify the prompt to ask."
@@ -21,7 +21,7 @@ function usage {
   echo ""
   echo "Example:"
   echo "  ask -i 'What is the capital of France?'"
-  echo "  bashfence cat my_script.sh | ask -i 'What does this script do?'"
+  echo "  bx cat my_script.sh | ask -i 'What does this script do?'"
 }
 
 
@@ -47,6 +47,13 @@ else
         printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
         messages=$(jq -n  --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
     else
+        # Validate that stdin looks like a JSON array
+        first_char="$(printf "%s" "$input" | head -c 1000 | tr -d '[:space:]' | cut -c1)"
+        if [ "$first_char" != "[" ]; then
+            echo "ask: stdin does not look like a JSON conversation array (first non-whitespace char: '${first_char}')." >&2
+            echo "ask: if you are piping plain text, use the -i / --input flag." >&2
+            exit 1
+        fi
         new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
         messages=$(jq --argjson new_message "$new_message" '. + [$new_message]' <<< "$input")
     fi
