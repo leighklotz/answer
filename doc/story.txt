@@ -1,3 +1,7 @@
+This is the initial story. Implementation may diverge in some details, but this is the user story.
+
+klotz@Mac:~/wip/answer$ ask 2+3=
+5
 klotz@Mac:~/wip/answer$ ask write fib in python | answer | unfence
 ```python
 def fibonacci(n):
@@ -25,6 +29,8 @@ def fibonacci(n):
 print(fibonacci(20))
 ```
 klotz@Mac:~/wip/answer$ ask write fib in python | ask call it with 20 and note the output | ask just print the output | answer
+6765
+klotz@Mac:~/wip/answer$ ask write fib in python | ask call it with 20 and note the output | ask just print the output
 6765
 klotz@Mac:~/wip/answer$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))'  | answer | unfence | python
 6765

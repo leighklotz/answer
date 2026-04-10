@@ -1,3 +1,6 @@
+# for now, rely on AAA and parameters and this other package
+source ~/wip/llamafiles/scripts/env.sh
+
 # source this file to define the functions
 
 # Require bash 4+
@@ -11,26 +14,12 @@ if ! command -v ask.sh &> /dev/null; then
     echo "$0: $(date) WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
-ask ()
+function ask ()
 {
-    # If stdin is a terminal, we pipe the JSON through 'answer' to get text
-    if [ -t 1 ]; then
-        ANSWER=$(ask.sh "$@" | answer)
-    else
-        # In a pipeline, we want;5u the raw JSON to flow through
-        ANSWER=$(ask.sh "$@")
-    fi
-
-    # Check if the command failed
-    if [ $? -ne 0 ]; then
-      echo "$0: $(date) ERROR: ask.sh failed" >&2
-      return 1
-    fi
-
-    printf "%s\n" "${ANSWER}"
+    ask.sh "$@"
 }
 
-answer ()
+function answer ()
 {
     answer.sh "$@"
     if [ $? -ne 0 ]; then
@@ -39,7 +28,7 @@ answer ()
     fi
 }
 
-bx ()
+function bx ()
 {
     bx.sh "$@"
     if [ $? -ne 0 ]; then
@@ -48,7 +37,7 @@ bx ()
     fi
 }
 
-unfence ()
+function unfence ()
 {
     unfence.sh "$@"
     if [ $? -ne 0 ]; then
@@ -57,7 +46,7 @@ unfence ()
     fi
 }
 
-tools ()
+function tools ()
 {
     tools.sh "$@"
     if [ $? -ne 0 ]; then
@@ -101,4 +90,46 @@ function pipetest() {
         y*|Y*) cat "$tmpfile" ;;
         *) printf "🚫 discarded\n" >&2 ;;
     esac
+}
+
+function infer ()
+{
+    local json="$1"
+    
+    # 1. Check if input is JSON array
+    local is_json
+    is_json=$(printf "%s" "$json" | tr -d '[:space:]' | cut -c1)
+
+    if [ "$is_json" != "[" ]; then
+        # Input is plain text, wrap it as a user message
+        json=$(jq -n --arg content "$json" '[{"role":"user","content":$content}]')
+    fi
+    
+    # 2. API Setup
+    local api_key="${OPENAI_API_KEY:-}"
+    local endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
+
+    # 3. Perform API call (The logic moved from ask.sh)
+    local response
+    response=$(curl -s -X POST "${endpoint}" \
+        -H "Authorization: Bearer $api_key" \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n --argjson messages "$json" \
+        --arg model "gpt-3.5-turbo" \
+        --argjson temperature 0.7 \
+        --argjson max_tokens 4096 \
+        '{model: $model, mode: "instruct", temperature: $temperature, max_tokens: $max_tokens, messages: $messages}')")
+
+    local assistant_reply
+    assistant_reply=$(jq -r '.choices[0].message.content // empty' <<< "$response")
+
+    if [ -z "$assistant_reply" ]; then
+      printf "No response received from the API.\n" >&2
+      return 1
+    fi
+
+    # 4. Append reply and return updated JSON
+    local new_assistant_message
+    new_assistant_message=$(jq -n --arg content "$assistant_reply" '{"role":"assistant","content":$content}')
+    jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$json"
 }

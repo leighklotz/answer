@@ -1,131 +1,63 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
-
-source ~/wip/llamafiles/scripts/env.sh
-
 source "${SCRIPT_DIR}/functions.sh"
 
 # usage: ask your question | answer
 # usage: ask your question
-# usage: bx cat foo.sh | ask -i your question about foo.sh | answer
-# usage: bx cat foo.sh | ask -i your question about foo.sh 
-# usage: ask -i your question about foo.sh < (bx cat foo.sh) | answer
 # usage: ask -i your question about foo.sh < (bx cat foo.sh) 
-# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh 
+# usage: bx cat foo.sh | ask -i your question about foo.sh | answer
+# usage: ask -i your question about foo.sh < (bx cat foo.sh) 
+# usage: ask -i your question about foo.sh < (bx cat foo.sh) | answer
 # usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments 
-# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
 # usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments 
+# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
 # usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  
 # usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer 
 # usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence 
 # usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence | python
 
-# todo: write usage
-function usage {
-  echo "Usage: ask [options] [prompt]"
-  echo ""
-  echo "  ask -i <prompt>                Ask a question directly."
-  echo "  bx cat <file> | ask -i <question>  Ask a question about the output of a bash command."
-  echo "  <bash command> | ask -i <question>  Same as above, piping the command's output."
-  echo "  ask -i <question> < (bash command)  Alternative way to pipe the command's output."
-  echo "  -i, --input <prompt>           Specify the prompt to ask."
-  echo "  --help                          Display this help message."
-  echo ""
-  echo "Example:"
-  echo "  ask -i 'What is the capital of France?'"
-  echo "  bx cat my_script.sh | ask -i 'What does this script do?'"
-}
-
-
 PLAIN_INPUT=""
 if [ "$1" = "-i" ] || [ "$1" = "--input" ]; then
     shift
     PLAIN_INPUT="1"
-elif [ "$1" = "--help" ]; then
-    usage
-    exit 0
 fi
 
-# Read the existing chat history from stdin or create a new one
+# 1. Prepare the conversation/input
 if [ -t 0 ]; then
-    # No stdin, read prompt from arguments
+    # No stdin, user provided argument
     prompt="$*"
-    messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
+    input=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
 else
-    # Read chat history from stdin
-    read -r -d '' input || true
+    # Reading from pipe
+    read -r -d '' stdin_content || true
     prompt="$*"
     if [ -n "${PLAIN_INPUT}" ]; then
-        printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
-        messages=$(jq -n  --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
+        # Merge prompt and piped text into one user message
+        input=$(jq -n --arg p "$prompt" --arg s "$stdin_content" '[{"role":"user","content":($p + "\n\n" + $s)}]')
     else
-        # Validate that stdin looks like a JSON array
-        first_char="$(printf "%s" "$input" | head -c 1000 | tr -d '[:space:]' | cut -c1)"
+        # Validate JSON
+        first_char="$(printf "%s" "$stdin_content" | tr -d '[:space:]' | cut -c1)"
         if [ "$first_char" != "[" ]; then
             echo "ask: stdin does not look like a JSON conversation array (first non-whitespace char: '${first_char}')." >&2
             echo "ask: if you are piping plain text, use the -i / --input flag." >&2
             exit 1
         fi
-        new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
-        messages=$(jq --argjson new_message "$new_message" '. + [$new_message]' <<< "$input")
+        # Append new user message to existing JSON array
+        new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
+        input=$(jq --argjson nm "$new_msg" '. + [$nm]' <<< "$stdin_content")
     fi
 fi
 
-# API setup
-api_key="${OPENAI_API_KEY:-}"
-VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
-
-# Perform API call
-response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
-    -H "Authorization: Bearer $api_key" \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --argjson messages "$messages" \
-    --arg model "gpt-3.5-turbo" \
-    --argjson temperature 0.7 \
-    --argjson max_tokens 4096 \
-    '{model: $model,
-      mode: "instruct",
-      temperature: $temperature,
-      max_tokens: $max_tokens,
-      messages: $messages,
-      top_k: 20,
-      top_p: 0.95,
-      min_p: 0.1,
-      tfs_z: 1,
-      typical_p: 1.0,
-      repeat_penalty: 1.0,
-      repeat_last_n: 1024,
-      presence_penalty: 0.0,
-      frequency_penalty: 0.0,
-      dry_multiplier: 0,
-      dry_base: 1.75,
-      dry_allowed_length: 2,
-      dry_penalty_last_n: 1024,
-      xtc_probability: 0,
-      xtc_threshold: 0.1,
-      seed: -1,
-      ignore_eos: false,
-      n_predict: 10482,
-      cache_prompt: true}')")"
-
-# Extract and append the reply
-assistant_reply="$(jq -r '.choices[0].message.content // empty' <<< "$response")"
-
-if [ -z "$assistant_reply" ]; then
-  echo "No response received from the API." >&2
-  exit 1
+# 2. Perform inference
+if [ -t 1 ]; then
+    # If terminal, perform inference and extract text via answer
+    printf "%s" "$input" | answer
 else
-  new_assistant_message=$(jq -n --arg content "$assistant_reply" '{"role":"assistant","content":$content}')
-  messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")
-  # echo "$messages"
-  # Check if stdout is a terminal
-  if [ -t 1 ]; then
-      # If terminal, pipe the JSON to answer
-      echo "$messages" | answer
-  else
-      # If piped, output the raw JSON for the next command
-      echo "$messages"
-  fi
-
+    # If piped, just output the JSON conversation array without calling the API
+    printf "%s" "$input"
 fi
+
+
