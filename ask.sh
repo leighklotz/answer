@@ -1,12 +1,25 @@
 #!/usr/bin/env bash
 
-. ~/wip/llamafiles/scripts/env.sh
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+
+source ~/wip/llamafiles/scripts/env.sh
+
+source "${SCRIPT_DIR}/functions.sh"
 
 # usage: ask your question | answer
+# usage: ask your question
 # usage: bx cat foo.sh | ask -i your question about foo.sh | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh 
 # usage: ask -i your question about foo.sh < (bx cat foo.sh) | answer
+# usage: ask -i your question about foo.sh < (bx cat foo.sh) 
 # usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments 
 # usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
+# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments 
+# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  
+# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer 
+# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence 
+# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence | python
 
 # todo: write usage
 function usage {
@@ -105,5 +118,14 @@ if [ -z "$assistant_reply" ]; then
 else
   new_assistant_message=$(jq -n --arg content "$assistant_reply" '{"role":"assistant","content":$content}')
   messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")
-  echo "$messages"
+  # echo "$messages"
+  # Check if stdout is a terminal
+  if [ -t 1 ]; then
+      # If terminal, pipe the JSON to answer
+      echo "$messages" | answer
+  else
+      # If piped, output the raw JSON for the next command
+      echo "$messages"
+  fi
+
 fi
