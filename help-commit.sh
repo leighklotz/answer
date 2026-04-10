@@ -14,5 +14,5 @@ GIT_COMMIT_PROMPT="Below is the output of a git bash session.  Read the session 
 # (bx git status; bx git diff --numstat; bx git diff; git diff --cached) | ask -i "${GIT_COMMIT_PROMPT}" |  answer | pipetest | unfence | bash
 # (bx git status; bx git diff --numstat; bx git diff; git diff --cached) | ask -i "${GIT_COMMIT_PROMPT}" |  answer | unfence --ask | bash
 
-(bx git status; bx git diff --numstat; bx git diff; git diff --cached) | ask -i "${GIT_COMMIT_PROMPT}" |  answer | pipetest | unfence | bash
+(bx git status; bx git diff --numstat; bx git diff; git diff --cached) | ask -i "${GIT_COMMIT_PROMPT}" | answer | pipetest | unfence | bash
 
