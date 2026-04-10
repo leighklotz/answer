@@ -19,11 +19,6 @@ if [ -t 0 ]; then
     exit 1
 fi
 
-if ! command -v toolex.py &> /dev/null; then
-    echo "tools: toolex.py not found on PATH. Please install toolex." >&2
-    exit 1
-fi
-
 # Build --tools flags
 TOOLS_ARGS=()
 for module in "$@"; do
@@ -32,4 +27,4 @@ done
 
 # Pass through to toolex in pipe mode:
 # toolex.py --pipe reads JSON conversation from stdin, writes updated JSON to stdout
-exec "${TOOLEX_SH} --pipe "${TOOLS_ARGS[@]}"
+exec "${TOOLEX_SH}" --pipe "${TOOLS_ARGS[@]}"
