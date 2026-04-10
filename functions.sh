@@ -56,6 +56,7 @@ unfence ()
         return 1
     fi
 }
+
 tools ()
 {
     tools.sh "$@"
