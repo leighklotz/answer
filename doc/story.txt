@@ -1,4 +1,5 @@
-klotz@Mac:~/wip/answer$ ask write fib in python | answer | unfence
+# Example python
+$ ask write fib in python | answer | unfence
 ```python
 def fibonacci(n):
   """
@@ -24,8 +25,54 @@ def fibonacci(n):
 
 print(fibonacci(20))
 ```
-klotz@Mac:~/wip/answer$ ask write fib in python | ask call it with 20 and note the output | ask just print the output | answer
+$ ask write fib in python | ask call it with 20 and note the output | ask just print the output | answer
 6765
-klotz@Mac:~/wip/answer$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))'  | answer | unfence | python
+$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))'  | answer | unfence | python
 6765
-klotz@Mac:~/wip/answer$ 
+$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))'  | answer | pipetest | unfence | python
+🤖 ```python
+def fib(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+
+print(fib(20))
+```
+🤖 : Y or N? y
+
+6765
+$
+
+# Example: Bash scripting with iterative refinement
+$ ask 'write an inline bash script inside a single code fence to list all files larger than 100MB in /tmp' | answer -t | unfence | bash
+```bash
+find /tmp -type f -size +100M -exec ls -lh {} +
+```
+klotz@edge:~/wip/answer$ ask 'write a inline bash script inside a single code fence to list files > 100MB' | ask 'modify it to sort by size descending and save to log.txt' | answer | pipetest | unfence | bash
+🤖 ```bash
+find . -type f -size +100M -exec du -h {} + | sort -rh > log.txt
+```
+🤖 : Y or N? y
+
+klotz@edge:~/wip/answer$
+
+
+# Example 4: Single-shot code extraction and execution
+$ ask 'write a python function for quicksort' | ask 'print just the code with `print(quicksort([3,1,4,2]))`' | answer | pipetest | unfence | python
+🤖 ```python
+def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quicksort(left) + middle + quicksort(right)
+
+🤖 : Y or N? y
+
+[1, 2, 3, 4]
+
+# With answer in the middle
+$ ask 'write a python function for quicksort' | answer -t | ask 'print just the code with `print(quicksort([3,1,4,2]))`' | answer | pipetest | unfence | python

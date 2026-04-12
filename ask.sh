@@ -47,24 +47,32 @@ elif [ "$1" = "--help" ]; then
     exit 0
 fi
 
-# Read the existing chat history from stdin or create a new one
+# --- FIXED INPUT HANDLING ---
+input=""
 if [ -t 0 ]; then
-    # No stdin, read prompt from arguments
     prompt="$*"
     messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
 else
-    # Read chat history from stdin
-    read -r -d '' input || true
+    # Read the first line to check for the magic header
+    IFS= read -r first_line || true
+    
+    if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
+        # If it's the header, the rest of stdin is pure JSON
+        input=$(cat)
+    else
+        # Otherwise, recombine the line we read with the rest of the stream
+        input="${first_line}$(printf '\n')$(cat)"
+    fi
+
     prompt="$*"
     if [ -n "${PLAIN_INPUT}" ]; then
         printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
         messages=$(jq -n  --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
     else
-        # Validate that stdin looks like a JSON array
-        first_char="$(printf "%s" "$input" | head -c 1000 | tr -d '[:space:]' | cut -c1)"
+        # Validate that input looks like a JSON array (after stripping header)
+        first_char="$(printf "%s" "$input" | tr -d '[:space:]' | cut -c1)"
         if [ "$first_char" != "[" ]; then
-            echo "ask: stdin does not look like a JSON conversation array (first non-whitespace char: '${first_char}')." >&2
-            echo "ask: if you are piping plain text, use the -i / --input flag." >&2
+            echo "ask: stdin does not look like a JSON conversation array." >&2
             exit 1
         fi
         new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
@@ -125,7 +133,6 @@ else
       printf "%s" "$messages" | answer
   else
       # If piped, output the raw JSON for the next command
-      printf "%s" "$messages"
+      printf "%s\n%s" "${PIPELINE_MAGIC_HEADER}" "$messages"
   fi
-
 fi
