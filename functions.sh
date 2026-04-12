@@ -17,7 +17,7 @@ ask ()
     if [ -t 1 ]; then
         ANSWER=$(ask.sh "$@" | answer)
     else
-        # In a pipeline, we want;5u the raw JSON to flow through
+        # In a pipeline, we want the raw JSON to flow through
         ANSWER=$(ask.sh "$@")
     fi
 
