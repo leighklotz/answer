@@ -122,10 +122,10 @@ else
   # Check if stdout is a terminal
   if [ -t 1 ]; then
       # If terminal, pipe the JSON to answer
-      echo "$messages" | answer
+      printf "%s" "$messages" | answer
   else
       # If piped, output the raw JSON for the next command
-      echo "$messages"
+      printf "%s" "$messages"
   fi
 
 fi

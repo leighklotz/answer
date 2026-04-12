@@ -1,4 +1,4 @@
-# source this file to define the functions
+# source this file to define the functionsg
 
 # Require bash 4+
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
@@ -13,35 +13,42 @@ fi
 
 declare -g LAST_ANSWER
 
+PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
+
 ask ()
 {
     local RAW_JSON
+    local FLAG
+    local header_line
+
+    # If stdin is available, check for PIPELINE_MAGIC_HEADER:
+    # If header is present pass through raw JSON, else if stdin is available and header is absent, pass ask -i.
+    FLAG=""
+    echo "about read -t" >&2
+    if read -t 0.001 header_line; then
+        printf "** cat %s\n" "${header_line}" >&2
+        if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
+            echo "Saw PIPELINE_MAGIC_HEADER" >&2
+            else
+            FLAG="-i"
+            printf "Saw random file input: %s\n" "${header_line}" >&2
+        fi
+    fi
     if [ -t 1 ]; then
-        # 1. Capture output from the external script into a variable (subshell)
-        RAW_JSON=$(ask.sh "$@") || return 1
-
-        # # 2. Print only the text content to stdout for the user
-        # echo "$RAW_JSON" | jq -r '.[-1].content'
-
-        # 3. Call 'answer' in the CURRENT shell using a here-string (<<<)
-        # This avoids a pipe and ensures LAST_ANSWER is updated globally.
-        answer <<< "$RAW_JSON"
-        # Check if the command failed
-        s=$?
-        if [ $? -ne 0 ]; then
-            echo "$0: $(date) ERROR: ask.sh failed: $s" >&2
-            return 1
-        fi
-
+        echo "* t1">&2
+        # 1. If output is a terminal, run ask.sh and capture output into a variable pass to answer
+        # 2. Calling 'answer' in the CURRENT shell using a here-string (<<<) avoids a pipe and ensures LAST_ANSWER is updated globally.
+        answer <<< "$(printf "%s\n" "${header_line}"; cat | ask.sh $FLAG "$@")"; s=$?
+        return 33
     else
-        # In a pipeline, just pass through raw JSON
-        ask.sh "$@"
-        # Check if the command failed
-        s=$?
-        if [ $? -ne 0 ]; then
-            echo "$0: $(date) ERROR: ask.sh failed: $s" >&2
-            return 1
-        fi
+        echo "* t0">&2
+        # 3. If output is not a terminal, run ask.sh in a subshell and capture output into a variable
+        ask.sh $FLAG "$@"; s=$?
+    fi
+    # Check if the command failed
+    if [ $? -ne 0 ]; then
+        echo "$0: $(date) ERROR: ask.sh failed: $s" >&2
+        return 1
     fi
 }
 
@@ -78,8 +85,9 @@ answer ()
 bx ()
 {
     bx.sh "$@"
-    if [ $? -ne 0 ]; then
-        echo "$0: $(date) ERROR: bx.sh failed with exit code $?" >&2
+    s=$?
+    if [ $s -ne 0 ]; then
+        echo "$0: $(date) ERROR: bx.sh failed with exit code $s" >&2
         return 1
     fi
 }
@@ -87,8 +95,9 @@ bx ()
 unfence ()
 {
     unfence.sh "$@"
-    if [ $? -ne 0 ]; then
-        echo "$0: $(date) ERROR: unfence.sh failed with exit code $?" >&2
+    s=$?
+    if [ $s -ne 0 ]; then
+        echo "$0: $(date) ERROR: unfence.sh failed with exit code $s" >&2
         return 1
     fi
 }
@@ -96,8 +105,9 @@ unfence ()
 tools ()
 {
     tools.sh "$@"
-    if [ $? -ne 0 ]; then
-        echo "$0: $(date) ERROR: tools.sh failed with exit code $?" >&2
+    s=$?
+    if [ $s -ne 0 ]; then
+        echo "$0: $(date) ERROR: tools.sh failed with exit code $s" >&2
         return 1
     fi
 }
@@ -109,7 +119,7 @@ tools ()
 # to stdout.  Otherwise nothing is written.
 
 function pipetest() {
-    local user_query="$@"
+    local user_query="$*"  #is this right vs "$@"?
 
     # 1. Capture stdin into a temporary file – this allows very large input.
     local tmpdir tmpfile
