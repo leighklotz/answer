@@ -14,7 +14,7 @@ fi
 declare -g LAST_ANSWER
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-ask ()
+function ask ()
 {
     local RAW_JSON
     local FLAG
@@ -73,7 +73,7 @@ ask ()
     fi
 }
 
-answer ()
+function answer ()
 {
     # Check if stdout is a terminal AND stdin is also a terminal 
     # (meaning the user called 'answer' directly with no input/pipe)
@@ -109,7 +109,7 @@ answer ()
     fi
 }
 
-bx ()
+function bx ()
 {
     bx.sh "$@"
     s=$?
@@ -129,7 +129,7 @@ unfence ()
     fi
 }
 
-tools ()
+function tools ()
 {
     tools.sh "$@"
     s=$?
