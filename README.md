@@ -2,59 +2,50 @@
 
 **Answer** is a command-line agent framework that leverages language models via api and posix pipes to generate, execute, and retrieve the results of code snippets directly from your terminal. It provides a conversational, shell-focused workflow for rapid prototyping and experimentation.
 
-# Example
+## The Dual-Mode Pipeline Model
 
-````
-klotz@edge:~/wip/answer$ ask '2+3= in a bash code fence, ready to execute' | answer | pipetest | unfence | bash
-🤖 ```bash
-🤖 echo $((2 + 3))
-🤖 ```
-🤖: Y or N? y
-5
-````
+To allow seamless transitions between "thinking" (conversation) and "doing" (tooling), **Answer** uses two distinct data protocols in its pipelines:
 
-# Another Example
+### 1. Conversation Mode (`ask | ask`)
+*   **Goal:** Build a continuous conversation where each command knows the history of previous ones.
+*   **How it works:** `ask` passes heavy JSON objects containing full history through pipes via a magic header.
+*   **Pattern:** `ask "Q1" | ask "Follow up Q2"`
 
-```
-    $ ask write fib in python | answer | unfence
-    def fibonacci(n):
-      """
-      Calculates the nth Fibonacci number.
+### 2. Tool/Extraction Mode (`ask | answer | tool`)
+*   **Goal:** Take the result of an LLM and pass it to a shell command (like `python`, `bash`, or `pipetest`).
+*   **How it works:** The `answer` command acts as a "Gatekeeper." It consumes the heavy JSON history and transforms it into **Plain Text**, which is what tools require.
+*   **Pattern:** `ask "Write python code" | answer | unfence | python`
 
-      Args:
-        n: The index of the Fibonacci number to calculate (non-negative integer).
+### 3. Hybrid/Observation Mode (`ask | answer -t | ask`)
+*   **Goal:** See what the LLM said in your terminal *while also* preserving the conversation history for the next command.
+*   **How it works:** The `--tee` (or `-t`) flag prints the human-readable text to `stderr` but keeps the JSON history flowing through `stdout`.
+*   **Pattern:** `ask "Q1" | answer -t | ask "Follow up Q2"`
 
-      Returns:
-        The nth Fibonacci number.  Returns n if n is 0 or 1.  Returns -1 if n is negative.
-      """
+## Components
 
-      if n < 0:
-        return -1  # Handle negative input
-      elif n <= 1:
-        return n  # Base cases: F(0) = 0, F(1) = 1
-      else:
-        # Iterative approach (more efficient)
-        a, b = 0, 1
-        for _ in range(2, n + 1):
-          a, b = b, a + b
-        return b
+* **`ask`**: The producer. In a pipe, it sends the full conversation context (JSON). At the end of a line in your terminal, it automatically calls `answer` to show you pretty text.
+* **`answer`**: The transformer. Converts JSON $\to$ Text for tools/terminals, or handles `--tee` to maintain history visibility.
+* **`unfence`**: Removes triple-backtick (```) delimiters from model output so the resulting string is pure code.
+* **`pipetest`**: A safety wrapper that shows you a preview of what's about to be executed and asks for `Y/N`.
 
-    print(fibonacci(20))
+## Examples
 
-    $ (ask write fib in python |
-      ask call it with 20 and note the output |
-      ask just print the output | answer)
-    6765
-
-    $ (ask write fib in python |
-     ask print just the code ready to execute plus 'print(fib(20))'  |
-     answer |
-     unfence |
-     python)
-    6765
-    $    
+**Chaining questions (Conversation Mode):**
+```bash
+ask "What is 2+2?" | ask "Now multiply that by 10" | answer
+# Output: 20
 ```
 
+**Running code (Tooling Mode):**
+```bash
+ask "Write a python script to list files" | answer | unfence | python
+```
+
+**Refining with visibility (Hybrid Mode):**
+```bash
+ask "Generate bash script for logs" | answer -t | ask "Add error handling to it" | answer
+# You see the first script on your screen, but 'ask' still knows what was generated.
+```
 
 ## Key Features
 

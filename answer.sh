@@ -11,48 +11,44 @@ while [[ $# -gt 0 ]]; do
             TEE_MODE="1"
             shift
             ;;
-        --no-decorate|-n)
-            NO_DECORATE="1"
-            shift
-            ;;
         *)
-            echo "Usage: $0 [--tee | -t] [--no-decorate | -n]" >&2
+            echo "Usage: $0 [--tee | -t]" >&2
             echo "$0: unknown argument $1" >&2
             exit 1
             ;;
     esac
 done
 
-if [ -t 0 ] && [ -n "${LAST_ANSWER}" ]; then
-    json="$(printf "%s" "${LAST_ANSWER}")"
-else
-    if [ ! -t 0 ]; then
-        raw_input=$(cat)
-        # Strip header if present
-        if [[ "$raw_input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-            # Remove the header string
-            json="${raw_input#$PIPELINE_MAGIC_HEADER}"
-            # Strip the leading newline that follows the header
-            json="${json#$'\n'}"
-        else
-            json="$raw_input"
-        fi
+# Read stdin and extract JSON context or raw input
+if [ ! -t 0 ]; then
+    raw_input=$(cat)
+    if [[ "$raw_input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
+        # We received a Conversation State (Header + JSON body)
+        json="${raw_input#$PIPELINE_MAGIC_HEADER}"
+        json="${json#$'\n'}"
     else
-        json="[]"
+        # We received raw text or un-headered JSON
+        json="$raw_input"
     fi
+else
+    # No stdin (direct call)
+    json="[]"
 fi
 
+# Extract the content of the very last message in the history array
+last_content=$(printf "%s\n" "$json" | jq -r 'if type == "array" and length > 0 then .[-1].content else . end' 2>/dev/null)
+
 if [ -n "$TEE_MODE" ]; then
-    # CASE 1: User explicitly requested Tee mode.
-    # Output text to stderr (for visibility) and JSON to stdout (for the pipeline).
-    printf "%s\n" "$json" | jq -r '.[-1].content' >&2
+    # CASE: OBSERVATION MODE (answer -t)
+    # Print human-readable text to stderr, pass JSON history through stdout.
+    printf "%s\n" "$last_content" >&2
     printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$json"
 elif [ ! -t 1 ]; then
-    # CASE 2: Mid-pipeline (stdout is a pipe) and NOT in tee mode.
-    # We MUST output the header and JSON so the next 'ask' can continue the conversation.
-    printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$json"
+    # CASE: TOOL/EXTRACTION MODE (ask | answer | tool)
+    # Convert heavy JSON history into light Plain Text for the next command in pipe.
+    printf "%s\n" "$last_content"
 else
-    # CASE 3: Terminal output (user is looking at the screen) and NOT in tee mode.
-    # Just print the human-readable text.
-    printf "%s\n" "$json" | jq -r '.[-1].content'
+    # CASE: TERMINAL OUTPUT (direct call 'answer' or end of line)
+    # Just print the text to the user.
+    printf "%s\n" "$last_content"
 fi
