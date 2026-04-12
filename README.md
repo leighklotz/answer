@@ -2,7 +2,18 @@
 
 **Answer** is a command-line agent framework that leverages language models via api and posix pipes to generate, execute, and retrieve the results of code snippets directly from your terminal. It provides a conversational, shell-focused workflow for rapid prototyping and experimentation.
 
-**Example Workflow**
+# Example
+
+````
+klotz@edge:~/wip/answer$ ask '2+3= in a bash code fence, ready to execute' | answer | pipetest | unfence | bash
+🤖 ```bash
+🤖 echo $((2 + 3))
+🤖 ```
+🤖: Y or N? y
+5
+````
+
+# Another Example
 
 ```
     $ ask write fib in python | answer | unfence
@@ -55,11 +66,11 @@
 
 ## Components
 
-* **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array). Sets result to `$ANSWER` as well as printing to stdout.
+* **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array). If it ends the CLI line and output it going to a terminal, it automatically appends the `answer`command. Otherwise, in a pipeline, it just passes the JSON conversation array along.
 * **`bx`:** Executes the specified command and args, and wraps the result in a bash code fence.
-* **`answer`:**  Extracts the latest message content from the JSON conversation history. Useful for retrieving generated code or responses. If no stdin, looks in `$ANSWER`. Use `answer --tee` mid-pipeline to print text to stderr and pass JSON through on stdout.
+* **`answer`:**  Asks for LLM endpoint for an answer, and outputs the last message to stdout. In a pipeline, stdout is suppressed and only the conversation flows through; however, use `answer --tee`or `answer -t` mid-pipeline to print text to stderr as well as pass JSON through on stdout. With no stdin, extracts the latest message content from the JSON conversation `$LAST_ANSWER`. Useful for retrieving generated code or responses.
 * **`tools`:** Pipeline wrapper around `toolex.py`. Reads a JSON conversation array from resolves tool calls via toolex, and writes the updated conversation array to stdout.
-* **`unfence.sh`:** Removes code blocks enclosed in triple backticks (```) from the input. Crucial for preparing model output for execution.
+* **`unfence`:** Removes code blocks enclosed in triple backticks (```) from the input. Crucial for preparing model output for execution.
 * **`story.txt`:**  A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
 
 ## Pipeline Patterns
@@ -78,7 +89,7 @@ dmesg | ask -i "Spot any SCSI issues" | answer
 
 ### Chained follow-up questions
 
-Use `answer --tee` mid-pipeline so the conversation JSON continues to flow on stdout while the human-readable reply appears on stderr:
+Use `answer --tee` or `answer -t` mid-pipeline so the conversation JSON continues to flow on stdout while the human-readable reply appears on stderr:
 
 ```bash
 dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about the md0 device?" | answer
@@ -114,7 +125,7 @@ Before you begin, ensure you have the following installed:
    ```bash
    git clone <repository_url>
    cd answer
-   source functions.sh
+   . enable.sh
    ```
 
 2. **Set Environment Variables:**
