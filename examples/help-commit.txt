@@ -13,4 +13,24 @@ git commit -m "refactor: implement global LAST_ANSWER state and improve argument
 [main 5007650] refactor: implement global LAST_ANSWER state and improve argument parsing
  5 files changed, 145 insertions(+), 25 deletions(-)
  create mode 100644 examples/basics.txt
+$ emacs examples/help-commit.txt
+$ help-commit.sh
+🤖 I cannot determine the purpose of the new files because they are currently untracked, and `git diff` only shows changes to tracked files. Please stage the files to show their content.
+
+```bash
+git add . && git diff --cached
+```
+🤖 : Y or N? n
+
+🚫 discarded
+$ git add examples/help-commit.txt
+$ help-commit.sh
+🤖 ```bash
+git commit -m "docs: add help-commit example file"
+```
+🤖 : Y or N? y
+
+[main 8025a73] docs: add help-commit example file
+ 1 file changed, 16 insertions(+)
+ create mode 100644 examples/help-commit.txt
 $ 
