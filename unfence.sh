@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -e
+#!/usr/bin/env -S bash -e
 
 # extract content, usually code, between triple-backquotes
 # opposite of codefence.sh, bashblock.sh etc.

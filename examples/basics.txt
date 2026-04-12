@@ -1,0 +1,57 @@
+# Basic Arithmetic & Shell Interaction
+
+# Simple math via prompt and piping to cat to get pre-inference pipeline JSON array
+$ ask "2+3=" | cat
+[
+  {
+    "role": "user",
+    "content": "2+3="
+  },
+  {
+    "role": "assistant",
+    "content": "2 + 3 = 5"
+  }
+]
+
+# Using the 'answer' command to get human-readable text
+$ ask "2+3=" | answer
+2 + 3 = 5
+
+# Capturing JSON conversation history to a file using '-t' (tee mode)
+$ ask "2+3=" | answer -t > history.json
+2 + 3 = 5
+
+# Inspecting the captured JSON
+$ cat history.json
+[
+  {
+    "role": "user",
+    "content": "2+3="
+  },
+  {
+    "role": "assistant",
+    "content": "2 + 3 = 5"
+  }
+]
+
+# Using the 'answer' command with no stdin to retrieve the last interaction (via $LAST_ANSWER)
+$ ask "2+3="
+If you meant for the math expression:
+**2 + 3 = 5**
+$ answer
+If you meant for the math expression:
+**2 + 3 = 5**
+$ answer
+If you meant for the math expression:
+**2 + 3 = 5**
+$ answer | ask "No, I meant 20 and 30"
+
+
+# Using '--tee' (-t) mid-pipeline to print text to stderr while passing JSON through stdout
+$ ask "2+3=" | answer -t | ask "Now multiply that by 10" | answer
+70
+
+# Chained follow-up questions using the conversation context
+$ answer -t | ask "The previous math was a mistake, just tell me what 2+3 is." | answer
+2 + 3 = 5
+$ 

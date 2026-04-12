@@ -11,31 +11,67 @@ if ! command -v ask.sh &> /dev/null; then
     echo "$0: $(date) WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
+declare -g LAST_ANSWER
+
 ask ()
 {
-    # If stdin is a terminal, we pipe the JSON through 'answer' to get text
+    local RAW_JSON
     if [ -t 1 ]; then
-        ANSWER=$(ask.sh "$@" | answer)
+        # 1. Capture output from the external script into a variable (subshell)
+        RAW_JSON=$(ask.sh "$@") || return 1
+
+        # # 2. Print only the text content to stdout for the user
+        # echo "$RAW_JSON" | jq -r '.[-1].content'
+
+        # 3. Call 'answer' in the CURRENT shell using a here-string (<<<)
+        # This avoids a pipe and ensures LAST_ANSWER is updated globally.
+        answer <<< "$RAW_JSON"
+        # Check if the command failed
+        s=$?
+        if [ $? -ne 0 ]; then
+            echo "$0: $(date) ERROR: ask.sh failed: $s" >&2
+            return 1
+        fi
+
     else
-        # In a pipeline, we want the raw JSON to flow through
-        ANSWER=$(ask.sh "$@")
+        # In a pipeline, just pass through raw JSON
+        ask.sh "$@"
+        # Check if the command failed
+        s=$?
+        if [ $? -ne 0 ]; then
+            echo "$0: $(date) ERROR: ask.sh failed: $s" >&2
+            return 1
+        fi
     fi
-
-    # Check if the command failed
-    if [ $? -ne 0 ]; then
-      echo "$0: $(date) ERROR: ask.sh failed" >&2
-      return 1
-    fi
-
-    printf "%s\n" "${ANSWER}"
 }
 
 answer ()
 {
-    answer.sh "$@"
-    if [ $? -ne 0 ]; then
-        echo "$0: $(date) ERROR: answer.sh failed with exit code $?" >&2
+    if [ -t 1 ] && [ -n "${LAST_ANSWER}" ]; then
+        printf "%s\n" "${LAST_ANSWER}"
+        return 0
+    fi
+
+    local ANSWER
+    ANSWER="$(answer.sh "$@")"
+    s=$?
+    if [ $s -ne 0 ]; then
+        echo "$0: $(date) ERROR: answer.sh failed with exit code $s" >&2
         return 1
+    fi
+
+    printf "%s\n" "${ANSWER}"
+
+    if [ "$1" = "--tee" ] || [ "$1" = "-t" ]; then
+        # skip setting last-answer when answer is used mid-pipeline?
+        # or keep it separate, maybe?
+        # also do we keep inputs as well as outputs?
+        # need cache strategy for repeatable clis
+        # echo "debug: Not setting LAST_ANSWER in $0 ${@}" >&2
+        true
+    else
+        # echo "debug: Setting LAST_ANSWER[$$] to $ANSWER" >&2
+        export LAST_ANSWER="${ANSWER}"
     fi
 }
 
