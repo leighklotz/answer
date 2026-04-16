@@ -6,7 +6,13 @@ source ~/wip/llamafiles/scripts/env.sh
 
 source "${SCRIPT_DIR}/functions.sh"
 
-# TODO: Implement --use-system-message to have it read SYSTEM_MESSAGE.
+### Key Changes Explained:
+# 1.  **Robust Argument Parsing**: I replaced the `if/elif` with a `while/case` loop. This is necessary because `--use-system-message` can appear before or after `-i`. The `break` in the `*)` case ensures that once we hit the actual question (the prompt), we stop trying to parse flags and treat the rest as the string.
+# 2.  **System Message Injection**: I added a block after the `messages` array is fully constructed but before the `curl` command. 
+#     *   `jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages"`
+#     *   This `jq` command takes the existing array (`.`) and prepends a new array containing the system message object.
+# 3.  **Environment Variable Safety**: The injection only triggers if `USE_SYSTEM_MSG` is true **and** `$SYSTEM_MESSAGE` is not empty, preventing the injection of empty system roles which can cause API errors.
+
 
 # usage: ask your question | answer
 # usage: ask your question
@@ -23,15 +29,14 @@ source "${SCRIPT_DIR}/functions.sh"
 # usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence 
 # usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence | python
 
-# todo: write usage
 function usage {
   echo "Usage: ask [options] [prompt]"
   echo ""
-  echo "  ask -i <prompt>                Ask a question directly."
+  echo "  -i, --input <prompt>           Specify the prompt to ask."
+  echo "  --use-system-message           Prepend SYSTEM_MESSAGE env var to the conversation."
   echo "  bx cat <file> | ask -i <question>  Ask a question about the output of a bash command."
   echo "  <bash command> | ask -i <question>  Same as above, piping the command's output."
   echo "  ask -i <question> < (bash command)  Alternative way to pipe the command's output."
-  echo "  -i, --input <prompt>           Specify the prompt to ask."
   echo "  --help                          Display this help message."
   echo ""
   echo "Example:"
@@ -39,39 +44,54 @@ function usage {
   echo "  bx cat my_script.sh | ask -i 'What does this script do?'"
 }
 
-
+# --- ARGUMENT PARSING ---
+USE_SYSTEM_MSG=false
 PLAIN_INPUT=""
-if [ "$1" = "-i" ] || [ "$1" = "--input" ]; then
-    shift
-    PLAIN_INPUT="1"
-elif [ "$1" = "--help" ]; then
-    usage
-    exit 0
-fi
 
-# --- FIXED INPUT HANDLING ---
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -i|--input)
+            PLAIN_INPUT="1"
+            shift
+            ;;
+        --use-system-message)
+            USE_SYSTEM_MSG=true
+            shift
+            ;;
+        --help)
+            usage
+            exit 0
+            ;;
+        *)
+            # Stop parsing flags when we hit the first non-option argument
+            break
+            ;;
+    esac
+done
+
+prompt="$*"
+
+# --- INPUT HANDLING ---
 input=""
 if [ -t 0 ]; then
-    prompt="$*"
+    # No stdin: prompt is just the remaining arguments
     messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
 else
-    # Read the first line to check for the magic header
+    # Stdin exists: check for magic header or raw JSON
     IFS= read -r first_line || true
     
     if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
-        # If it's the header, the rest of stdin is pure JSON
         input=$(cat)
     else
-        # Otherwise, recombine the line we read with the rest of the stream
         input="${first_line}$(printf '\n')$(cat)"
     fi
 
-    prompt="$*"
     if [ -n "${PLAIN_INPUT}" ]; then
+        # User provided -i: combine prompt and stdin text
         printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
         messages=$(jq -n  --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
     else
-        # Validate that input looks like a JSON array (after stripping header)
+        # Stdin is a JSON conversation array
         first_char="$(printf "%s" "$input" | tr -d '[:space:]' | cut -c1)"
         if [ "$first_char" != "[" ]; then
             echo "ask: stdin does not look like a JSON conversation array." >&2
@@ -80,6 +100,12 @@ else
         new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
         messages=$(jq --argjson new_message "$new_message" '. + [$new_message]' <<< "$input")
     fi
+fi
+
+# --- SYSTEM MESSAGE INJECTION ---
+if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
+    # Prepend the system message to the start of the messages array
+    messages=$(jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages")
 fi
 
 # API setup
@@ -128,13 +154,12 @@ if [ -z "$assistant_reply" ]; then
 else
   new_assistant_message=$(jq -n --arg content "$assistant_reply" '{"role":"assistant","content":$content}')
   messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")
-  # echo "$messages"
-  # Check if stdout is a terminal
+  
   if [ -t 1 ]; then
-      # If terminal, pipe the JSON to answer
       printf "%s" "$messages" | answer
   else
-      # If piped, output the raw JSON for the next command
       printf "%s\n%s" "${PIPELINE_MAGIC_HEADER}" "$messages"
   fi
 fi
+
+
