@@ -6,6 +6,8 @@ source ~/wip/llamafiles/scripts/env.sh
 
 source "${SCRIPT_DIR}/functions.sh"
 
+# TODO: Implement --use-system-message to have it read SYSTEM_MESSAGE.
+
 # usage: ask your question | answer
 # usage: ask your question
 # usage: bx cat foo.sh | ask -i your question about foo.sh | answer
