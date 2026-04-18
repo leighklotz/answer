@@ -1,9 +1,9 @@
-# source this file to define the functions
+# source this file to define the functionsg
 
 # Require bash 4+
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
     echo "$0: ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
-    return 1 2>/dev/null || exit 1
+    return 1 2>/dev/null
 fi
 
 # Check if ask.sh is available
@@ -12,42 +12,72 @@ if ! command -v ask.sh &> /dev/null; then
 fi
 
 declare -g LAST_ANSWER
+PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-ask ()
+function ask ()
 {
     local RAW_JSON
-    if [ -t 1 ]; then
-        # 1. Capture output from the external script into a variable (subshell)
-        RAW_JSON=$(ask.sh "$@") || return 1
+    local FLAG
+    local header_line
 
-        # # 2. Print only the text content to stdout for the user
-        # echo "$RAW_JSON" | jq -r '.[-1].content'
-
-        # 3. Call 'answer' in the CURRENT shell using a here-string (<<<)
-        # This avoids a pipe and ensures LAST_ANSWER is updated globally.
-        answer <<< "$RAW_JSON"
-        # Check if the command failed
-        s=$?
-        if [ $? -ne 0 ]; then
-            echo "$0: $(date) ERROR: ask.sh failed: $s" >&2
-            return 1
+    # If stdin is available, check for PIPELINE_MAGIC_HEADER:
+    # If header is present pass through raw JSON, else if stdin is available and header is absent, pass ask -i.
+    FLAG=""
+    if [ -t 0 ]; then
+        # Stdin is a terminal, no piped data expected via stdin usually
+        true
+    elif read -t 0.1 header_line; then
+        if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
+            echo "* ask() continuing conversation from stdin" >&2
+            # Since we already read the header, use 'cat' to get the remaining JSON body
+            RAW_JSON=$(cat)
+        else
+            echo "* ask() reading attachment from stdin" >&2
+            FLAG="-i"
+            # Combine the line we just read with the rest of the stream
+            RAW_JSON="${header_line}$(printf '\n')"
+            RAW_JSON+="$(cat)"
         fi
+    fi
 
+    if [ -n "$RAW_JSON" ] || [ "$FLAG" = "-i" ]; then
+        nascent="$(printf "%s\n" "${RAW_JSON}" | ask.sh $FLAG "$@")"
     else
-        # In a pipeline, just pass through raw JSON
-        ask.sh "$@"
-        # Check if the command failed
+        # No stdin data was found, run normally without a pipe
+        nascent="$(ask.sh "$@")"
+    fi
+
+    s=$?
+    # Check if the command failed
+    if [ $s -ne 0 ]; then
+        echo "* ask() $(date) ERROR: ask.sh failed: $s" >&2
+        return 1
+    fi
+
+    if [ -t 1 ]; then
+        # 1. If output is a terminal, run ask.sh and capture output into a variable pass to answer
+        # 2. Calling 'answer' in the CURRENT shell using a here-string (<<<) avoids a pipe and ensures LAST_ANSWER is updated globally.
+        answer <<< "${nascent}"
         s=$?
-        if [ $? -ne 0 ]; then
-            echo "$0: $(date) ERROR: ask.sh failed: $s" >&2
-            return 1
+        # printf "done calling answer, LAST_ANSWER=%s\n" "${LAST_ANSWER}" >&2
+        # Check if the command failed
+        if [ $s -ne 0 ]; then
+        echo "* ask() $(date) ERROR: answer failed: $s" >&2
+        return 1
         fi
+    else
+        # 3. If output is not a terminal, run ask.sh in a subshell and capture output into a variable
+        # Pass the reconstructed RAW_JSON via a pipe if not in terminal
+        printf "%s\n" "${nascent}"
+        s=0
     fi
 }
 
-answer ()
+function answer ()
 {
-    if [ -t 1 ] && [ -n "${LAST_ANSWER}" ]; then
+    # Check if stdout is a terminal AND stdin is also a terminal 
+    # (meaning the user called 'answer' directly with no input/pipe)
+    if [ -t 1 ] && [ -t 0 ] && [ -n "${LAST_ANSWER}" ]; then
         printf "%s\n" "${LAST_ANSWER}"
         return 0
     fi
@@ -56,7 +86,7 @@ answer ()
     ANSWER="$(answer.sh "$@")"
     s=$?
     if [ $s -ne 0 ]; then
-        echo "$0: $(date) ERROR: answer.sh failed with exit code $s" >&2
+        echo "answer() $(date) ERROR: answer.sh failed with exit code $s" >&2
         return 1
     fi
 
@@ -67,19 +97,24 @@ answer ()
         # or keep it separate, maybe?
         # also do we keep inputs as well as outputs?
         # need cache strategy for repeatable clis
-        # echo "debug: Not setting LAST_ANSWER in $0 ${@}" >&2
+        # echo "answer() debug: Not setting LAST_ANSWER in $0 ${@}" >&2
+        printf "* answer() not setting LAST_ANSWER\n" >&2
         true
     else
-        # echo "debug: Setting LAST_ANSWER[$$] to $ANSWER" >&2
-        export LAST_ANSWER="${ANSWER}"
+        # echo "answer() debug: Setting LAST_ANSWER[$$] to $ANSWER" >&2
+        if [ -n "${LAST_ANSWER}" ] && [ "${LAST_ANSWER}" != 'null' ]; then
+             printf "answer() * setting LAST_ANSWER\n" >&2
+             export LAST_ANSWER="${ANSWER}"
+        fi
     fi
 }
 
-bx ()
+function bx ()
 {
     bx.sh "$@"
-    if [ $? -ne 0 ]; then
-        echo "$0: $(date) ERROR: bx.sh failed with exit code $?" >&2
+    s=$?
+    if [ $s -ne 0 ]; then
+        echo "$0: $(date) ERROR: bx.sh failed with exit code $s" >&2
         return 1
     fi
 }
@@ -87,17 +122,19 @@ bx ()
 unfence ()
 {
     unfence.sh "$@"
-    if [ $? -ne 0 ]; then
-        echo "$0: $(date) ERROR: unfence.sh failed with exit code $?" >&2
+    s=$?
+    if [ $s -ne 0 ]; then
+        echo "$0: $(date) ERROR: unfence.sh failed with exit code $s" >&2
         return 1
     fi
 }
 
-tools ()
+function tools ()
 {
     tools.sh "$@"
-    if [ $? -ne 0 ]; then
-        echo "$0: $(date) ERROR: tools.sh failed with exit code $?" >&2
+    s=$?
+    if [ $s -ne 0 ]; then
+        echo "$0: $(date) ERROR: tools.sh failed with exit code $s" >&2
         return 1
     fi
 }
@@ -109,7 +146,7 @@ tools ()
 # to stdout.  Otherwise nothing is written.
 
 function pipetest() {
-    local user_query="$@"
+    local user_query="$*"  #is this right vs "$@"?
 
     # 1. Capture stdin into a temporary file – this allows very large input.
     local tmpdir tmpfile
