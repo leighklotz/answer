@@ -1,4 +1,5 @@
 # Test Cases for Answer Framework
+These tests show the generally-expected form of output; there will be variation. Inputs are often mocked, and would likely be generated from other commands such as `bx` and `lx`, or from other ipiped Posix commands.
 
 ## 1. Basic Functionality
 Standard execution of the `ask` command.
@@ -140,3 +141,31 @@ $ ask "2+3="
 $ answer
 2 + 3 = 5
 ```
+
+## 11. Unfencing Code
+Verifies that `unfence` correctly strips triple backtick (```) delimiters from model output.
+
+```bash
+$ echo '```python\nprint("hello world")\n```' | unfence
+print("hello world")
+```
+
+## 12. Piping Command Output
+Verifies the `-i` flag allows piping existing shell output into an `ask` prompt.
+
+```bash
+$ echo 'EXT4-fs error (device sda1): ext4_find_entry:1234: inode #567890: comm process: reading directory lblock 0' | \
+  ask -i "Analyze this error" | answer
+The error indicates a hardware failure on the disk.
+```
+## 13. Safe Execution Preview
+Verifies that `pipetest` provides a preview and requires user confirmation before executing code.
+
+$ ask "write a single bash echo of (2+3)" | answer | pipetest Execute | unfence | bash
+🤖 ```bash
+echo $((2+3))
+```
+🤖 Execute: Y or N? y
+
+5
+$ 
