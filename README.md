@@ -1,6 +1,6 @@
 # Answer: A Shell-Based Code Generation & Execution Agent Framework
 
-**Answer** is a command-line agent framework that leverages language models via api and posix pipes to generate, execute, and retrieve the results of code snippets directly from your terminal. It provides a conversational, shell-focused workflow for rapid prototyping and experimentation.
+**Answer** is a command-line LLM-based agent framework that uses Posix pipes to compose and execute nonce agentic pipelines. It provides a conversational, shell-focused workflow for rapid prototyping, experimentation, and analysis.
 
 ## The Dual-Mode Pipeline Model
 
@@ -25,8 +25,8 @@ To allow seamless transitions between "thinking" (conversation) and "doing" (too
 
 * **`ask`**: The producer. In a pipe, it sends the full conversation context with header.  When stdout is a terminal, it further automatically calls `answer` to show you pretty text.
 * **`answer`**: The transformer. By default, `answer` consumes the JSON history and outputs raw text to stdout (Tool/Extraction mode). Use `answer --tee` (`-t`) mid-pipeline to send human-readable text to stderr while keeping the JSON history flowing on stdout for the next command.
-* **`unfence`**: Removes triple-backtick (```) delimiters from model output so the resulting string is pure code.
-* **`pipetest`**: A safety wrapper that shows you a preview of what's about to be executed and asks for `Y/N`.
+* **`unfence`**: Extracts code-fence (```) sections from model output.
+* **`pipetest`**: Shows a preview of what's about to be executed and asks for `Y/N`.
 
 ## Examples
 
@@ -54,13 +54,12 @@ ask "Generate bash script for logs" | answer -t | ask "Add error handling to it"
 * **Conversation History:** Maintains a JSON-based conversation history for context and iterative refinement.
 * **Simple Scripting:**  Uses a small set of Bash scripts for a lightweight and portable experience.
 * **Clean Output:**  `unfence` script to remove code delimiters, ensuring clean and executable code.
-* **`functions` Wrapper:** Refined `ask()`/`answer()` wrappers now manage `LAST_ANSWER` state more reliably and handle terminal/pipe detection automatically.
 
 ## Components
 
 * **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array). If it ends the CLI line and output it going to a terminal, it automatically appends the `answer`command. Otherwise, in a pipeline, it just passes the JSON conversation array along.
 * **`bx`:** Executes the specified command and args, and wraps the result in a bash code fence.
-* **`answer`:**  Asks for LLM endpoint for an answer, and outputs the last message to stdout. In a pipeline, stdout is suppressed and only the conversation flows through; however, use `answer --tee`or `answer -t` mid-pipeline to print text to stderr as well as pass JSON through on stdout. With no stdin, extracts the latest message content from the JSON conversation `$LAST_ANSWER`. Useful for retrieving generated code or responses.
+* **`answer`:**  Asks for LLM endpoint for an answer, and outputs the last message to stdout. In a pipeline, stdout is suppressed and only the conversation flows through; however, use `answer --tee`or `answer -t` mid-pipeline to print text to stderr as well as pass JSON through on stdout. With no stdin, extracts the latest message content from the JSON conversation, if available.
 * **`tools`:** Pipeline wrapper around `toolex.py`. Reads a JSON conversation array from resolves tool calls via toolex, and writes the updated conversation array to stdout.
 * **`unfence`:** Removes code blocks enclosed in triple backticks (```) from the input. Crucial for preparing model output for execution.
 * **`story.txt`:**  A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.

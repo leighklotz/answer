@@ -4,7 +4,7 @@
 Standard execution of the `ask` command.
 
 ```bash
-$ 4 ask 2+3=
+$ ask 2+3=
 2 + 3 = 5
 ```
 
@@ -25,7 +25,12 @@ $ ask 2+3= | cat
   {
     "role": "user",
     "content": "2+3="
+  },
+  {
+    "role": "assistant",
+    "content": "5"
   }
+
 ]
 ```
 
@@ -33,7 +38,7 @@ $ ask 2+3= | cat
 Verifies that `answer.sh` can ingest raw JSON and extract the final content.
 
 ```bash
-$ ask 2+3= | cat | answer
+$ ask 2+3= | answer
 5
 ```
 
@@ -41,7 +46,7 @@ $ ask 2+3= | cat | answer
 Verifies that the `--tee` (`-t`) flag provides human-readable output to `stderr` while passing the structured JSON history through `stdout`.
 
 ```bash
-$ ask 2+3= | cat | answer -t
+$ ask 2+3= | answer -t
 2 + 3 = 5
 [
   {
@@ -125,4 +130,13 @@ $ echo "Content-Type: application/x-llm-history+json" > dummy.json
 $ echo '[{"role": "user", "content": "Previous context"}]' >> dummy.json
 $ cat dummy.json | ask "What did I just say?"
 You just said "Previous context".
+```
+## 10. Last Answer Retrieval (No Stdin)
+Verifies that calling `answer` without piped input correctly retrieves the most recent interaction, if available.
+
+```bash
+$ ask "2+3="
+2 + 3 = 5
+$ answer
+2 + 3 = 5
 ```
