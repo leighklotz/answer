@@ -146,18 +146,18 @@ function tools ()
 # to stdout.  Otherwise nothing is written.
 
 function pipetest() {
-    local user_query="$*"  #is this right vs "$@"?
+    local user_query="$*"
 
     # 1. Capture stdin into a temporary file – this allows very large input.
     local tmpdir tmpfile
     if ! tmpdir=$(mktemp -d 2>/dev/null) ; then
         printf >&2 "pipetest: could not create temporary directory\n"
-        exit 1
+        return 1
     fi
     trap 'rm -rf "$tmpdir"' EXIT
     if ! tmpfile=$(mktemp --tmpdir="$tmpdir" pipetest.XXXXXX 2>/dev/null) ; then
         printf >&2 "pipetest: could not create temporary file\n"
-        exit 1
+        return 1
     fi
 
     # 2. Read all of stdin into the temp file.
@@ -166,12 +166,18 @@ function pipetest() {
     # 3. Prompt from stderr (visible in the terminal) and read a full line.
     local reply
     (printf "🤖 "; head -10 "$tmpfile"; printf "🤖 %s: Y or N? " "$user_query") >&2
+    # Read from the actual terminal
     read -r reply < /dev/tty
     printf "\n" >&2
 
     # 4. If the first character is 'y' or 'Y', output the captured data.
     case "${reply}" in
-        y*|Y*) cat "$tmpfile" ;;
-        *) printf "🚫 discarded\n" >&2 ;;
+        y*|Y*)
+            cat "$tmpfile"
+            ;;
+        *)
+            printf "🚫 discarded\n" >&2
+            return 1
+            ;;
     esac
 }

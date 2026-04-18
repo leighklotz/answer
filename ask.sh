@@ -89,12 +89,12 @@ else
     if [ -n "${PLAIN_INPUT}" ]; then
         # User provided -i: combine prompt and stdin text
         printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
-        messages=$(jq -n  --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
+        messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
     else
         # Stdin is a JSON conversation array
         first_char="$(printf "%s" "$input" | tr -d '[:space:]' | cut -c1)"
         if [ "$first_char" != "[" ]; then
-            echo "ask: stdin does not look like a JSON conversation array." >&2
+            echo "ask: stdin does not look like a JSON conversation array (use -i to pipe plain text)." >&2
             exit 1
         fi
         new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
