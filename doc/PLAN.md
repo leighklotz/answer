@@ -56,7 +56,7 @@ ask "Spot any SCSI issues with dmesg" | tools linux_tools | answer --tee | ask "
 Currently, including a file's content in a conversation requires a workaround:
 
 ```bash
-bashfence cat myfile.py | ask -i "what does this do?"
+bx cat myfile.py | ask -i "what does this do?"
 ```
 
 This encodes the file in a Bash code fence, which is useful but requires an extra pipeline stage and forces the content into a single user message. A dedicated flag would allow files to be attached cleanly at any point in a conversation, support multiple attachments, and lay the groundwork for multimodal (image) attachments in the future.
@@ -177,6 +177,6 @@ Some models accept `content` arrays that include image URLs or base64-encoded im
 ## 5. Housekeeping
 
 - [ ] Make the `env.sh` sourcing in `ask.sh` conditional (only source if the file exists) to remove the hard dependency on `~/wip/llamafiles/scripts/env.sh`.
-- [x] Fix the `bashfence` exit-code bug: the script now exits with `$s` (the captured status of the wrapped command) rather than `$?` (the status of the final `printf`).
+- [x] Fix the `bx` exit-code bug: the script now exits with `$s` (the captured status of the wrapped command) rather than `$?` (the status of the final `printf`).
 - [ ] Add a `Makefile` with `install`, `test`, and `lint` targets.
 - [ ] Add shell-script linting via `shellcheck` to CI.

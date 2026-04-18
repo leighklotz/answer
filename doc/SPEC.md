@@ -18,7 +18,9 @@ The core component. Sends a user prompt to a language-model API and returns the 
 ask [OPTIONS] [PROMPT...]
 ```
 
-When invoked as the shell function `ask` (sourced from `aliases`), the result is also stored in the `$ANSWER` environment variable so that `answer` can read it without a pipe when running interactively.
+When invoked as the shell function `ask` (sourced from `functions.sh` via `enable.sh`):
+1.  **Interactive Mode:** If stdout is a terminal, it calls `ask.sh`, then pipes the result to `answer` to display pretty text and updates the global `LAST_ANSWER` variable.
+2.  **Pipeline Mode:** It detects the `PIPELINE_MAGIC_HEADER` to continue existing conversations or treats incoming piped text as an attachment to the prompt.
 
 When invoked directly as `ask.sh`, only stdout is used.
 
@@ -26,18 +28,19 @@ When invoked directly as `ask.sh`, only stdout is used.
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-i` | `--input` | Treat stdin as raw text to prepend to PROMPT, rather than as an existing JSON conversation history. Useful when piping arbitrary command output into an initial `ask`. |
-| | `--help` | Print usage and exit. |
+| `-i` | `--input` | Treat stdin as raw text to prepend to PROMPT, rather than as an existing JSON conversation history. |
+| `--use-system-message` | | Prepend the `SYSTEM_MESSAGE` environment variable to the conversation as a `system` role message. |
+| `--help` | | Print usage and exit. |
 
 #### Input
 
-`ask` reads from stdin in two modes:
+*   **Magic Header Detection:** If stdin begins with the `PIPELINE_MAGIC_HEADER` (`Content-Type: application/x-llm-history+json`), the input is treated as a full JSON conversation history. If the header is absent but stdin is not a terminal, the input is treated as raw text to be prepended to the prompt (acting like `-i`).
 
 | Condition | Behaviour |
 |-----------|-----------|
 | stdin is a terminal (interactive) | No stdin is read; PROMPT arguments form the first user message. |
-| stdin is a pipe and `-i` / `--input` is set | Stdin is read as plain text and prepended to PROMPT, creating a fresh conversation. |
-| stdin is a pipe and `-i` / `--input` is **not** set | Stdin is read as a JSON conversation array; PROMPT is appended as a new user message. |
+| stdin is a pipe (with `PIPELINE_MAGIC_HEADER`) | Stdin is read as a JSON conversation array; PROMPT is appended as a new user message. |
+| stdin is a pipe (without header or with `-i`) | Stdin is read as plain text and prepended to PROMPT. |
 
 #### Output
 
@@ -57,6 +60,7 @@ A JSON array of message objects representing the complete conversation, includin
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | _(empty)_ | Bearer token sent with every API request. |
 | `VIA_API_CHAT_BASE` | `http://localhost:5000` | Base URL of the OpenAI-compatible chat-completions endpoint. Full URL used: `$VIA_API_CHAT_BASE/v1/chat/completions`. |
+| `SYSTEM_MESSAGE` | _(empty)_ | Text content to be injected as a `system` role message if `--use-system-message` is used. |
 
 ---
 
@@ -67,7 +71,6 @@ Extracts the content of the last message from a JSON conversation array.
 #### Synopsis
 
 ```
-answer [--tee|-t]
 <conversation-json> | answer [--tee|-t]
 ```
 
@@ -81,7 +84,7 @@ answer [--tee|-t]
 
 | Condition | Source |
 |-----------|--------|
-| stdin is a terminal and `$ANSWER` is set | Reads `$ANSWER` |
+| stdin is a terminal and `LAST_ANSWER` is set | Reads `LAST_ANSWER` |
 | stdin is a pipe | Reads stdin |
 
 #### Output
@@ -140,14 +143,14 @@ Removes Markdown code fences (` ``` `) from its input, leaving only the content 
 
 ---
 
-### `bashfence`
+### `bx`
 
 Executes a command and wraps its stdout in a Bash code fence.
 
 #### Synopsis
 
 ```
-bashfence <command> [args...]
+bx <command> [args...]
 ```
 
 #### Output
@@ -163,14 +166,9 @@ The exit code of the wrapped command is preserved.
 
 ---
 
-### `aliases`
+### `functions.sh`
 
-A Bash source file that defines the `ask` shell function as a convenience wrapper around `ask.sh`. It exports the result in `$ANSWER` for use by `answer` without a pipe.
-
-Source with:
-```bash
-source aliases
-```
+A shell script containing the `ask` shell function, which provides enhanced interactive behavior and pipeline detection. It is intended to be sourced via `enable.sh`.
 
 ---
 
