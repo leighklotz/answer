@@ -23,8 +23,8 @@ To allow seamless transitions between "thinking" (conversation) and "doing" (too
 
 ## Components
 
-* **`ask`**: The producer. In a pipe, it sends the full conversation context (JSON). At the end of a line in your terminal, it automatically calls `answer` to show you pretty text.
-* **`answer`**: The transformer. Converts JSON $\to$ Text for tools/terminals, or handles `--tee` to maintain history visibility.
+* **`ask`**: The producer. In a pipe, it sends the full conversation context with header.  When stdout is a terminal, it further automatically calls `answer` to show you pretty text.
+* **`answer`**: The transformer. By default, `answer` consumes the JSON history and outputs raw text to stdout (Tool/Extraction mode). Use `answer --tee` (`-t`) mid-pipeline to send human-readable text to stderr while keeping the JSON history flowing on stdout for the next command.
 * **`unfence`**: Removes triple-backtick (```) delimiters from model output so the resulting string is pure code.
 * **`pipetest`**: A safety wrapper that shows you a preview of what's about to be executed and asks for `Y/N`.
 
@@ -54,6 +54,7 @@ ask "Generate bash script for logs" | answer -t | ask "Add error handling to it"
 * **Conversation History:** Maintains a JSON-based conversation history for context and iterative refinement.
 * **Simple Scripting:**  Uses a small set of Bash scripts for a lightweight and portable experience.
 * **Clean Output:**  `unfence` script to remove code delimiters, ensuring clean and executable code.
+* **`functions` Wrapper:** Refined `ask()`/`answer()` wrappers now manage `LAST_ANSWER` state more reliably and handle terminal/pipe detection automatically.
 
 ## Components
 
