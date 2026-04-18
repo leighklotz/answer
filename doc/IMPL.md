@@ -31,35 +31,16 @@ The script sources `~/wip/llamafiles/scripts/env.sh` at start-up to load local e
 
 ### Argument parsing
 
-A minimal hand-written argument parser handles two flags before the prompt text:
+Uses a robust `while/case` loop to handle flags (`-i`, `--use-system-message`, `--help`) regardless of their position relative to the prompt. Once a non-option argument is encountered, the loop breaks, and all remaining arguments are treated as the prompt.
 
-```bash
-if [ "$1" = "-i" ] || [ "$1" = "--input" ]; then
-    shift; PLAIN_INPUT="1"
-elif [ "$1" = "--help" ]; then
-    usage; exit 0
-fi
-```
+### Stdin detection & Input Handling
 
-Everything remaining in `$@` after the flag is treated as the prompt.
-
-### Stdin detection
-
-```bash
-if [ -t 0 ]; then          # no pipe attached
-    # interactive: build a fresh conversation from $*
-else
-    read -r -d '' input    # slurp all of stdin
-    if [ -n "${PLAIN_INPUT}" ]; then
-        # combine raw stdin text with prompt → new conversation
-    else
-        # validate that stdin starts with '[' (JSON array)
-        # stdin is existing JSON history → append new user message
-    fi
-fi
-```
-
-`[ -t 0 ]` tests whether file descriptor 0 is a terminal. When a pipe is present, it is false and stdin is slurped with `read -r -d ''`.
+The script distinguishes between interactive use and pipeline use via `[ -t 0]`:
+- **Interactive Mode:** If stdin is a terminal, it builds a new conversation JSON from the prompt arguments.
+- **Pipeline Mode:** 
+    - If the `PIPELINE_MAGIC_HEADER` is detected, it treats stdin as a full JSON conversation history.
+    - If `-i` is provided, it treats stdin as raw text and prepends it to the prompt.
+    - If no header is present and `-i` is not used, it validates if the input starts with `[` to treat it as JSON history; otherwise, it errors out.
 
 ### JSON construction
 
@@ -82,17 +63,14 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
     -d "$(jq -n --argjson messages "$messages" ...)")"
 ```
 
-### Reply extraction and output
+### System Message Injection
 
-The assistant reply is extracted from `choices[0].message.content`. An empty reply causes the script to exit with status 1 and a message on stderr.
+If `--use-system-message` is toggled and `$SYSTEM_MESSAGE` is set, `jq` is used to prepend a new object with `role: "system"` to the beginning of the messages array.
 
-On success, the reply is appended to the message array and the full array is written to stdout:
+### Output
 
-```bash
-new_assistant_message=$(jq -n --arg content "$assistant_reply" '{"role":"assistant","content":$content}')
-messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")
-echo "$messages"
-```
+- **Terminal:** If stdout is a terminal, it pipes the JSON to `answer` to provide a pretty-printed response and updates the global `LAST_ANSWER`.
+- **Pipeline:** Outputs the `PIPELINE_MAGIC_HEADER` followed by the updated JSON array to stdout.
 
 ---
 
@@ -101,36 +79,13 @@ echo "$messages"
 **Language:** Bash  
 **Dependencies:** `jq`
 
-```bash
-TEE_MODE=""
-if [ "$1" = "--tee" ] || [ "$1" = "-t" ]; then
-    TEE_MODE="1"
-    shift
-fi
+#### Argument parsing & Input
+Uses a `while/case` loop for flag detection (`--tee` / `-t`). It detects if it is receiving a conversation history by checking for the `PIPELINE_MAGIC_HEADER` in stdin.
 
-if [ -t 0 ] && [ -n "${ANSWER}" ]; then
-    json="$(printf "%s" "${ANSWER}")"
-else
-    json="$(cat)"
-fi
-
-if [ -n "$TEE_MODE" ]; then
-    # Mid-pipeline: text to stderr for human, JSON to stdout for next stage
-    printf "%s" "$json" | jq -r '.[-1].content' >&2
-    printf "%s\n" "$json"
-else
-    # Terminal: just print the text
-    printf "%s" "$json" | jq -r '.[-1].content'
-fi
-```
-
-When `--tee` / `-t` is given, the script acts as a mid-pipeline stage:
-- The plain-text content of the last message is printed to **stderr** (visible to the human).
-- The full JSON conversation array is written to **stdout** (consumed by the next pipeline stage).
-
-Without `--tee`, behaviour is unchanged from the original: plain text is printed to stdout and the conversation JSON is discarded.
-
-`jq -r` (raw output) strips the surrounding JSON string quotes. `.[-1].content` selects the last message's content field.
+#### Output Modes
+1. **Observation Mode (`--tee`):** Prints the last message's text to `stderr` and passes the full JSON history through `stdout`.
+2. **Tool/Extraction Mode (Pipe):** When stdout is not a terminal, it extracts only the text of the last message and sends it to `stdout`.
+3. **Terminal Mode:** When called directly in a terminal, it extracts and prints the last message's text.
 
 ---
 
@@ -174,36 +129,24 @@ Key edge cases handled:
 
 ## `bx`
 
-**Language:** Bash  
-**Dependencies:** none beyond `bash`
-
-```bash
-printf '```bash\n$ %s\n' "${*}"
-${*}
-s=$?
-printf '```\n'
-exit $s
-```
-
-The wrapped command's exit status is captured in `$s` and used by the final `exit $s`, so the exit code of the wrapped command is correctly propagated to the caller.
+The script executes the command and wraps the output in a Bash code fence. Crucially, it captures the exit status of the wrapped command using `$s` and ensures this status is returned by the script, preserving error propagation in pipelines.
 
 ---
 
 ## `functions.sh`
 
-**Language:** Bash
+#### `ask()`
+A smart wrapper that provides pipeline intelligence:
+- **Header Detection:** It reads the first line of stdin. If it matches `PIPELINE_MAGIC_HEADER`, it calls `ask.sh` with the existing JSON. If the header is absent but stdin is a pipe, it automatically invokes `ask.sh -i` to treat the input as an attachment.
+- **Error Propagation:** Captures the exit status of `ask.sh` and returns it to the shell.
+- **Terminal Logic:** If stdout is a terminal, it uses a here-string (`<<<`) to pass the result to `answer`, ensuring the `LAST_ANSWER` variable is updated in the current shell context.
 
-```bash
-ask () 
-{ 
-    export ANSWER=$(ask.sh "$*");
-    printf "%s\n" "${ANSWER}"
-}
-```
+#### `answer()`
+- **Direct Call:** If called without stdin in a terminal, it retrieves the content from the global `LAST_ANSWER` variable.
+- **State Management:** If not in `--tee` mode, it exports the result to the `LAST_ANSWER` environment variable to allow subsequent interactive calls to retrieve the result.
 
-`"$*"` joins all arguments with the first character of `$IFS` (space). This means multi-word prompts are passed as a single string to `ask.sh`.
-
-The result is exported as `$ANSWER` so that a subsequent `answer` invocation in the same shell can read the conversation without a pipe.
+#### `pipetest()`
+A safety wrapper that captures stdin to a temporary file, displays a preview of the data to `stderr`, and requires a `Y/N` confirmation from the user via `/dev/tty` before forwarding the data to `stdout`.
 
 ---
 
@@ -245,9 +188,6 @@ Each `ask.sh` invocation is stateless beyond what it receives on stdin. The enti
 
 ## Known Limitations
 
-- **Hard-coded model name** — `gpt-3.5-turbo` is embedded in the API request body. There is no flag to choose a different model at runtime.
-- **Hard-coded sampler parameters** — Temperature, `top_k`, `top_p`, and other sampler settings are all literals with no override mechanism.
-- **No tool / function calling** — The API request does not include a `tools` field, so the model cannot invoke external functions.
-- **`$ANSWER` is single-valued** — The `aliases` function stores only the most recent API response. Chaining interactive `ask` calls overwrites `$ANSWER` each time, so only the last response is available to `answer` without a pipe.
-- **Pipeline idempotency** — Re-running a pipeline that begins with `ask` always starts a fresh conversation; there is no mechanism to resume a prior conversation or to make repeated invocations idempotent.
-- **`env.sh` coupling** — `ask.sh` unconditionally sources `~/wip/llamafiles/scripts/env.sh`, which may not exist on all machines. Missing this file causes `ask.sh` to fail even when all required environment variables are already set.
+- **Tool Calling:** While the `tools` wrapper is implemented, `ask.sh` does not yet automatically handle the `finish_reason == "tool_calls"` loop (single-step auto-execution).
+- **Model Selection:** The model name is currently hard-coded as `gpt-3.5-turbo` within `ask.sh`.
+- **Caching:** There is currently no mechanism for conversation caching or resuming from a saved JSON file.
