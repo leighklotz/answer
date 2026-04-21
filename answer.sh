@@ -24,7 +24,7 @@ if [ ! -t 0 ]; then
     raw_input=$(cat)
     if [[ "$raw_input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
         # We received a Conversation State (Header + JSON body)
-        json="${raw_input#$PIPELINE_MAGIC_HEADER}"
+        json="${raw_input#${PIPELINE_MAGIC_HEADER}}"
         json="${json#$'\n'}"
     else
         # We received raw text or un-headered JSON
