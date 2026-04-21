@@ -1,4 +1,4 @@
-# Answer: A Shell-Based Code Generation & Execution Agent Framework
+# Answer: 🤖 A Shell-Based Code Generation & Execution Agent Framework
 
 **Answer** is a command-line agent framework that leverages language models via api and posix pipes to generate, execute, and retrieve the results of code snippets directly from your terminal. It provides a conversational, shell-focused workflow for rapid prototyping and experimentation.
 
