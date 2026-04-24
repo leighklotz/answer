@@ -156,9 +156,13 @@ else
   messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")
   
   if [ -t 1 ]; then
+      # If it's a terminal, we want the user to see the text, 
+      # but we still want to pipe the JSON to 'answer' 
+      # so that 'answer' can update LAST_ANSWER for the shell.
       printf "%s" "$messages" | answer
   else
-      printf "%s\n%s" "${PIPELINE_MAGIC_HEADER}" "$messages"
+      # If it's a pipe, output the header + JSON so 'tools' or 'answer' can parse it.
+      printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
   fi
 fi
 

@@ -177,3 +177,20 @@ $ ask "write a single bash echo of (2+3)" | answer | pipetest Execute | unfence 
 
 5
 $ 
+
+## 15. Tool call 
+Verifies that ask, tools, and answer work together.
+
+```bash
+$ ask "what is the current directory?" | tools bash_tools | answer
+/home/klotz/wip/answer/examples
+
+```
+
+## 15. Tool call without answer
+Verifies that ask, tools and end of CLI work.
+
+```bash
+$ ask "what is the current directory?" | tools bash_tools
+/home/klotz/wip/answer/examples
+```
