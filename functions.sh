@@ -98,12 +98,12 @@ function answer ()
         # also do we keep inputs as well as outputs?
         # need cache strategy for repeatable clis
         # echo "answer() debug: Not setting LAST_ANSWER in $0 ${@}" >&2
-        printf "* answer() not setting LAST_ANSWER\n" >&2
+        # printf "* answer() not setting LAST_ANSWER\n" >&2
         true
     else
         # echo "answer() debug: Setting LAST_ANSWER[$$] to $ANSWER" >&2
         if [ -n "${LAST_ANSWER}" ] && [ "${LAST_ANSWER}" != 'null' ]; then
-             printf "answer() * setting LAST_ANSWER\n" >&2
+             # printf "answer() * setting LAST_ANSWER\n" >&2
              export LAST_ANSWER="${ANSWER}"
         fi
     fi
