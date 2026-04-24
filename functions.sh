@@ -55,19 +55,19 @@ function ask ()
     fi
 
     if [ -t 1 ]; then
-        # 1. If output is a terminal, run ask.sh and capture output into a variable pass to answer
-        # 2. Calling 'answer' in the CURRENT shell using a here-string (<<<) avoids a pipe and ensures LAST_ANSWER is updated globally.
+        # If terminal: call answer to handle text output AND update LAST_ANSWER
+        # We use a here-string to pass the JSON produced by ask.sh to answer
+        echo "* ask() $(date) calling answer()" >&2
         answer <<< "${nascent}"
         s=$?
-        # printf "done calling answer, LAST_ANSWER=%s\n" "${LAST_ANSWER}" >&2
-        # Check if the command failed
         if [ $s -ne 0 ]; then
-        echo "* ask() $(date) ERROR: answer failed: $s" >&2
-        return 1
+            echo "* ask() $(date) ERROR: answer failed: $s" >&2
+            return 1
         fi
     else
-        # 3. If output is not a terminal, run ask.sh in a subshell and capture output into a variable
-        # Pass the reconstructed RAW_JSON via a pipe if not in terminal
+        # 3. If NOT a terminal: we are in a pipeline (e.g., | tools).
+        # ask.sh has already prepended the header in its non-tty branch.
+        # We just need to pass that exact string through.
         printf "%s\n" "${nascent}"
         s=0
     fi
@@ -140,7 +140,36 @@ unfence ()
 
 function tools ()
 {
-    tools.sh "$@"
+    local header_line
+    local RAW_JSON
+    local ARGS=()
+
+    # Use a non-blocking read to check for the header
+    if read -t 0.1 header_line && [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
+        # The header was consumed by 'read'. 
+        # Now 'cat' will grab only the remaining JSON body.
+        RAW_JSON=$(cat)
+        
+        # Prepare arguments: add --pipe if not present
+        HAS_PIPE=false
+        for arg in "$@"; do [[ "$arg" == "--pipe" ]] && HAS_PIPE=true; done
+        
+        if [ "$HAS_PIPE" = false ]; then
+            ARGS=("--pipe" "$@")
+        else
+            ARGS=("$@")
+        fi
+
+        # Pipe ONLY the JSON body to tools.sh
+        echo "$RAW_JSON" | tools.sh "${ARGS[@]}"
+    else
+        # No header found, or header was not the magic one.
+        # Note: If stdin was a pipe but didn't have the header, 
+        # we must be careful not to lose data. 
+        # However, per your spec, tools expects the header for piped JSON.
+        tools.sh "$@"
+    fi
+    
     s=$?
     if [ $s -ne 0 ]; then
         echo "$0: $(date) ERROR: tools.sh failed with exit code $s" >&2
