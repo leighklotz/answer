@@ -14,8 +14,8 @@ The core component. Sends a user prompt to a language-model API and returns the 
 
 #### Synopsis
 
-```
-ask [OPTIONS] [PROMPT...]
+```bash
+🦶$ ask [OPTIONS] [PROMPT...]
 ```
 
 When invoked as the shell function `ask` (sourced from `functions.sh` via `enable.sh`):
@@ -151,18 +151,17 @@ Executes a command and wraps its stdout in a Bash code fence.
 
 #### Synopsis
 
-```
-bx <command> [args...]
+```bash
+🦶$ bx <command> [args...]
 ```
 
 #### Output
 
 ````
 ```bash
-$ <command> [args...]
+🦶$ <command> [args...]
 <output>
 ```
-````
 
 The exit code of the wrapped command is preserved.
 
@@ -187,7 +186,7 @@ All conversation state is represented as a JSON array of message objects compati
 ]
 ```
 
-`ask.sh` both consumes and produces this format, making it composable in pipelines of arbitrary depth.
+`ask` both consumes and produces this format, making it composable in pipelines of arbitrary depth.
 
 ---
 
@@ -195,8 +194,8 @@ All conversation state is represented as a JSON array of message objects compati
 
 The central design pattern is the Unix pipeline. Conversation history flows left-to-right through the pipe:
 
-```
-ask "prompt 1" | ask "prompt 2" | ask "prompt 3" | answer
+```bash
+🦶$ ask "prompt 1" | ask "prompt 2" | ask "prompt 3" | answer
 ```
 
 Each `ask` in the pipeline:
@@ -208,13 +207,25 @@ Each `ask` in the pipeline:
 
 `answer` terminates the pipeline by extracting and printing the final reply.
 
+**N.B. For your conveinence, at the end of a pipeline (i.e. if `stdout` is a terminal), `ask` will automatically call answer, so it can be omitted.**
+
+```bash
+🦶$ ask "prompt 1" | ask "prompt 2" | ask "prompt 3" 
+```
+
+```bash
+🦶$ dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about md0?" | answer
+```
+
+
 ### Mid-pipeline (`--tee`) pattern
 
 When `answer --tee` is used mid-pipeline, human-readable text is printed to stderr while the JSON conversation array continues to flow on stdout:
 
+```bash
+🦶$ dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about md0?" | answer
 ```
-dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about md0?" | answer
-```
+Diagram:
 
 ```
                       JSON conversation array flows left→right on stdout
@@ -226,15 +237,16 @@ ask -i "SCSI issues"  |  tools linux_tools  |  answer --tee  |  ask "about md0?"
   assistant reply]       tool results +         to stderr;      assistant reply]     text to stdout
                          final assistant]       passes JSON
                                                 to stdout
-<<<<<<< /tmp/emacs-diff-before-0u5uxp
 ```
+
+
 
 ### `tools` pipeline stage
 
 The `tools` command acts as a pipeline stage between `ask` and `answer`, resolving any tool calls in the conversation:
 
-```
-ask "Spot SCSI issues with dmesg" | tools linux_tools | answer
+```bash
+🦶$ ask "Spot wifi issues with dmesg" | tools linux_tools | answer
 ```
 
 ---
@@ -273,12 +285,12 @@ A safety gate for pipelines that forwards piped data to stdout only after explic
 
 **As a safety gate before execution:**
 ```bash
-ask "Write a script to delete logs" | answer | pipetest "Execute this?" | bash
+🦶$ ask "Write a script to delete logs" | answer | pipetest "Execute this?" | bash
 ```
 
 **As a gate in a complex pipeline:**
 ```bash
-(bx git status; bx git diff) | ask -i "Create a commit message" | answer | pipetest "Commit these changes?" | unfence | bash
+🦶$ (bx git status; bx git diff) | ask -i "Create a commit message" | answer | pipetest "Commit these changes?" | unfence | bash
 ```
 ---
 
@@ -286,7 +298,7 @@ ask "Write a script to delete logs" | answer | pipetest "Execute this?" | bash
 ## Logging and stdout/stderr
 Informative messages and emoji go to stderr or bash PS1.
 
-| Emoji | Meaning in Code Context |
+| Emoji | Meaning in Code Conext |
 | :--- | :--- |
 | 🦶 | Hallux logo, shown whel  when Hallux is active. |
 | 📣 | `log_verbose`: Indicates verbose logging output is active. |
