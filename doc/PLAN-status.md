@@ -8,31 +8,31 @@ The framework has successfully implemented the core pipeline architecture (Conve
 
 #### **1. Pipeline Continuity & Robustness**
 *   **[x] Input Validation:** `ask.sh` now validates if stdin is a JSON array (checks for `[`), preventing silent conversation resets.
-*   **[ ] Error Propagation:** **PENDING.** While `functions.sh` checks exit codes for `ask.sh` and `answer.sh`, it does not yet implement `set -o pipefail` or `${PIPESTATUS}` logic to ensure a failure in the middle of a long pipe (e.g., `ask | ask | tool`) aborts the entire chain.
-*   **[ ] Integration Testing:** **PENDING.** No `test/pipeline_test.sh` is present in the provided files.
-*   **[x] Documentation:** The `README.md` has been updated with the new pipeline patterns.
+*   **[ ] Error Propagation:** **PENDING.** While functions check exit codes, it does not yet implement `set -o pipefail` or `${PIPESTATUS}` logic to ensure a failure in the middle of a long pipe aborts the entire chain.
+*   **[ ] Integration Testing:** **PENDING.** No `test/pipeline_test.sh` is present.
+*   **[x] Documentation:** The pipeline patterns are documented in `README.md`.
 
 #### **1a. Pipeline Architecture (Tee & Tools)**
 *   **[x] `answer --tee` / `-t`:** Fully implemented in `answer.sh`. It correctly routes text to `stderr` and JSON to `stdout`.
-*   **[x] `tools.sh` Wrapper:** Implemented (referenced in `functions.sh` and `README.md`).
-*   **[x] Alias/Function Updates:** `functions.sh` provides updated `ask`, `answer`, `bx`, `unfence`, and `tools` wrappers.
+*   **[x] `tools.sh` Wrapper:** Implemented as a pipeline wrapper for `toolex`.
+*   **[x] Alias/Function Updates:** `functions.sh` provides updated wrappers for `ask`, `answer`, `bx`, `unfence`, and `tools`.
 
 #### **2. `--file` Flag**
 *   **[ ] Status: NOT STARTED.** There is no implementation of a `-f` or `--file` flag in `ask.sh`. Users must still use the `bx cat file | ask -i` workaround.
 
 #### **3. Pipeline Idempotency (Caching)**
-*   **[ ] Status: NOT STARTED.** There is no implementation for `--save`, `--resume`, or conversation caching.
+*   **[ ] Status: NOT STARTED.** No implementation for `--save`, `--resume`, or conversation caching exists.
 
 #### **4. Modern LLM Techniques**
-*   **4a. Tool/Function Calling:** **PARTIALLY IMPLEMENTED.** The `tools` wrapper exists, but the logic to automatically dispatch `finish_reason == "tool_calls"` and re-submit results (single-step tool use) is not in `ask.sh`.
+*   **4a. Tool/Function Calling:** **PARTIALLY IMPLEMENTED.** The `tools` wrapper is available, but the logic to automatically dispatch `finish_reason == "tool_calls"` and re-submit results (single-step tool use) is not yet integrated into the core `ask.sh`.
 *   **4b. Structured Output:** **NOT STARTED.** No `--json` or `--schema` flags.
-*   **4c. System Prompt Support:** **IMPLEMENTED.** `ask.sh` now supports `--use-system-message` and prepends the `SYSTEM_MESSAGE` env var to the JSON array.
-*   **4d. Streaming:** **NOT STARTED.** `ask.sh` uses a standard synchronous `curl` call.
-*   **4e. Model Selection:** **PARTIALLY IMPLEMENTED.** The model is hard-coded to `gpt-3.5-turbo` in `ask.sh`. There is no `--model` flag.
+*   **4c. System Prompt Support:** **IMPLEMENTED.** `ask.sh` supports `--use-system-message` to prepend a system role message from the environment.
+*   **4d. Streaming:** **NOT STARTED.** `ask.sh` uses synchronous `curl`.
+*   **4e. Model Selection:** **PARTIALLY IMPLEMENTED.** The model is hard-coded as `gpt-3.5-turbo` in `ask.sh`; no `--model` flag exists yet.
 *   **4f. Multimodal:** **NOT STARTED.**
 
 #### **5. Housekeeping**
-*   **[x] `bx` fix:** The logic in `functions.sh` (via `bx`) and the description in `PLAN.md` suggest the exit code issue was addressed.
+*   **[x] `bx` fix:** Exit code handling for the wrapped command was addressed in `bx.sh`.
 *   **[ ] Makefile/Linting:** **NOT STARTED.**
 
 ---
