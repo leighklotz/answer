@@ -17,7 +17,15 @@ $ ask 2+3= | answer
 2 + 3 = 5
 ```
 
-## 3. Raw JSON Inspection
+## 3. Ask and answer
+```bash
+$ ask 20+3=|answer -t | ask in hex
+20 + 3 = 23
+23 in hexadecimal is **17**.
+$ 
+```
+
+## 4. Raw JSON Inspection
 Verifies that the internal data structure is correctly formatted as JSON when piped to `cat`.
 
 ```bash
@@ -35,7 +43,7 @@ $ ask 2+3= | cat
 ]
 ```
 
-## 4. JSON Parsing via Answer
+## 5. JSON Parsing via Answer
 Verifies that `answer.sh` can ingest raw JSON and extract the final content.
 
 ```bash
@@ -43,7 +51,7 @@ $ ask 2+3= | answer
 5
 ```
 
-## 5. Hybrid/Observation Mode (Tee)
+## 6. Hybrid/Observation Mode (Tee)
 Verifies that the `--tee` (`-t`) flag provides human-readable output to `stderr` while passing the structured JSON history through `stdout`.
 
 ```bash
@@ -61,7 +69,7 @@ $ ask 2+3= | answer -t
 ]
 ```
 
-## 6. System Message & Peano Logic
+## 7. System Message & Peano Logic
 Verifies functional correctness when a system message is applied.
 
 ```bash
@@ -100,7 +108,7 @@ $S(4) = 5$
 5
 ```
 
-## 7. Conversation Mode (New: Pipeline Continuity)
+## 8. Conversation Mode (New: Pipeline Continuity)
 Verifies that the `PIPELINE_MAGIC_HEADER` allows context to persist across multiple `ask` commands.
 
 ```bash
@@ -113,7 +121,7 @@ $ ask "My name is" | ask
 My name is Peano.
 ```
 
-## 8. Deep Pipeline Extraction (New: Tool Chaining)
+## 9. Deep Pipeline Extraction (New: Tool Chaining)
 Verifies that `answer.sh` successfully strips all headers and JSON when part of a multi-stage Unix pipe.
 
 ```bash
@@ -122,7 +130,7 @@ $ ask 2+3= | answer | grep "5"
 5
 ```
 
-## 9. Protocol Integrity (New: Header Detection)
+## 10. Protocol Integrity (New: Header Detection)
 Verifies that `ask.sh` correctly identifies and reconstructs conversation history from a piped stream containing the magic header.
 
 ```bash
@@ -132,7 +140,7 @@ $ echo '[{"role": "user", "content": "Previous context"}]' >> dummy.json
 $ cat dummy.json | ask "What did I just say?"
 You just said "Previous context".
 ```
-## 10. Last Answer Retrieval (No Stdin)
+## 11. Last Answer Retrieval (No Stdin)
 Verifies that calling `answer` without piped input correctly retrieves the most recent interaction, if available.
 
 ```bash
@@ -142,7 +150,7 @@ $ answer
 2 + 3 = 5
 ```
 
-## 11. Unfencing Code
+## 12. Unfencing Code
 Verifies that `unfence` correctly strips triple backtick (```) delimiters from model output.
 
 ```bash
@@ -150,7 +158,7 @@ $ echo '```python\nprint("hello world")\n```' | unfence
 print("hello world")
 ```
 
-## 12. Piping Command Output
+## 13. Piping Command Output
 Verifies the `-i` flag allows piping existing shell output into an `ask` prompt.
 
 ```bash
@@ -158,7 +166,7 @@ $ echo 'EXT4-fs error (device sda1): ext4_find_entry:1234: inode #567890: comm p
   ask -i "Analyze this error" | answer
 The error indicates a hardware failure on the disk.
 ```
-## 13. Safe Execution Preview
+## 14. Safe Execution Preview
 Verifies that `pipetest` provides a preview and requires user confirmation before executing code.
 
 $ ask "write a single bash echo of (2+3)" | answer | pipetest Execute | unfence | bash
