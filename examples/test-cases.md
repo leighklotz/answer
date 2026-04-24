@@ -162,10 +162,10 @@ The error indicates a hardware failure on the disk.
 Verifies that `pipetest` provides a preview and requires user confirmation before executing code.
 
 $ ask "write a single bash echo of (2+3)" | answer | pipetest Execute | unfence | bash
-🤖 ```bash
-echo $((2+3))
+```bash
+🦶echo $((2+3))
 ```
-🤖 Execute: Y or N? y
+🦶 Execute: Y or N? y
 
 5
 $ 
