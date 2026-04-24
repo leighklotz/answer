@@ -52,7 +52,6 @@ A JSON array of message objects representing the complete conversation, includin
   {"role": "assistant", "content": "..."},
   ...
 ]
-<<<<<<< /tmp/emacs-diff-before-0u5uxp
 ```
 
 #### Environment variables
