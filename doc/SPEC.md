@@ -52,6 +52,7 @@ A JSON array of message objects representing the complete conversation, includin
   {"role": "assistant", "content": "..."},
   ...
 ]
+<<<<<<< /tmp/emacs-diff-before-0u5uxp
 ```
 
 #### Environment variables
@@ -78,7 +79,7 @@ Extracts the content of the last message from a JSON conversation array.
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-t` | `--tee` | Mid-pipeline mode: print plain text to **stderr** (for the human) and pass the full JSON conversation array through to **stdout** (for the next pipeline stage). |
+| `-t` | `--tee` | **Observation Mode:** Mid-pipeline mode. Prints the human-readable text of the last message to **stderr** and passes the full JSON conversation array through to **stdout**. This allows a user to see progress while the data continues flowing to subsequent pipeline stages (like `tools` or another `ask`). |
 
 #### Input
 
@@ -88,11 +89,13 @@ Extracts the content of the last message from a JSON conversation array.
 | stdin is a pipe | Reads stdin |
 
 #### Output
+The behavior of the output depends on how the command is being used in the pipeline:
 
-| Mode | stdout | stderr |
-|------|--------|--------|
-| Default (no `--tee`) | Plain text content of the last message | _(nothing)_ |
-| `--tee` | Full JSON conversation array (passed through) | Plain text content of the last message |
+| Mode | Context | stdout | stderr |
+|------|---------|--------|--------|
+| **Observation** (`--tee`) | Mid-pipeline (piped to another command) | Full JSON conversation array | Plain text content of last message |
+| **Extraction** (no flags, piped) | Tool/Extraction mode (e.g., `ask \| answer \| tool`) | Plain text content of last message | _(nothing)_ |
+| **Terminal** (no flags, direct call) | End of line / Direct user interaction | Plain text content of last message | _(nothing)_ |
 
 ---
 
@@ -224,6 +227,7 @@ ask -i "SCSI issues"  |  tools linux_tools  |  answer --tee  |  ask "about md0?"
   assistant reply]       tool results +         to stderr;      assistant reply]     text to stdout
                          final assistant]       passes JSON
                                                 to stdout
+<<<<<<< /tmp/emacs-diff-before-0u5uxp
 ```
 
 ### `tools` pipeline stage
@@ -260,3 +264,5 @@ ask "Spot SCSI issues with dmesg" | tools linux_tools | answer
 | `jq` | JSON construction and extraction |
 | `awk` | Text processing in `unfence` |
 | Python 3 | Executing generated Python code (optional, user-supplied) |
+
+

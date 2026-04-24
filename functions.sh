@@ -1,4 +1,4 @@
-# source this file to define the functionsg
+# source this file to define the functions
 
 # Require bash 4+
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
@@ -111,10 +111,19 @@ function answer ()
 
 function bx ()
 {
+    local quiet
+    while [[ $# -gt 0 ]]; do
+        case "$1" in 
+            -q) quiet=1; shift ;;
+            -*) echo "bx: unknown option $1" >&2; return 1 ;;
+            *) break ;;
+        esac
+    done
+ 
     bx.sh "$@"
     s=$?
-    if [ $s -ne 0 ]; then
-        echo "$0: $(date) ERROR: bx.sh failed with exit code $s" >&2
+    if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
+        echo "bx: $(date) ERROR: bx.sh failed with exit code $s" >&2
         return 1
     fi
 }

@@ -1,4 +1,4 @@
-# Answer: A Shell-Based Code Generation & Execution Agent Framework
+# Answer: 🤖 A Shell-Based Code Generation & Execution Agent Framework
 
 **Answer** is a command-line LLM-based agent framework that uses Posix pipes to compose and execute nonce agentic pipelines. It provides a conversational, shell-focused workflow for rapid prototyping, experimentation, and analysis.
 
