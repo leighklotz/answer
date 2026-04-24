@@ -28,11 +28,11 @@ function ask ()
         true
     elif read -t 0.1 header_line; then
         if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
-            echo "* ask() continuing conversation from stdin" >&2
+            echo "🦶 ask: continuing conversation from stdin" >&2
             # Since we already read the header, use 'cat' to get the remaining JSON body
             RAW_JSON=$(cat)
         else
-            echo "* ask() reading attachment from stdin" >&2
+            echo "🦶 ask: reading attachment from stdin" >&2
             FLAG="-i"
             # Combine the line we just read with the rest of the stream
             RAW_JSON="${header_line}$(printf '\n')"
