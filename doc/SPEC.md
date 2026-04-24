@@ -157,7 +157,6 @@ Executes a command and wraps its stdout in a Bash code fence.
 
 #### Output
 
-````
 ```bash
 🦶$ <command> [args...]
 <output>
