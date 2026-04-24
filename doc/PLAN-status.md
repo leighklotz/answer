@@ -14,7 +14,7 @@ The framework has successfully implemented the core pipeline architecture (Conve
 
 #### **1a. Pipeline Architecture (Tee & Tools)**
 *   **[x] `answer --tee` / `-t`:** Fully implemented in `answer.sh`. It correctly routes text to `stderr` and JSON to `stdout`.
-*   **[x] `tools.sh` Wrapper:** Implemented as a pipeline wrapper for `toolex`.
+*   **[x] `tools.sh` Wrapper:** Implemented as a pipeline wrapper for `toolex`, which itself needs considerable work.
 *   **[x] Alias/Function Updates:** `functions.sh` provides updated wrappers for `ask`, `answer`, `bx`, `unfence`, and `tools`.
 
 #### **2. `--file` Flag**
