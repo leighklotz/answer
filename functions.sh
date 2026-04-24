@@ -174,7 +174,7 @@ function pipetest() {
 
     # 3. Prompt from stderr (visible in the terminal) and read a full line.
     local reply
-    (printf "🦶 "; head -10 "$tmpfile"; printf "🦶 %s: Y or N? " "$user_query") >&2
+    (printf "🦶"; head -10 "$tmpfile"; printf "🦶%s: Y or N? " "$user_query") >&2
     # Read from the actual terminal
     read -r reply < /dev/tty
     printf "\n" >&2
