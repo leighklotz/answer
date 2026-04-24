@@ -143,6 +143,9 @@ function tools ()
     local header_line
     local RAW_JSON
     local ARGS=()
+    local HAS_PIPE=false
+    local TOOLS_OUTPUT
+    local s
 
     # Use a non-blocking read to check for the header
     if read -t 0.1 header_line && [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
@@ -151,7 +154,6 @@ function tools ()
         RAW_JSON=$(cat)
         
         # Prepare arguments: add --pipe if not present
-        HAS_PIPE=false
         for arg in "$@"; do [[ "$arg" == "--pipe" ]] && HAS_PIPE=true; done
         
         if [ "$HAS_PIPE" = false ]; then
@@ -160,20 +162,25 @@ function tools ()
             ARGS=("$@")
         fi
 
-        # Pipe ONLY the JSON body to tools.sh
-        echo "$RAW_JSON" | tools.sh "${ARGS[@]}"
+        # Pipe ONLY the JSON body to tools.sh, capture output
+        TOOLS_OUTPUT=$(echo "$RAW_JSON" | tools.sh "${ARGS[@]}")
+        s=$?
+
+        # Re-wrap output with the magic header to preserve pipeline framing.
+        # On failure, emit no output (error is reported via stderr below).
+        [ $s -eq 0 ] && printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "${TOOLS_OUTPUT}"
     else
         # No header found, or header was not the magic one.
         # Note: If stdin was a pipe but didn't have the header, 
         # we must be careful not to lose data. 
         # However, per your spec, tools expects the header for piped JSON.
         tools.sh "$@"
+        s=$?
     fi
     
-    s=$?
     if [ $s -ne 0 ]; then
         echo "$0: $(date) ERROR: tools.sh failed with exit code $s" >&2
-        return 1
+        return $s
     fi
 }
 
