@@ -239,6 +239,22 @@ ask "Spot SCSI issues with dmesg" | tools linux_tools | answer
 
 ---
 
+## Logging and stdout/stderr
+Informative messages and emoji go to stderr or bash PS1.
+
+| Emoji | Meaning in Code Context |
+| :--- | :--- |
+| 🦶 | Hallux logo, shown whel  when Hallux is active. |
+| 📣 | `log_verbose`: Indicates verbose logging output is active. |
+| 🐞 | `log_debug`: Indicates debugging information. |
+| ℹ️ | `log_info`: Indicates general informational messages. |
+| ⚠️ | `log_warn`: Indicates a warning or non-critical issue. |
+| ❌ | `log_error`: Indicates an error has occurred. |
+| ⛔ | `log_and_exit`: Indicates a fatal error causing script termination. |
+| 🚫 | Represents data that was discarded (e.g., during a rejected `pipetest`). |
+
+
+
 ## API Contract
 
 `ask` and `ask.sh` target any OpenAI-compatible `/v1/chat/completions` endpoint. The request body is a JSON object containing:
