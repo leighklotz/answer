@@ -147,37 +147,42 @@ function tools ()
     local TOOLS_OUTPUT
     local s
 
-    # Use a non-blocking read to check for the header
-    if read -t 0.1 header_line && [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
-        # The header was consumed by 'read'. 
-        # Now 'cat' will grab only the remaining JSON body.
-        RAW_JSON=$(cat)
-        
-        # Prepare arguments: add --pipe if not present
-        for arg in "$@"; do [[ "$arg" == "--pipe" ]] && HAS_PIPE=true; done
-        
-        if [ "$HAS_PIPE" = false ]; then
-            ARGS=("--pipe" "$@")
-        else
-            ARGS=("$@")
-        fi
-
-        # Pipe ONLY the JSON body to tools.sh, capture output
-        TOOLS_OUTPUT=$(echo "$RAW_JSON" | tools.sh "${ARGS[@]}")
-        s=$?
-
-        # Re-wrap output with the magic header to preserve pipeline framing.
-        # On failure, emit no output (error is reported via stderr below).
-        [ $s -eq 0 ] && printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "${TOOLS_OUTPUT}"
-    else
-        # No header found, or header was not the magic one.
-        # Note: If stdin was a pipe but didn't have the header, 
-        # we must be careful not to lose data. 
-        # However, per your spec, tools expects the header for piped JSON.
+    if [ -t 0 ]; then
+        # Stdin is a terminal; pass through to tools.sh which will error appropriately.
         tools.sh "$@"
         s=$?
+    else
+        # Stdin is a pipe; block-read the first line to detect the magic header.
+        # A blocking read (no -t timeout) is used so we correctly wait for
+        # upstream pipeline stages (e.g. ask) that take time to produce output.
+        IFS= read -r header_line
+        if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
+            # Header consumed; read the remaining JSON body.
+            RAW_JSON=$(cat)
+
+            # Prepare arguments: add --pipe if not present
+            for arg in "$@"; do [[ "$arg" == "--pipe" ]] && HAS_PIPE=true; done
+
+            if [ "$HAS_PIPE" = false ]; then
+                ARGS=("--pipe" "$@")
+            else
+                ARGS=("$@")
+            fi
+
+            # Pipe ONLY the JSON body to tools.sh, capture output
+            TOOLS_OUTPUT=$(printf "%s\n" "${RAW_JSON}" | tools.sh "${ARGS[@]}")
+            s=$?
+
+            # Re-wrap output with the magic header to preserve pipeline framing.
+            # On failure, emit no output (error is reported via stderr below).
+            [ $s -eq 0 ] && printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "${TOOLS_OUTPUT}"
+        else
+            # No magic header; reconstruct full stdin and pass through unchanged.
+            { printf "%s\n" "${header_line}"; cat; } | tools.sh "$@"
+            s=$?
+        fi
     fi
-    
+
     if [ $s -ne 0 ]; then
         echo "$0: $(date) ERROR: tools.sh failed with exit code $s" >&2
         return $s
