@@ -57,7 +57,7 @@ function ask ()
     if [ -t 1 ]; then
         # If terminal: call answer to handle text output AND update LAST_ANSWER
         # We use a here-string to pass the JSON produced by ask.sh to answer
-        echo "* ask() $(date) calling answer()" >&2
+        echo "🦶 $(date) ask calling answer" >&2
         answer <<< "${nascent}"
         s=$?
         if [ $s -ne 0 ]; then
