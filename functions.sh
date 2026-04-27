@@ -16,32 +16,29 @@ PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
 function ask ()
 {
-    local RAW_JSON
+    local RAW_INPUT
     local FLAG
     local header_line
 
     # If stdin is available, check for PIPELINE_MAGIC_HEADER:
     # If header is present pass through raw JSON, else if stdin is available and header is absent, pass ask -i.
-    FLAG=""
-    if [ -t 0 ]; then
-        # Stdin is a terminal, no piped data expected via stdin usually
-        true
-    elif read -t 0.1 header_line; then
+    flag="$1"
+    if read -t 0.1 header_line; then
         if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
             echo "🦶ask: continuing conversation from stdin" >&2
             # Since we already read the header, use 'cat' to get the remaining JSON body
-            RAW_JSON=$(cat)
+            RAW_INPUT="$(cat)"
         else
             echo "🦶ask: reading attachment from stdin" >&2
             FLAG="-i"
             # Combine the line we just read with the rest of the stream
-            RAW_JSON="${header_line}$(printf '\n')"
-            RAW_JSON+="$(cat)"
+            RAW_INPUT="${header_line}$(printf '\n')"
+            RAW_INPUT+="$(cat)"
         fi
     fi
 
-    if [ -n "$RAW_JSON" ] || [ "$FLAG" = "-i" ]; then
-        nascent="$(printf "%s\n" "${RAW_JSON}" | ask.sh $FLAG "$@")"
+    if [ -n "$RAW_INPUT" ] || [ "$FLAG" = "-i" ]; then
+        nascent="$(printf "%s\n" "${RAW_INPUT}" | ask.sh $FLAG "$@")"
     else
         # No stdin data was found, run normally without a pipe
         nascent="$(ask.sh "$@")"
@@ -139,48 +136,11 @@ unfence ()
 
 function tools ()
 {
-    local header_line
-    local RAW_JSON
-    local ARGS=()
-    local HAS_PIPE=false
-    local TOOLS_OUTPUT
     local s
 
-    if [ -t 0 ]; then
-        # Stdin is a terminal; pass through to tools.sh which will error appropriately.
-        tools.sh "$@"
-        s=$?
-    else
-        # Stdin is a pipe; block-read the first line to detect the magic header.
-        # A blocking read (no -t timeout) is used so we correctly wait for
-        # upstream pipeline stages (e.g. ask) that take time to produce output.
-        IFS= read -r header_line
-        if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
-            # Header consumed; read the remaining JSON body.
-            RAW_JSON=$(cat)
-
-            # Prepare arguments: add --pipe if not present
-            for arg in "$@"; do [[ "$arg" == "--pipe" ]] && HAS_PIPE=true; done
-
-            if [ "$HAS_PIPE" = false ]; then
-                ARGS=("--pipe" "$@")
-            else
-                ARGS=("$@")
-            fi
-
-            # Pipe ONLY the JSON body to tools.sh, capture output
-            TOOLS_OUTPUT=$(printf "%s\n" "${RAW_JSON}" | tools.sh "${ARGS[@]}")
-            s=$?
-
-            # Re-wrap output with the magic header to preserve pipeline framing.
-            # On failure, emit no output (error is reported via stderr below).
-            [ $s -eq 0 ] && printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "${TOOLS_OUTPUT}"
-        else
-            # No magic header; reconstruct full stdin and pass through unchanged.
-            { printf "%s\n" "${header_line}"; cat; } | tools.sh "$@"
-            s=$?
-        fi
-    fi
+    #  pass through to tools.sh which will error appropriately.
+    tools.sh "$@"
+    s=$?
 
     if [ $s -ne 0 ]; then
         echo "🦶ERROR: tools.sh failed with exit code $s" >&2
