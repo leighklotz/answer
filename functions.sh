@@ -2,13 +2,13 @@
 
 # Require bash 4+
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
-    echo "🦶 ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
+    echo "🦶ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
     return 1 2>/dev/null
 fi
 
 # Check if ask.sh is available
 if ! command -v ask.sh &> /dev/null; then
-    echo "🦶 $0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
+    echo "🦶$0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
 declare -g LAST_ANSWER
@@ -50,18 +50,18 @@ function ask ()
     s=$?
     # Check if the command failed
     if [ $s -ne 0 ]; then
-        echo "🦶 ask ERROR: ask.sh failed: $s" >&2
+        echo "🦶ask ERROR: ask.sh failed: $s" >&2
         return 1
     fi
 
     if [ -t 1 ]; then
         # If terminal: call answer to handle text output AND update LAST_ANSWER
         # We use a here-string to pass the JSON produced by ask.sh to answer
-        echo "🦶 ask: calling answer" >&2
+        echo "🦶ask: calling answer" >&2
         answer <<< "${nascent}"
         s=$?
         if [ $s -ne 0 ]; then
-            echo "🦶 ask ERROR: answer failed: $s" >&2
+            echo "🦶ask ERROR: answer failed: $s" >&2
             return 1
         fi
     else
@@ -86,7 +86,7 @@ function answer ()
     ANSWER="$(answer.sh "$@")"
     s=$?
     if [ $s -ne 0 ]; then
-        echo "🦶 answer ERROR: answer.sh failed with exit code $s" >&2
+        echo "🦶answer ERROR: answer.sh failed with exit code $s" >&2
         return 1
     fi
 
@@ -114,7 +114,7 @@ function bx ()
     while [[ $# -gt 0 ]]; do
         case "$1" in 
             -q) quiet=1; shift ;;
-            -*) echo "🦶 bx: unknown option $1" >&2; return 1 ;;
+            -*) echo "🦶bx: unknown option $1" >&2; return 1 ;;
             *) break ;;
         esac
     done
@@ -122,7 +122,7 @@ function bx ()
     bx.sh "$@"
     s=$?
     if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
-        echo "🦶 bx: ERROR: bx.sh failed with exit code $s" >&2
+        echo "🦶bx: ERROR: bx.sh failed with exit code $s" >&2
         return 1
     fi
 }
@@ -132,7 +132,7 @@ unfence ()
     unfence.sh "$@"
     s=$?
     if [ $s -ne 0 ]; then
-        echo "🦶 ERROR: unfence.sh failed with exit code $s" >&2
+        echo "🦶ERROR: unfence.sh failed with exit code $s" >&2
         return 1
     fi
 }
@@ -183,7 +183,7 @@ function tools ()
     fi
 
     if [ $s -ne 0 ]; then
-        echo "🦶 ERROR: tools.sh failed with exit code $s" >&2
+        echo "🦶ERROR: tools.sh failed with exit code $s" >&2
         return $s
     fi
 }
