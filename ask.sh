@@ -143,6 +143,7 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
       seed: -1,
       ignore_eos: false,
       n_predict: 10482,
+      enable_thinking: true,
       cache_prompt: true}')")"
 
 # Extract and append the reply

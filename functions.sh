@@ -23,7 +23,8 @@ function ask ()
     # If stdin is available, check for PIPELINE_MAGIC_HEADER:
     # If header is present pass through raw JSON, else if stdin is available and header is absent, pass ask -i.
     flag="$1"
-    if read -t 0.1 header_line; then
+    if [ "$flag" == "-i" ] || [ "$flag" == "--input" ]; then
+        read header_line
         if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
             echo "🦶ask: continuing conversation from stdin" >&2
             # Since we already read the header, use 'cat' to get the remaining JSON body
@@ -37,7 +38,7 @@ function ask ()
         fi
     fi
 
-    if [ -n "$RAW_INPUT" ] || [ "$FLAG" = "-i" ]; then
+    if [ -n "$RAW_INPUT" ]; then
         nascent="$(printf "%s\n" "${RAW_INPUT}" | ask.sh $FLAG "$@")"
     else
         # No stdin data was found, run normally without a pipe
