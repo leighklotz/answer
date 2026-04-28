@@ -182,7 +182,7 @@ $
 Verifies that ask, tools, and answer work together.
 
 ```bash
-$ ask "what is the current directory?" | tools bash_tools | answer
+$ ask "what is the current directory?" | tools --tools bash_tools | answer
 /home/klotz/wip/answer/examples
 
 ```
@@ -191,6 +191,6 @@ $ ask "what is the current directory?" | tools bash_tools | answer
 Verifies that ask, tools and end of CLI work.
 
 ```bash
-$ ask "what is the current directory?" | tools bash_tools
+$ ask "what is the current directory?" | tools --toola bash_tools
 /home/klotz/wip/answer/examples
 ```
