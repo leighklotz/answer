@@ -11,3 +11,5 @@ if [ -n "${ANSWER_OLD_PS1}" ]; then
 elif [[ "$PS1" == *"🦶"* ]]; then
     echo "🦶: failed to disable"
 fi
+
+echo "🦶 functions remain defined"
