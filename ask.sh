@@ -121,6 +121,7 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
     --argjson temperature 0.7 \
     --argjson max_tokens 4096 \
     '{model: $model,
+      thinking: true,
       mode: "instruct",
       temperature: $temperature,
       max_tokens: $max_tokens,

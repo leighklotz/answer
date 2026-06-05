@@ -153,11 +153,7 @@ function tools ()
 # Ask the user "Y or N? " (case‑insensitive, newline required).
 # If the answer starts with "y" (or "yes") the data is forwarded
 # to stdout.  Otherwise nothing is written.
-
 function pipetest() {
-    local user_query="$*"
-
-    # 1. Capture stdin into a temporary file – this allows very large input.
     local tmpdir tmpfile
     if ! tmpdir=$(mktemp -d 2>/dev/null) ; then
         printf >&2 "pipetest: could not create temporary directory\n"
@@ -171,22 +167,36 @@ function pipetest() {
 
     # 2. Read all of stdin into the temp file.
     cat >"$tmpfile"
-
-    # 3. Prompt from stderr (visible in the terminal) and read a full line.
+    
     local reply
-    (printf "🦶"; head -10 "$tmpfile"; printf "🦶%s: Y or N? " "$user_query") >&2
-    # Read from the actual terminal
-    read -r reply < /dev/tty
-    printf "\n" >&2
+    local pager
 
-    # 4. If the first character is 'y' or 'Y', output the captured data.
-    case "${reply}" in
-        y*|Y*)
+    # Auto-detect the best available viewing tool
+    if [ -n "${PIPETEST_PAGER}" ]; then
+        pager="${PIPETEST_PAGER}"
+    elif command -v batcat >/dev/null 2>&1; then
+        pager="batcat --style=numbers,grid"
+    elif command -v bat >/dev/null 2>&1; then
+        pager="bat --style=numbers,grid"
+    elif command -v less >/dev/null 2>&1; then
+        pager="less -R"
+    else
+        pager="cat"
+    fi
+    
+    # Render file content directly to stderr
+    ${pager} "$tmpfile" 1>&2
+    
+    # Safe interactive prompt from /dev/tty (avoids the racing subshell read)
+    read -r -p "🤖 ${user_query}: Y or N? " reply < /dev/tty
+    
+    printf "\n" 1>&2
+    case "${reply,,}" in 
+        y*)
             cat "$tmpfile"
-            ;;
+        ;;
         *)
-            printf "🚫 discarded\n" >&2
-            return 1
-            ;;
+            printf "🚫 discarded\n" 1>&2
+        ;;
     esac
 }
