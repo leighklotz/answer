@@ -97,8 +97,7 @@ else
             echo "ask: stdin does not look like a JSON conversation array (use -i to pipe plain text)." >&2
             exit 1
         fi
-        new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
-        messages=$(jq --argjson new_message "$new_message" '. + [$new_message]' <<< "$input")
+        messages=$(printf '%s' "$input" | jq --arg prompt "$prompt" '. + [{"role":"user","content":$prompt}]')
     fi
 fi
 
