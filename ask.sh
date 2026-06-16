@@ -6,14 +6,6 @@ source ~/wip/answer/env.sh
 
 source "${SCRIPT_DIR}/functions.sh"
 
-### Key Changes Explained:
-# 1.  **Robust Argument Parsing**: I replaced the `if/elif` with a `while/case` loop. This is necessary because `--use-system-message` can appear before or after `-i`. The `break` in the `*)` case ensures that once we hit the actual question (the prompt), we stop trying to parse flags and treat the rest as the string.
-# 2.  **System Message Injection**: I added a block after the `messages` array is fully constructed but before the `curl` command. 
-#     *   `jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages"`
-#     *   This `jq` command takes the existing array (`.`) and prepends a new array containing the system message object.
-# 3.  **Environment Variable Safety**: The injection only triggers if `USE_SYSTEM_MSG` is true **and** `$SYSTEM_MESSAGE` is not empty, preventing the injection of empty system roles which can cause API errors.
-
-
 # usage: ask your question | answer
 # usage: ask your question
 # usage: bx cat foo.sh | ask -i your question about foo.sh | answer
@@ -111,16 +103,19 @@ fi
 api_key="${OPENAI_API_KEY:-}"
 VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
 
+thinking=true
+
 # Perform API call
 response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
     -H "Authorization: Bearer $api_key" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --argjson messages "$messages" \
     --arg model "gpt-3.5-turbo" \
+    --arg thinking "$thinking" \
     --argjson temperature 0.7 \
     --argjson max_tokens 4096 \
     '{model: $model,
-      thinking: true,
+      thinking: $thinking,
       mode: "instruct",
       temperature: $temperature,
       max_tokens: $max_tokens,
