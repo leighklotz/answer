@@ -2,7 +2,7 @@
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
-source ~/wip/llamafiles/scripts/env.sh
+source ~/wip/answer/env.sh
 
 source "${SCRIPT_DIR}/functions.sh"
 
