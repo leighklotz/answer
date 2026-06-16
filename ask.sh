@@ -26,6 +26,7 @@ function usage {
   echo ""
   echo "  -i, --input <prompt>           Specify the prompt to ask."
   echo "  --use-system-message           Prepend SYSTEM_MESSAGE env var to the conversation."
+  echo "  --thinking true|false          Specify model reasoning."
   echo "  bx cat <file> | ask -i <question>  Ask a question about the output of a bash command."
   echo "  <bash command> | ask -i <question>  Same as above, piping the command's output."
   echo "  ask -i <question> < (bash command)  Alternative way to pipe the command's output."
@@ -39,12 +40,19 @@ function usage {
 # --- ARGUMENT PARSING ---
 USE_SYSTEM_MSG=false
 PLAIN_INPUT=""
+THINKING=true
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -i|--input)
             PLAIN_INPUT="1"
             shift
+	    shift
+            ;;
+        --thinking)
+            THINKING="1"
+            shift
+	    shift
             ;;
         --use-system-message)
             USE_SYSTEM_MSG=true
@@ -102,8 +110,6 @@ fi
 # API setup
 api_key="${OPENAI_API_KEY:-}"
 VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
-
-thinking=true
 
 # Perform API call
 response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
