@@ -53,7 +53,7 @@ while [[ $# -gt 0 ]]; do
 	    shift
             ;;
         --thinking)
-            THINKING="$1"
+            THINKING="$2"
             shift
 	    shift
             ;;
@@ -77,45 +77,66 @@ echo "1. prompt=$prompt" >&2
 
 # --- INPUT HANDLING ---
 input=""
+messages=""
 
 if [ -t 0 ]; then
-    echo "You are typing in a terminal. PLAIN_INPUT=$PLAIN_INPUT" >&2
+    # INTERACTIVE MODE (No pipe)
+    echo "You are typing in a terminal." >&2
+    if [ ! -z "${PLAIN_INPUT}" ]; then
+        echo "No pipe input and provided -i: combine prompt and stdin text" >&2
+        echo "Give input followed by Ctrl-D:" >&2
+        input=$(cat)
+        printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
+    fi
+
+    if [ -z "$prompt" ] && [ -z "$input" ]; then
+         echo "Error: No prompt provided." >&2
+         usage
+         exit 1
+    fi
+
+    messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
 else
+    # PIPED MODE (stdin is either a JSON array or raw text)
     echo "Input is being piped in. PLAIN_INPUT=$PLAIN_INPUT" >&2
+    IFS= read -r first_line || true
+
+    if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
+        # CASE 1: stdin is a JSON conversation array (from another 'ask' instance)
+        echo "stdin is a JSON conversation array with magic header" >&2
+        input=$(cat)
+        messages=$(jq --arg prompt "$prompt" '. + [{"role":"user","content":$prompt}]' <<< "$input")
+    elif [[ -n "${PLAIN_INPUT}" ]]; then
+         # CASE 2: User used '-i', so the first line is part of a raw text attachment, not JSON
+        echo "stdin is a raw attachment (via -i)" >&2
+	set -x
+        # Reconstruct input from first line and remainder of stdin
+        input="${first_line}"
+        if [ ! -z "$(cat < /dev/tty 2>/dev/null || echo "")" ]; then # check if more data in pipe
+             rem=$(cat)
+             [ -n "$rem" ] && input="$input"$'\n'"$rem"
+        fi
+        # Create a new JSON array: [attachment_content, user_prompt]
+        messages=$(jq -n --arg attach "$input" --arg prompt "$prompt" \
+            '[{"role":"user","content":$attach}, {"role":"user","content":($prompt | if . == "" then null else "\n\n\(.)" end) }]')
+    else
+        # CASE 3: stdin is raw text (attachment/file content), but no '-i' flag was used.
+        # Usually, this means the user did `cat file | ask "question"` without -i.
+        # To be safe and follow your original logic for attachments:
+        echo "stdin is a raw attachment" >&2
+        input="${first_line}"
+        rem=$(cat)
+        [ -n "$rem" ] && input="$input"$'\n'"$rem"
+
+        messages=$(jq -n --arg attach "$input" --arg prompt "$prompt" \
+            '[{"role":"user","content":$attach}, {"role":"user","content":($prompt | if . == "" then null else "\n\n\(.)" end) }]')
+    fi
 fi
 
-if [ -t 0 ] && [ ! -n "${PLAIN_INPUT}" ]; then
-    echo No pipe input and no request for attachment: prompt is just the remaining arguments >&2
-    messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
-elif [ -t 0 ] && [ -n "${PLAIN_INPUT}" ]; then
-    echo No pipe input and provided -i: combine prompt and stdin text >&2
-    echo "Give input followed by Ctrl-D:" >&2
-    input=$(cat)
-    echo "2. prompt=$prompt" >&2
-    printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
-    echo "3. prompt=$prompt" >&2
-    messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
-else
-    echo "stdin is a JSON conversation array or attachment; check for magic header or raw attachment" >&2
-    IFS= read -r first_line || true
-    
-    if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
-	echo "stdin is a JSON conversation array with magic header" >&2
-	input=$(cat)
-    else
-	echo "stdin is an attachment" >&2
-	input="${first_line}$(printf '\n')$(cat)"
-	echo "input=$input" >&2
-    fi
-    echo "3. prompt=$prompt" >&2
-    messages=$(printf '%s' "$input" | jq --arg prompt "$prompt" '. + [{"role":"user","content":$prompt}]')
-    echo "messages=$messages" >&2    
-    exit 12
-fi
+echo "3. prompt=$prompt" >&2
 
 # --- SYSTEM MESSAGE INJECTION ---
 if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
-    # Prepend the system message to the start of the messages array
     messages=$(jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages")
 fi
 
@@ -125,12 +146,12 @@ VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
 
 request_data="$(jq -n --argjson messages "$messages" \
     --arg model "gpt-3.5-turbo" \
-    --arg thinking "$thinking" \
+    --arg thinking "$THINKING" \
     --argjson temperature "$TEMPERATURE" \
     --argjson n_predict "$N_PREDICT" \
     --argjson max_tokens 4096 \
     '{model: $model,
-      thinking: $thinking,
+      thinking: ($thinking == "true"),
       mode: "instruct",
       temperature: $temperature,
       max_tokens: $max_tokens,
@@ -176,6 +197,7 @@ else
   if [ -t 1 ]; then
       printf "%s" "$messages" | answer
   else
+      # If piping to another command, output magic header so it can be chained
       printf "%s\n%s" "${PIPELINE_MAGIC_HEADER}" "$messages"
   fi
 fi
