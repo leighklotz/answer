@@ -5,6 +5,7 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source ~/wip/answer/env.sh
 
 source "${SCRIPT_DIR}/functions.sh"
+source "${SCRIPT_DIR}/logging.sh"
 
 # usage: ask your question | answer
 # usage: ask your question
@@ -113,11 +114,7 @@ fi
 api_key="${OPENAI_API_KEY:-}"
 VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
 
-# Perform API call
-response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
-    -H "Authorization: Bearer $api_key" \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --argjson messages "$messages" \
+request_data="$(jq -n --argjson messages "$messages" \
     --arg model "gpt-3.5-turbo" \
     --arg thinking "$thinking" \
     --argjson temperature "$TEMPERATURE" \
@@ -147,7 +144,15 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
       seed: -1,
       ignore_eos: false,
       n_predict: $n_predict,
-      cache_prompt: true}')")"
+      cache_prompt: true}')"
+
+log_verbose "request: ${request_data}"
+
+# Perform API call
+response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
+    -H "Authorization: Bearer $api_key" \
+    -H "Content-Type: application/json" \
+    -d "${request_data}")"
 
 # Extract and append the reply
 assistant_reply="$(jq -r '.choices[0].message.content // empty' <<< "$response")"
