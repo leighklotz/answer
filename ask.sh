@@ -38,9 +38,11 @@ function usage {
 }
 
 # --- ARGUMENT PARSING ---
-USE_SYSTEM_MSG=false
-PLAIN_INPUT=""
-THINKING=true
+: "${USE_SYSTEM_MSG:=false}"
+: "${PLAIN_INPUT:=}"
+: "${THINKING:=true}"
+: "${N_PREDICT:=10482}"
+: "${TEMPERATURE:=1.0}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -118,7 +120,8 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
     -d "$(jq -n --argjson messages "$messages" \
     --arg model "gpt-3.5-turbo" \
     --arg thinking "$thinking" \
-    --argjson temperature 0.7 \
+    --argjson temperature "$TEMPERATURE" \
+    --argjson n_predict "$N_PREDICT" \
     --argjson max_tokens 4096 \
     '{model: $model,
       thinking: $thinking,
@@ -143,7 +146,7 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
       xtc_threshold: 0.1,
       seed: -1,
       ignore_eos: false,
-      n_predict: 10482,
+      n_predict: $n_predict,
       cache_prompt: true}')")"
 
 # Extract and append the reply
@@ -162,5 +165,3 @@ else
       printf "%s\n%s" "${PIPELINE_MAGIC_HEADER}" "$messages"
   fi
 fi
-
-
