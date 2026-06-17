@@ -25,7 +25,7 @@ source "${SCRIPT_DIR}/logging.sh"
 function usage {
   echo "Usage: ask [options] [prompt]"
   echo ""
-  echo "  -i, --input <prompt>           Specify the prompt to ask."
+  echo "  -i, --input <prompt>           Specify plain input in stdin as an attachment."
   echo "  --use-system-message           Prepend SYSTEM_MESSAGE env var to the conversation."
   echo "  --thinking true|false          Specify model reasoning."
   echo "  bx cat <file> | ask -i <question>  Ask a question about the output of a bash command."
@@ -40,20 +40,20 @@ function usage {
 
 # --- ARGUMENT PARSING ---
 : "${USE_SYSTEM_MSG:=false}"
-: "${PLAIN_INPUT:=}"
 : "${THINKING:=true}"
 : "${N_PREDICT:=10482}"
 : "${TEMPERATURE:=1.0}"
+
+PLAIN_INPUT=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -i|--input)
             PLAIN_INPUT="1"
-            shift
 	    shift
             ;;
         --thinking)
-            THINKING="1"
+            THINKING="$1"
             shift
 	    shift
             ;;
@@ -73,35 +73,44 @@ while [[ $# -gt 0 ]]; do
 done
 
 prompt="$*"
+echo "1. prompt=$prompt" >&2
 
 # --- INPUT HANDLING ---
 input=""
+
 if [ -t 0 ]; then
-    # No stdin: prompt is just the remaining arguments
+    echo "You are typing in a terminal. PLAIN_INPUT=$PLAIN_INPUT" >&2
+else
+    echo "Input is being piped in. PLAIN_INPUT=$PLAIN_INPUT" >&2
+fi
+
+if [ -t 0 ] && [ ! -n "${PLAIN_INPUT}" ]; then
+    echo No pipe input and no request for attachment: prompt is just the remaining arguments >&2
+    messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
+elif [ -t 0 ] && [ -n "${PLAIN_INPUT}" ]; then
+    echo No pipe input and provided -i: combine prompt and stdin text >&2
+    echo "Give input followed by Ctrl-D:" >&2
+    input=$(cat)
+    echo "2. prompt=$prompt" >&2
+    printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
+    echo "3. prompt=$prompt" >&2
     messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
 else
-    # Stdin exists: check for magic header or raw JSON
+    echo "stdin is a JSON conversation array or attachment; check for magic header or raw attachment" >&2
     IFS= read -r first_line || true
     
     if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
-        input=$(cat)
+	echo "stdin is a JSON conversation array with magic header" >&2
+	input=$(cat)
     else
-        input="${first_line}$(printf '\n')$(cat)"
+	echo "stdin is an attachment" >&2
+	input="${first_line}$(printf '\n')$(cat)"
+	echo "input=$input" >&2
     fi
-
-    if [ -n "${PLAIN_INPUT}" ]; then
-        # User provided -i: combine prompt and stdin text
-        printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
-        messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
-    else
-        # Stdin is a JSON conversation array
-        first_char="$(printf "%s" "$input" | tr -d '[:space:]' | cut -c1)"
-        if [ "$first_char" != "[" ]; then
-            echo "ask: stdin does not look like a JSON conversation array (use -i to pipe plain text)." >&2
-            exit 1
-        fi
-        messages=$(printf '%s' "$input" | jq --arg prompt "$prompt" '. + [{"role":"user","content":$prompt}]')
-    fi
+    echo "3. prompt=$prompt" >&2
+    messages=$(printf '%s' "$input" | jq --arg prompt "$prompt" '. + [{"role":"user","content":$prompt}]')
+    echo "messages=$messages" >&2    
+    exit 12
 fi
 
 # --- SYSTEM MESSAGE INJECTION ---
