@@ -3,24 +3,8 @@
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
 source ~/wip/answer/env.sh
-
 source "${SCRIPT_DIR}/functions.sh"
 source "${SCRIPT_DIR}/logging.sh"
-
-# usage: ask your question | answer
-# usage: ask your question
-# usage: bx cat foo.sh | ask -i your question about foo.sh | answer
-# usage: bx cat foo.sh | ask -i your question about foo.sh 
-# usage: ask -i your question about foo.sh < (bx cat foo.sh) | answer
-# usage: ask -i your question about foo.sh < (bx cat foo.sh) 
-# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
-# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments 
-# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
-# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments 
-# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  
-# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer 
-# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence 
-# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence | python
 
 function usage {
   echo "Usage: ask [options] [prompt]"
@@ -48,99 +32,69 @@ PLAIN_INPUT=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -i|--input)
-            PLAIN_INPUT="1"
-	    shift
-            ;;
-        --thinking)
-            THINKING="$2"
-            shift
-	    shift
-            ;;
-        --use-system-message)
-            USE_SYSTEM_MSG=true
-            shift
-            ;;
-        --help)
-            usage
-            exit 0
-            ;;
-        *)
-            # Stop parsing flags when we hit the first non-option argument
-            break
-            ;;
+        -i|--input) PLAIN_INPUT="1"; shift ;;
+        --thinking) THINKING="$2"; shift; shift ;;
+        --use-system-message) USE_SYSTEM_MSG=true; shift ;;
+        --help) usage; exit 0 ;;
+        *) break ;;
     esac
 done
 
 prompt="$*"
-echo "1. prompt=$prompt" >&2
 
 # --- INPUT HANDLING ---
 input=""
 messages=""
 
 if [ -t 0 ]; then
-    # INTERACTIVE MODE (No pipe)
-    echo "You are typing in a terminal." >&2
+    # INTERACTIVE MODE
     if [ ! -z "${PLAIN_INPUT}" ]; then
-        echo "No pipe input and provided -i: combine prompt and stdin text" >&2
         echo "Give input followed by Ctrl-D:" >&2
-        input=$(cat)
-        printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
+        input=$(cat) # Standard cat works fine in interactive TTY for Ctrl-D
+        [ -n "$prompt" ] && printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
     fi
 
-    if [ -z "$prompt" ] && [ -z "$input" ]; then
-         echo "Error: No prompt provided." >&2
-         usage
-         exit 1
+    if [ -z "$prompt" ]; then
+         echo "Error: No prompt provided." >&2; exit 1
     fi
-
     messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
+
 else
-    # PIPED MODE (stdin is either a JSON array or raw text)
+    # PIPED MODE (stdin is either JSON or raw text)
     echo "Input is being piped in. PLAIN_INPUT=$PLAIN_INPUT" >&2
+    
+    # Read the first line to check for Magic Header OR just use it as content
     IFS= read -r first_line || true
 
     if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
-        # CASE 1: stdin is a JSON conversation array (from another 'ask' instance)
+        # CASE 1: It's an existing JSON conversation array
         echo "stdin is a JSON conversation array with magic header" >&2
-        input=$(cat)
+        input=$(cat) # Read the rest of the JSON string
         messages=$(jq --arg prompt "$prompt" '. + [{"role":"user","content":$prompt}]' <<< "$input")
-    elif [[ -n "${PLAIN_INPUT}" ]]; then
-         # CASE 2: User used '-i', so the first line is part of a raw text attachment, not JSON
-        echo "stdin is a raw attachment (via -i)" >&2
-	set -x
-        # Reconstruct input from first line and remainder of stdin
-        input="${first_line}"
-        if [ ! -z "$(cat < /dev/tty 2>/dev/null || echo "")" ]; then # check if more data in pipe
-             rem=$(cat)
-             [ -n "$rem" ] && input="$input"$'\n'"$rem"
-        fi
-        # Create a new JSON array: [attachment_content, user_prompt]
-        messages=$(jq -n --arg attach "$input" --arg prompt "$prompt" \
-            '[{"role":"user","content":$attach}, {"role":"user","content":($prompt | if . == "" then null else "\n\n\(.)" end) }]')
     else
-        # CASE 3: stdin is raw text (attachment/file content), but no '-i' flag was used.
-        # Usually, this means the user did `cat file | ask "question"` without -i.
-        # To be safe and follow your original logic for attachments:
-        echo "stdin is a raw attachment" >&2
-        input="${first_line}"
-        rem=$(cat)
-        [ -n "$rem" ] && input="$input"$'\n'"$rem"
+        # CASE 2 & 3: It is raw text (either via -i or just standard piping)
+        echo "stdin is a raw attachment/text stream" >&2
+        
+        # Capture the rest of the pipe. If no more lines, 'cat' returns immediately.
+        remainder=$(cat)
+        if [ ! -z "$remainder" ]; then
+            input="${first_line}"$'\n'"${remainder}"
+        else
+            input="${first_line}"
+        fi
 
+        # We wrap the captured text and the user prompt into a single array of two messages
         messages=$(jq -n --arg attach "$input" --arg prompt "$prompt" \
             '[{"role":"user","content":$attach}, {"role":"user","content":($prompt | if . == "" then null else "\n\n\(.)" end) }]')
     fi
 fi
-
-echo "3. prompt=$prompt" >&2
 
 # --- SYSTEM MESSAGE INJECTION ---
 if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
     messages=$(jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages")
 fi
 
-# API setup
+# API setup (Rest of your script remains the same)
 api_key="${OPENAI_API_KEY:-}"
 VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
 
@@ -178,13 +132,11 @@ request_data="$(jq -n --argjson messages "$messages" \
 
 log_verbose "request: ${request_data}"
 
-# Perform API call
 response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
     -H "Authorization: Bearer $api_key" \
     -H "Content-Type: application/json" \
     -d "${request_data}")"
 
-# Extract and append the reply
 assistant_reply="$(jq -r '.choices[0].message.content // empty' <<< "$response")"
 
 if [ -z "$assistant_reply" ]; then
@@ -197,7 +149,6 @@ else
   if [ -t 1 ]; then
       printf "%s" "$messages" | answer
   else
-      # If piping to another command, output magic header so it can be chained
       printf "%s\n%s" "${PIPELINE_MAGIC_HEADER}" "$messages"
   fi
 fi
