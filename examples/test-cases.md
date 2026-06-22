@@ -117,7 +117,7 @@ $ ask "My name is Peano"
 Hello! I am ready to assist with Peano arithmetic.
 
 # Second call inherits history via magic header
-$ ask "My name is" | ask
+$ ask "My name is" | answer
 My name is Peano.
 ```
 
@@ -177,3 +177,20 @@ $ ask "write a single bash echo of (2+3)" | answer | pipetest Execute | unfence 
 
 5
 $ 
+
+## 15. Tool call 
+Verifies that ask, tools, and answer work together.
+
+```bash
+$ ask "what is the current directory?" | tools --tools bash_tools | answer
+/home/klotz/wip/answer/examples
+
+```
+
+## 16. Tool call without answer
+Verifies that ask, tools and end of CLI work.
+
+```bash
+$ ask "what is the current directory?" | tools --toola bash_tools
+/home/klotz/wip/answer/examples
+```
