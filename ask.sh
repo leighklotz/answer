@@ -55,40 +55,34 @@ if [ ! -t 0 ]; then
     # Capture everything from stdin first to avoid multiple reads issues
     stdin_content=$(cat)
     
-    if [[ "$prompt" == *"$'\n'"* ]] || [ -n "$prompt" ] && command -v jq >/dev/null; then
-        
-        # Determine if we evaluate JSON based on flags and content sniffers
-        if [ "$PLAIN_INPUT" = "1" ]; then
-            is_json=false
-        else
-            first_char=$(echo "$stdin_content" | head -c 1 | tr -d '[:space:]')
-            if [ "$first_char" = "[" ] || [[ "$stdin_content" == *"${PIPELINE_MAGIC_HEADER}"* ]]; then
-                is_json=true
-            else
-                is_json=false
-            fi
-        fi
+    # Check if it's a JSON conversation (Magic Header or raw array starting with '[')
+    first_char=$(echo "$stdin_content" | head -c 1 | tr -d '[:space:]')
+    is_json=false
+    if [ "$first_char" = "[" ] || echo "$stdin_content" | grep -q "^${PIPELINE_MAGIC_HEADER}" ; then
+        is_json=true
+    fi
 
-        if [ "$PLAIN_INPUT" = "1" ]; then
-             # MODE: Text Attachment / Forced Plain Input (-i)
-             # We take the prompt (args) and treat stdin as a single block of text to be asked about.
-             messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
-        elif [ "$is_json" = true ]; then
-             # MODE: Conversation History (JSON Pipeline)
-             # Strip header if present, then append the new prompt to history.
-             if [[ "$stdin_content" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-                 clean_stdin="${stdin_content#"$PIPELINE_MAGIC_HEADER"}"
-             else
-                 clean_stdin="$stdin_content"
-             fi
-             new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
-             messages=$(jq --argjson new_msg "$new_message" --slurpfile history <(echo "$clean_stdin") '$history[0] + [$new_msg]')
-        else
-            # MODE: Unmarked Plain text pipe (e.g., cat file | ask prompt) 
-            messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
-        fi
+    # Use PLAIN_INPUT (set by -i) to distinguish between text attachment and history
+    if [ "$PLAIN_INPUT" = "1" ]; then
+         # MODE: Text Attachment (-i)
+         messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
+    elif [ "$is_json" = true ]; then
+         # MODE: Conversation History (JSON)
+         clean_stdin=$(echo "$stdin_content" | sed "1s/^${PIPELINE_MAGIC_HEADER}//")
+         if [ -n "$prompt" ]; then
+            new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
+            messages=$(jq --argjson new_msg "$new_message" --argjson history <(echo "$clean_stdin") '$history + [$new_msg]')
+         else
+            # If no prompt provided, treat stdin JSON as the entire messages array directly.
+            messages="$clean_stdin"
+         fi
+    elif [ -n "$prompt" ]; then
+        # MODE: Plain text pipe (e.g., cat file | ask prompt) 
+        messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
     else
-        input="$stdin_content" # Fallback logic
+         # If it's just raw text piped without a prompt or -i, treat as context for an empty prompt? 
+         # Or if user provided no args and piping nothing but stdin is data.
+         messages=$(jq -n --arg p "" --arg c "$stdin_content" '[{role:"user", content: $c}]')
     fi
 elif [ ! -z "$prompt" ]; then
     # No stdin, but prompt exists (e.g., ask "hello")
@@ -105,7 +99,7 @@ fi
 
 # --- SYSTEM MESSAGE INJECTION ---
 if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
-    # Prepend the system message to the start of the messages array
+    # Prepend the system message to the start of the messages array.
     messages=$(jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages")
 fi
 
@@ -156,11 +150,10 @@ else
   messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")
   
   if [ -t 1 ]; then
-      # If it's a terminal, we want the user to see the text, 
-      # so pipe the JSON to 'answer' 
+      # If it's a terminal, we want the user to see the text, so pipe the JSON to 'answer' 
       printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | answer
   else
-      # If it's a pipe, output the header + JSON so 'tools' or 'answer' can parse it.
+      # If it's in a pipe, output the header + JSON so 'tools' or 'answer' can parse it.
       printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
   fi
 fi

@@ -17,11 +17,10 @@ function ask ()
 {
     local RAW_INPUT=""
     local ARGS=("$@")
-    local header_line
     local is_attachment=false
     local has_stdin=false
 
-    # 1. Determine if we are in "Attachment" mode via flags
+    # 1. Determine if we are in "Attachment" mode via flags (-i / --input)
     for arg in "${ARGS[@]}"; do
         if [[ "$arg" == "-i" ]] || [[ "$arg" == "--input" ]]; then
             is_attachment=true
@@ -29,51 +28,102 @@ function ask ()
         fi
     done
 
-    # 2. Check if stdin has data WITHOUT consuming it yet
-    # We use 'read -t' to check availability without blocking/hanging
-    if read -r -t 0.1 header_line <&0; then
+    # 2. Check if stdin has data without consuming it yet (using a temp file to allow re-reading)
+    local tmpfile=$(mktemp)
+    if [ ! -t 0 ]; then
+        cat > "$tmpfile"
         has_stdin=true
-        # If there is a magic header, consume the line and prepare content
-        if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
-            echo "🦶ask: continuing conversation from stdin (magic header detected)" >&2
-            RAW_INPUT="${header_line}$(printf '\n')$(cat)"
-        else
-            # It's raw data. Rewind/re-read logic is tricky in Bash, 
-            # so we capture everything into a variable immediately.
-            if [ "$is_attachment" = true ]; then
-                echo "🦶ask: reading attachment from stdin" >&2
-                RAW_INPUT="${header_line}$(printf '\n')$(cat)"
+    else
+        has_stdin=false
+    fi
+
+    # Logic for building the input string based on detected mode
+    if [ "$has_stdin" = true ]; then
+        local first_line=$(head -n 1 "$tmpfile")
+        if [ "$first_line" = "${PIPELINE_MAGIC_HEADER}" ] || [[ "$(echo "$first_line" | tr -d '[:space:]')" == "[" ]]; then
+            # MODE: Conversation History (JSON)
+            # If a prompt is provided in arguments, append it to the history. 
+            if [ $# -gt 0 ]; then
+                local clean_stdin=$(sed "1s/^${PIPELINE_MAGIC_HEADER}//" "$tmpfile")
+                local new_message=$(jq -n --arg prompt "$*" '{"role":"user","content":$prompt}')
+                RAW_INPUT=$(echo "$clean_stdin" | jq --argjson new_msg "$new_message" '$ + [$new_msg]')
             else
-                echo "🦶ask: prepending piped data to prompt" >&2
-                RAW_INPUT="${header_line}$(printf '\n')$(cat)"
+                # No extra prompt: treat the stdin JSON as the entire messages array.
+                # This allows 'ask' to act as a pass-through for existing conversation states.
+                RAW_INPUT=$(sed "1s/^${PIPELINE_MAGIC_HEADER}//" "$tmpfile")
             fi
+        elif [ "$is_attachment" = true ] || [[ -z "$*" ]]; then
+             # MODE: Text Attachment or raw context pipe
+             echo "🦶ask: reading attachment/context from stdin" >&2
+             RAW_INPUT=$(cat "$tmpfile")
+        else
+            # MODE: Plain text pipe (e.g., cmd | ask prompt) 
+            echo "🦶ask: prepending piped data to prompt" >&2
+            RAW_INPUT=$(cat "$tmpfile")
         fi
     fi
 
-    # 3. LOGIC FIX: If no stdin AND (no -i and no arguments), don't hang/exit, just exit or wait?
-    # Based on your requirement: "if there is no -i and no stdin do not wait for stdin."
-    if [ "$has_stdin" = false ] && [ "$is_attachment" = false ] && [ $# -eq 0 ]; then
-        exit 0
+    rm -f "$tmpfile"
+
+    # If no input was found and we aren't in a mode that expects it, exit silently.
+    if [ "$has_stdin" = false ] && [ $# -eq 0 ]; then
+        return 0
     fi
 
-    # 4. Execute the command
+    # Execute the command (passing RAW_INPUT if constructed via jq logic or handling empty)
     local nascent=""
-    if [ -n "$RAW_INPUT" ]; then
-        nascent=$(echo "$RAW_INPUT" | ask.sh "${ARGS[@]}")
+    if [[ "$RAW_INPUT" == *"{"* ]] || [[ "$RAW_INPUT" == "["* ]]; then
+         # If we've built a JSON string, pass it to ask.sh as the input stream
+         nascent=$(echo "$RAW_INPUT" | ask.sh "${ARGS[@]}")
     else
-        # If we have no stdin but they provided an argument (e.g., `ask "hello"`)
-        # or if it's a non-interactive call that is empty, run normally.
-        nascent=$(ask.sh "${ARGS[@]}")
+        # Regular text or command-line prompt mode
+        nascent=$(ask.sh "${ARGS[@]}" <<< "$RAW_INPUT")
     fi
 
     local s=$?
     [ $s -ne 0 ] && { echo "🦶ask ERROR: ask.sh failed: $s" >&2; return 1; }
 
-    if [ -t 1 ]; then
-        echo "🦶ask: calling answer" >&2
+    # Refined logic for the specific requirement regarding pipes vs interactive mode
+    if [ "$has_stdin" = true ]; then
+        echo "🦶ask: chain detected via stdin, forcing answer." >&2
+        answer <<< "${nascent}"
+    elif [ -t 1 ]; then
+        echo "🦶ask: interactive mode, calling answer" >&2
         answer <<< "${nascent}"
     else
         printf "%s\n" "${nascent}"
+    fi
+}
+
+function answer ()
+{
+    local ANSWER_OUT
+    ANSWER_OUT="$(answer.sh "$@")"
+    local s=$?
+    if [ $s -ne 0 ]; then
+        echo "🦶answer ERROR: answer.sh failed with exit code $s" >&2
+        return 1
+    fi
+
+    printf "%s\n" "${ANSWER_OUT}"
+}
+
+function bx ()
+{
+    local quiet
+    while [[ $# -gt 0 ]]; do
+        case "$1" in 
+            -q) quiet=1; shift ;;
+            -*) echo "🦶bx: unknown option $1" >&2; return 1 ;;
+            *) break ;;
+        esac
+    done
+ 
+    bx.sh "$@"
+    local s=$?
+    if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
+        echo "🦶bx: ERROR: bx.sh failed with exit code $s" >&2
+        return 1
     fi
 }
 
@@ -133,7 +183,8 @@ function tools ()
     fi
 }
 
-function pipetest() {
+function pipetest()
+{
     # Sanity Check: If running interactively but no prompt provided, warn of potential hang
     if [ -t 0 ] && [[ "$*" != *"-i"* ]]; then
         echo "🦶pipetest: No user query detected in arguments; waiting for STDIN..." >&2
