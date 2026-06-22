@@ -1,34 +1,10 @@
 #!/usr/bin/env -S bash
 
-
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
-
-### Key Changes Explained:
-# 1.  **Robust Argument Parsing**: I replaced the `if/elif` with a `while/case` loop. This is necessary because `--use-system-message` can appear before or after `-i`. The `break` in the `*)` case ensures that once we hit the actual question (the prompt), we stop trying to parse flags and treat the rest as the string.
-# 2.  **System Message Injection**: I added a block after the `messages` array is fully constructed but before the `curl` command. 
-#     *   `jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages"`
-#     *   This `jq` command takes the existing array (`.`) and prepends a new array containing the system message object.
-# 3.  **Environment Variable Safety**: The injection only triggers if `USE_SYSTEM_MSG` is true **and** `$SYSTEM_MESSAGE` is not empty, preventing the injection of empty system roles which can cause API errors.
-
-
-# usage: ask your question | answer
-# usage: ask your question
-# usage: bx cat foo.sh | ask -i your question about foo.sh | answer
-# usage: bx cat foo.sh | ask -i your question about foo.sh 
-# usage: ask -i your question about foo.sh < (bx cat foo.sh) | answer
-# usage: ask -i your question about foo.sh < (bx cat foo.sh) 
-# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments | answer
-# usage: bx cat foo.sh | ask -i your question about foo.sh | ask -i further comments 
-# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments | answer
-# usage: bx cat foo.sh | ask -i your question about foo.sh | answer | ask -i further comments 
-# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  
-# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer 
-# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence 
-# usage: ask.sh write 'fib in python. output a single impl in a code fence with a call to fib(20)'  | answer | unfence | python
 
 function usage {
   echo "Usage: ask [options] [prompt]"
@@ -80,26 +56,35 @@ if [ ! -t 0 ]; then
     stdin_content=$(cat)
     
     if [[ "$prompt" == *"$'\n'"* ]] || [ -n "$prompt" ] && command -v jq >/dev/null; then
-        # Check if it's a JSON conversation (Magic Header or raw array starting with '[')
-        first_char=$(echo "$stdin_content" | head -c 1 | tr -d '[:space:]')
-        is_json=false
-        if [ "$first_char" = "[" ] || echo "$stdin_content" | grep -q "PIPELINE_MAGIC_HEADER"; then
-            is_json=true
+        
+        # Determine if we evaluate JSON based on flags and content sniffers
+        if [ "$PLAIN_INPUT" = "1" ]; then
+            is_json=false
+        else
+            first_char=$(echo "$stdin_content" | head -c 1 | tr -d '[:space:]')
+            if [ "$first_char" = "[" ] || [[ "$stdin_content" == *"${PIPELINE_MAGIC_HEADER}"* ]]; then
+                is_json=true
+            else
+                is_json=false
+            fi
         fi
 
-        if [ "$is_attachment" = true ]; then
-             # MODE: Text Attachment (-i)
+        if [ "$PLAIN_INPUT" = "1" ]; then
+             # MODE: Text Attachment / Forced Plain Input (-i)
              # We take the prompt (args) and treat stdin as a single block of text to be asked about.
              messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
         elif [ "$is_json" = true ]; then
-             # MODE: Conversation History (JSON)
+             # MODE: Conversation History (JSON Pipeline)
              # Strip header if present, then append the new prompt to history.
-             clean_stdin=$(echo "$stdin_content" | sed "1s/${PIPELINE_MAGIC_HEADER}//")
+             if [[ "$stdin_content" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
+                 clean_stdin="${stdin_content#"$PIPELINE_MAGIC_HEADER"}"
+             else
+                 clean_stdin="$stdin_content"
+             fi
              new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
-             messages=$(jq --argjson new_msg "$new_message" --argjson history <(echo "$clean_stdin") '$history + [$new_msg]')
+             messages=$(jq --argjson new_msg "$new_message" --slurpfile history <(echo "$clean_stdin") '$history[0] + [$new_msg]')
         else
-            # MODE: Plain text pipe (e.g., cat file | ask prompt) 
-            # We treat the piped content as context for the prompt
+            # MODE: Unmarked Plain text pipe (e.g., cat file | ask prompt) 
             messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
         fi
     else
@@ -129,8 +114,6 @@ api_key="${OPENAI_API_KEY:-}"
 VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
 
 # Perform API call
-
-
 response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
     -H "Authorization: Bearer $api_key" \
     -H "Content-Type: application/json" \
