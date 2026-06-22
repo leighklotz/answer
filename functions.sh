@@ -11,75 +11,74 @@ if ! command -v ask.sh &> /dev/null; then
     echo "🦶$0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
-declare -g LAST_ANSWER
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
 function ask ()
 {
-    local RAW_INPUT
-    local FLAG
+    local RAW_INPUT=""
+    local ARGS=("$@")
     local header_line
+    local is_attachment=false
+    local has_stdin=false
 
-    # If stdin is available, check for PIPELINE_MAGIC_HEADER:
-    # If header is present pass through raw JSON, else if stdin is available and header is absent, pass ask -i.
-    flag="$1"
-    if [ "$flag" == "-i" ] || [ "$flag" == "--input" ]; then
-        read header_line
+    # 1. Determine if we are in "Attachment" mode via flags
+    for arg in "${ARGS[@]}"; do
+        if [[ "$arg" == "-i" ]] || [[ "$arg" == "--input" ]]; then
+            is_attachment=true
+            break
+        fi
+    done
+
+    # 2. Check if stdin has data WITHOUT consuming it yet
+    # We use 'read -t' to check availability without blocking/hanging
+    if read -r -t 0.1 header_line <&0; then
+        has_stdin=true
+        # If there is a magic header, consume the line and prepare content
         if [ "$header_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
-            echo "🦶ask: continuing conversation from stdin" >&2
-            # Since we already read the header, use 'cat' to get the remaining JSON body
-            RAW_INPUT="$(cat)"
+            echo "🦶ask: continuing conversation from stdin (magic header detected)" >&2
+            RAW_INPUT="${header_line}$(printf '\n')$(cat)"
         else
-            echo "🦶ask: reading attachment from stdin" >&2
-            FLAG="-i"
-            # Combine the line we just read with the rest of the stream
-            RAW_INPUT="${header_line}$(printf '\n')"
-            RAW_INPUT+="$(cat)"
+            # It's raw data. Rewind/re-read logic is tricky in Bash, 
+            # so we capture everything into a variable immediately.
+            if [ "$is_attachment" = true ]; then
+                echo "🦶ask: reading attachment from stdin" >&2
+                RAW_INPUT="${header_line}$(printf '\n')$(cat)"
+            else
+                echo "🦶ask: prepending piped data to prompt" >&2
+                RAW_INPUT="${header_line}$(printf '\n')$(cat)"
+            fi
         fi
     fi
 
-    if [ -n "$RAW_INPUT" ]; then
-        nascent="$(printf "%s\n" "${RAW_INPUT}" | ask.sh $FLAG "$@")"
-    else
-        # No stdin data was found, run normally without a pipe
-        nascent="$(ask.sh "$@")"
+    # 3. LOGIC FIX: If no stdin AND (no -i and no arguments), don't hang/exit, just exit or wait?
+    # Based on your requirement: "if there is no -i and no stdin do not wait for stdin."
+    if [ "$has_stdin" = false ] && [ "$is_attachment" = false ] && [ $# -eq 0 ]; then
+        exit 0
     fi
 
-    s=$?
-    # Check if the command failed
-    if [ $s -ne 0 ]; then
-        echo "🦶ask ERROR: ask.sh failed: $s" >&2
-        return 1
+    # 4. Execute the command
+    local nascent=""
+    if [ -n "$RAW_INPUT" ]; then
+        nascent=$(echo "$RAW_INPUT" | ask.sh "${ARGS[@]}")
+    else
+        # If we have no stdin but they provided an argument (e.g., `ask "hello"`)
+        # or if it's a non-interactive call that is empty, run normally.
+        nascent=$(ask.sh "${ARGS[@]}")
     fi
+
+    local s=$?
+    [ $s -ne 0 ] && { echo "🦶ask ERROR: ask.sh failed: $s" >&2; return 1; }
 
     if [ -t 1 ]; then
-        # If terminal: call answer to handle text output AND update LAST_ANSWER
-        # We use a here-string to pass the JSON produced by ask.sh to answer
         echo "🦶ask: calling answer" >&2
         answer <<< "${nascent}"
-        s=$?
-        if [ $s -ne 0 ]; then
-            echo "🦶ask ERROR: answer failed: $s" >&2
-            return 1
-        fi
     else
-        # 3. If NOT a terminal: we are in a pipeline (e.g., | tools).
-        # ask.sh has already prepended the header in its non-tty branch.
-        # We just need to pass that exact string through.
         printf "%s\n" "${nascent}"
-        s=0
     fi
 }
 
 function answer ()
 {
-    # Check if stdout is a terminal AND stdin is also a terminal 
-    # (meaning the user called 'answer' directly with no input/pipe)
-    if [ -t 1 ] && [ -t 0 ] && [ -n "${LAST_ANSWER}" ]; then
-        printf "%s\n" "${LAST_ANSWER}"
-        return 0
-    fi
-
     local ANSWER
     ANSWER="$(answer.sh "$@")"
     s=$?
@@ -89,21 +88,6 @@ function answer ()
     fi
 
     printf "%s\n" "${ANSWER}"
-
-    if [ "$1" = "--tee" ] || [ "$1" = "-t" ]; then
-        # skip setting last-answer when answer is used mid-pipeline?
-        # or keep it separate, maybe?
-        # also do we keep inputs as well as outputs?
-        # need cache strategy for repeatable clis
-        # echo "answer() debug: Not setting LAST_ANSWER in $0 ${@}" >&2
-        # printf "* answer() not setting LAST_ANSWER\n" >&2
-        true
-    else
-        if [ -n "${LAST_ANSWER}" ] && [ "${LAST_ANSWER}" != 'null' ]; then
-             # printf "answer() * setting LAST_ANSWER\n" >&2
-             export LAST_ANSWER="${ANSWER}"
-        fi
-    fi
 }
 
 function bx ()
@@ -149,13 +133,12 @@ function tools ()
     fi
 }
 
-# pipetest alias - forward piped data after a Y/N confirmation
-# Read all data from standard input (the "pipe").
-# Ask the user "Y or N? " (case‑insensitive, newline required).
-# If the answer starts with "y" (or "yes") the data is forwarded
-# to stdout.  Otherwise nothing is written.
-
 function pipetest() {
+    # Sanity Check: If running interactively but no prompt provided, warn of potential hang
+    if [ -t 0 ] && [[ "$*" != *"-i"* ]]; then
+        echo "🦶pipetest: No user query detected in arguments; waiting for STDIN..." >&2
+    fi
+
     local user_query="$*"
 
     # 1. Capture stdin into a temporary file – this allows very large input.
