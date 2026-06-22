@@ -3,7 +3,7 @@
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
-source ~/wip/llamafiles/scripts/env.sh
+source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
