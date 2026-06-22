@@ -58,7 +58,7 @@ function ask ()
              RAW_INPUT=$(cat "$tmpfile")
         else
             # MODE: Plain text pipe (e.g., cmd | ask prompt) 
-            echo "🦶ask: prepending piped data to prompt" >&2
+            echo "🦶ask: appending piped data to prompt" >&2
             RAW_INPUT=$(cat "$tmpfile")
         fi
     fi
