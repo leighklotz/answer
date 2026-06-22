@@ -73,33 +73,47 @@ prompt="$*"
 
 # --- INPUT HANDLING ---
 input=""
-if [ -t 0 ]; then
-    # No stdin: prompt is just the remaining arguments
+if [ ! -t 0 ]; then
+    # Capture everything from stdin first to avoid multiple reads issues
+    stdin_content=$(cat)
+    
+    if [[ "$prompt" == *"$'\n'"* ]] || [ -n "$prompt" ] && command -v jq >/dev/null; then
+        # Check if it's a JSON conversation (Magic Header or raw array starting with '[')
+        first_char=$(echo "$stdin_content" | head -c 1 | tr -d '[:space:]')
+        is_json=false
+        if [ "$first_char" = "[" ] || echo "$stdin_content" | grep -q "PIPELINE_MAGIC_HEADER"; then
+            is_json=true
+        fi
+
+        if [ "$is_attachment" = true ]; then
+             # MODE: Text Attachment (-i)
+             # We take the prompt (args) and treat stdin as a single block of text to be asked about.
+             messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
+        elif [ "$is_json" = true ]; then
+             # MODE: Conversation History (JSON)
+             # Strip header if present, then append the new prompt to history.
+             clean_stdin=$(echo "$stdin_content" | sed "1s/${PIPELINE_MAGIC_HEADER}//")
+             new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
+             messages=$(jq --argjson new_msg "$new_message" --argjson history <(echo "$clean_stdin") '$history + [$new_msg]')
+        else
+            # MODE: Plain text pipe (e.g., cat file | ask prompt) 
+            # We treat the piped content as context for the prompt
+            messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
+        fi
+    else
+        input="$stdin_content" # Fallback logic
+    fi
+elif [ ! -z "$prompt" ]; then
+    # No stdin, but prompt exists (e.g., ask "hello")
     messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
 else
-    # Stdin exists: check for magic header or raw JSON
-    IFS= read -r first_line || true
-    
-    if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
-        input=$(cat)
-    else
-        input="${first_line}$(printf '\n')$(cat)"
-    fi
+     exit 1 # Nothing to do
+fi
 
-    if [ -n "${PLAIN_INPUT}" ]; then
-        # User provided -i: combine prompt and stdin text
-        printf -v prompt "%s\n\n%s" "${prompt}" "${input}"
-        messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
-    else
-        # Stdin is a JSON conversation array
-        first_char="$(printf "%s" "$input" | tr -d '[:space:]' | cut -c1)"
-        if [ "$first_char" != "[" ]; then
-            echo "ask: stdin does not look like a JSON conversation array (use -i to pipe plain text)." >&2
-            exit 1
-        fi
-        new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
-        messages=$(jq --argjson new_message "$new_message" '. + [$new_message]' <<< "$input")
-    fi
+# Ensure messages is a valid array even if empty or malformed above
+if [[ ! "$messages" =~ ^\[ ]]; then
+    echo "ask: error parsing input into JSON conversation." >&2
+    exit 1
 fi
 
 # --- SYSTEM MESSAGE INJECTION ---
@@ -143,6 +157,7 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
       seed: -1,
       ignore_eos: false,
       n_predict: 10482,
+      enable_thinking: true,
       cache_prompt: true}')")"
 
 # Extract and append the reply
@@ -157,13 +172,10 @@ else
   
   if [ -t 1 ]; then
       # If it's a terminal, we want the user to see the text, 
-      # but we still want to pipe the JSON to 'answer' 
-      # so that 'answer' can update LAST_ANSWER for the shell.
-      printf "%s" "$messages" | answer
+      # so pipe the JSON to 'answer' 
+      printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | answer
   else
       # If it's a pipe, output the header + JSON so 'tools' or 'answer' can parse it.
       printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
   fi
 fi
-
-
