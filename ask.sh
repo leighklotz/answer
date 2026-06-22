@@ -1,9 +1,10 @@
 #!/usr/bin/env -S bash
 
+
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
 source ~/wip/llamafiles/scripts/env.sh
-
+source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
 ### Key Changes Explained:
@@ -47,6 +48,7 @@ function usage {
 # --- ARGUMENT PARSING ---
 USE_SYSTEM_MSG=false
 PLAIN_INPUT=""
+: "${TEMPERATURE:=}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -127,17 +129,17 @@ api_key="${OPENAI_API_KEY:-}"
 VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
 
 # Perform API call
+
+
 response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
     -H "Authorization: Bearer $api_key" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --argjson messages "$messages" \
     --arg model "gpt-3.5-turbo" \
-    --argjson temperature 0.7 \
     --argjson max_tokens 4096 \
     '{model: $model,
       thinking: true,
       mode: "instruct",
-      temperature: $temperature,
       max_tokens: $max_tokens,
       messages: $messages,
       top_k: 20,
@@ -165,8 +167,7 @@ response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
 assistant_reply="$(jq -r '.choices[0].message.content // empty' <<< "$response")"
 
 if [ -z "$assistant_reply" ]; then
-  echo "No response received from the API." >&2
-  exit 1
+  log_and_exit 1 "Cannot parse API response: ${response}"
 else
   new_assistant_message=$(jq -n --arg content "$assistant_reply" '{"role":"assistant","content":$content}')
   messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")

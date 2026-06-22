@@ -166,8 +166,6 @@ function pipetest() {
         pager="batcat --style=numbers,grid"
     elif command -v bat >/dev/null 2>&1; then
         pager="bat --style=numbers,grid"
-    elif command -v less >/dev/null 2>&1; then
-        pager="less -R"
     else
         pager="cat"
     fi
