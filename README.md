@@ -47,6 +47,32 @@ ask "Generate bash script for logs" | answer -t | ask "Add error handling to it"
 # You see the first script on your screen, but 'ask' still knows what was generated.
 ```
 
+### Test Case: The "Boo" Experiment (Context Preservation)
+
+Understanding how context flows through different modes is crucial for effective prompting:
+
+**1. Successful Context Chain (`ask | ask`):**
+The history is passed via JSON automatically.
+```bash
+$ ask say boo | ask why did you say that
+Because you asked me to! You said "say boo," so I followed your instruction. 👻
+```
+
+**2. Lost Context (`ask | answer | ask`):**
+Using `answer` without `--tee` strips the JSON history, sending only plain text. The next `ask` starts a new conversation context with no memory of why "boo" was said.
+```bash
+$ ask say boo | answer | ask why did you say that
+Since I don't have the previous prompt... I can only guess! 👻
+```
+
+**3. Perfect Hybrid (`ask | answer -t | ask`):**
+The human sees the reply, but `ask` receives the JSON history to maintain context.
+```bash
+$ ask say boo | answer -t | ask why did you say that
+Boo! 👻
+I said that because you gave me a direct instruction to "say boo." ...
+```
+
 ## Key Features
 
 * **Interactive Code Generation:** Prompt the language model with natural language instructions to generate code in various languages.
@@ -92,8 +118,6 @@ dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about 
 ask "Spot any SCSI issues with dmesg" | tools linux_tools | answer --tee | ask "What can I do about the md0 device?" | answer
 ```
 
-
-
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
@@ -106,8 +130,6 @@ Before you begin, ensure you have the following installed:
     * **Windows:**  Download from [https://stedolan.github.io/jq/download/](https://stedolan.github.io/jq/download/)
 * **Python 3:** Needed for executing generated Python code.
 * **Bash:** The scripts are written for Bash.
-
-
 
 ## Setup
 
@@ -146,7 +168,6 @@ ask write a python function to calculate the factorial of a number | answer | un
 
 You can combine these commands to build complex workflows.  Explore `story.txt` for more advanced scenarios.
 
-```
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
