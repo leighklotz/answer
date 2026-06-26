@@ -75,6 +75,7 @@ function tools ()
     fi
 }
 
+
 function pipetest()
 {
     # Sanity Check: If running interactively but no prompt provided, warn of potential hang
@@ -98,7 +99,7 @@ function pipetest()
 
     # 2. Read all of stdin into the temp file.
     cat >"$tmpfile"
-    
+
     local reply
     local pager
 
@@ -112,15 +113,15 @@ function pipetest()
     else
         pager="cat"
     fi
-    
+
     # Render file content directly to stderr
     ${pager} "$tmpfile" 1>&2
-    
+
     # Safe interactive prompt from /dev/tty (avoids the racing subshell read)
     read -r -p "🤖 ${user_query}: Y or N? " reply < /dev/tty
-    
+
     printf "\n" 1>&2
-    case "${reply,,}" in 
+    case "${reply,,}" in
         y*)
             cat "$tmpfile"
         ;;
@@ -158,4 +159,65 @@ function find_cache_dir () {
 
   # 3. Ultimate system-standard fallback location
   printf "%s/.config/hallux/cache" "${HOME}"
+}
+
+function infer () {
+  local stdin_content
+  stdin_content=$(cat)
+
+  # Strip out the pipeline magic header if present
+  local clean_stdin
+  clean_stdin=$(echo "$stdin_content" | sed "1s|^${PIPELINE_MAGIC_HEADER}||")
+
+  # Ensure it is a valid JSON array or object
+  if [ -z "$clean_stdin" ] || ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
+    echo "[]"
+    return 0
+  fi
+
+  # Extract the last message's role to check if execution is required
+  local last_role
+  last_role=$(jq -r 'if type == "array" and length > 0 then .[-1].role else empty end' <<< "$clean_stdin" 2>/dev/null)
+
+  # NO-OP: If the last message is already an assistant reply, pass it straight through
+  if [ "$last_role" != "user" ]; then
+    printf "%s\n" "$clean_stdin"
+    return 0
+  fi
+
+  # --- ACTIVE INFERENCE ENGINE ---
+  local api_key="${OPENAI_API_KEY:-}"
+  local endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
+
+  # Build OpenAI/llama.cpp compliant body
+  local request
+  request=$(jq -n --argjson messages "$clean_stdin" --arg model "gpt-3.5-turbo" --argjson max_tokens 4096 \
+    '{model: $model, thinking: true, mode: "instruct", max_tokens: $max_tokens, messages: $messages, top_k: 20, top_p: 0.95, min_p: 0.1, tfs_z: 1, typical_p: 1.0, repeat_penalty: 1.0, repeat_last_n: 1024, presence_penalty: 0.0, frequency_penalty: 0.0, seed: -1}')
+
+  # Fetch active model for cache footprint mapping
+  local server_model fingerprint request_hash cache_match
+  server_model=$(curl -s "${VIA_API_CHAT_BASE}/v1/models" | jq -r '.data[0].id // .data.id // "local_model"')
+  fingerprint=$(printf "%s" "$server_model" | tr '/' '_')
+  request_hash=$(printf "%s" "$request" | openssl dgst -sha256 | awk '{print $2}')
+
+  local cache_dir
+  cache_dir=$(find_cache_dir)
+  mkdir -p "$cache_dir"
+  cache_match=$(find "$cache_dir" -name "${fingerprint}:${request_hash}:*" -print -quit)
+
+  local response
+  if [ -n "$cache_match" ]; then
+    printf "🎯" >&2
+    response=$(cat "$cache_match")
+  else
+    printf "💭" >&2
+    response=$(curl -s -X POST "$endpoint" -H "Authorization: Bearer $api_key" -H "Content-Type: application/json" -d "$request")
+    
+    local response_id
+    response_id=$(printf "%s" "$response" | jq -r '.id // "unknown_id"')
+    printf "%s" "$response" > "${cache_dir}/${fingerprint}:${request_hash}:${response_id}.json"
+  fi
+
+  # Extract the clean assistant message object and append it onto the history array
+  jq -c --argjson history "$clean_stdin" '$history + [.choices[0].message]' <<< "$response" 2>/dev/null || echo "$clean_stdin"
 }

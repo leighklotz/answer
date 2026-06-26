@@ -2,38 +2,48 @@
 
 **Answer** is a command-line LLM-based agent framework that uses Posix pipes to compose and execute nonce agentic pipelines. It provides a conversational, shell-focused workflow for rapid prototyping, experimentation, and analysis.
 
-## The Dual-Mode Pipeline Model
+## The State-Driven Pipeline Model
 
-To allow seamless transitions between "thinking" (conversation) and "doing" (tooling), **Answer** uses two distinct data protocols in its pipelines:
+To allow seamless transitions between "thinking" (conversation) and "doing" (tooling), **Answer** tracks conversation states using an internal `infer()` engine primitive. This eliminates messy data format-juggling inside your shell pipes.
 
 ### 1. Conversation Mode (`ask | ask`)
-*   **Goal:** Build a continuous conversation where each command knows the history of previous ones.
-*   **How it works:** `ask` passes heavy JSON objects containing full history through pipes via a magic header.
-*   **Pattern:** `ask "Q1" | ask "Follow up Q2"`
+* **Goal:** Build a continuous conversation where each command appends to the running history.
+* **How it works:** `ask` passes heavy JSON arrays containing full history through pipes via a magic header. If a trailing `ask` detects a pending user prompt from the previous step, it automatically calls `infer()` to resolve it before adding the next turn.
+* **Pattern:** `ask "Q1" | ask "Follow up Q2"`
 
 ### 2. Tool/Extraction Mode (`ask | answer | tool`)
-*   **Goal:** Take the result of an LLM and pass it to a shell command (like `python`, `bash`, or `pipetest`).
-*   **How it works:** The `answer` command acts as a "Gatekeeper." It consumes the heavy JSON history and transforms it into **Plain Text**, which is what tools require.
-*   **Pattern:** `ask "Write python code" | answer | unfence | python`
+* **Goal:** Take the text result of an LLM and pass it straight to a shell command (like `python`, `bash`, or `pipetest`).
+* **How it works:** The `answer` command acts as your permanent pipeline "Cut-Point." It auto-resolves any pending queries using `infer()`, drops the outer JSON history envelopes entirely, and outputs **Pristine Plain Text** markdown strings. This acts as a natural gatekeeper for standard shell utilities.
+* **Pattern:** `bx cat file.txt | ask "Refactor this code" | answer | pipetest OK | unfence | bash`
 
-### 3. Hybrid/Observation Mode (`ask | answer -t | ask`)
-*   **Goal:** See what the LLM said in your terminal *while also* preserving the conversation history for the next command.
-*   **How it works:** The `--tee` (or `-t`) flag prints the human-readable text to `stderr` but keeps the JSON history flowing through `stdout`.
-*   **Pattern:** `ask "Q1" | answer -t | ask "Follow up Q2"`
+### 3. Hybrid/Observation Mode (`ask -t | ask`)
+* **Goal:** See what the LLM generated in your terminal *while also* preserving the conversation JSON history for the next command.
+* **How it works:** The `--tee` (or `-t`) flag on `ask` resolves the current turn, prints the human-readable text out to `stderr` for you to look at, but sends the full conversation JSON history down `stdout`.
+* **Pattern:** `ask -t "Generate base bash script" | ask "Add error handling to it"`
 
-## Components
+---
 
-* **`ask`**: The producer. In a pipe, it sends the full conversation context with header.  When stdout is a terminal, it further automatically calls `answer` to show you pretty text.
-* **`answer`**: The transformer. By default, `answer` consumes the JSON history and outputs raw text to stdout (Tool/Extraction mode). Use `answer --tee` (`-t`) mid-pipeline to send human-readable text to stderr while keeping the JSON history flowing on stdout for the next command.
-* **`unfence`**: Extracts code-fence (```) sections from model output.
-* **`pipetest`**: Shows a preview of what's about to be executed and asks for `Y/N`.
+## Core Components
+
+* **`infer()`**: *The Engine Primitive.* An internal shared helper function. It checks if a conversation history array ends with a `user` query. If it does, it calculates your byte-accurate local cache keys, logs your horizontal tracking status emojis (`🎯` or `💭`) to `stderr`, runs the inference call, appends the `assistant` object, and spits the updated full JSON history out to `stdout`.
+* **`ask`**: *The State Builder.* Manages conversational turn-taking. It processes inputs, hooks into `infer()` to catch up on un-resolved context strings, appends your new query block, and pipes directly to `answer` if it detects it is at the end of a line (terminal window).
+* **`answer`**: *The Text Extractor.* The terminal endpoint of the execution tree. It takes your conversation data, resolves it, pushes a clean newline to `stderr` to wrap up your emoji tracker row, and delivers raw text tokens to `stdout`.
+* **`bx`**: Executes a target command and wraps its raw console output inside a clean markdown code fence.
+* **`unfence`**: Strips triple-backtick (```) markdown fences from an incoming text stream to prepare code for execution.
+* **`pipetest`**: Captures clean text from `stdin`, runs it through a pager visualizer on `stderr`, and safely pauses to ask you `Y/N` via your keyboard before feeding it forward.
+* **`tools`**: Pipeline wrapper around `toolex.py`. Reads a JSON conversation array, resolves native LLM tool calls via toolex, and writes the updated conversation array to stdout.
+* **`story.txt`**: A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
+
+---
 
 ## Examples
 
 **Chaining questions (Conversation Mode):**
 ```bash
-ask "What is 2+2?" | ask "Now multiply that by 10" | answer
-# Output: 20
+ask "What is 20+30?" | ask "Convert that result to octal"
+# Output: 
+# 💭💭
+# 50 in decimal is 62 in octal.
 ```
 
 **Running code (Tooling Mode):**
@@ -41,100 +51,74 @@ ask "What is 2+2?" | ask "Now multiply that by 10" | answer
 ask "Write a python script to list files" | answer | unfence | python
 ```
 
-**Refining with visibility (Hybrid Mode):**
-```bash
-ask "Generate bash script for logs" | answer -t | ask "Add error handling to it" | answer
-# You see the first script on your screen, but 'ask' still knows what was generated.
-```
-
-### Test Case: The "Boo" Experiment (Context Preservation)
-
+### Test Case: Context Preservation
 Understanding how context flows through different modes is crucial for effective prompting:
 
-**1. Successful Context Chain (`ask | ask`):**
-The history is passed via JSON automatically.
+**1. Successful Context Chain (`ask | ask`):** The history is passed via JSON automatically.
 ```bash
 $ ask say boo | ask why did you say that
 Because you asked me to! You said "say boo," so I followed your instruction. 👻
 ```
 
-**2. Lost Context (`ask | answer | ask`):**
-Using `answer` without `--tee` strips the JSON history, sending only plain text. The next `ask` starts a new conversation context with no memory of why "boo" was said.
+**2. Intended Interface Cut (`ask | answer`):** Using `answer` drops the JSON history to raw text to communicate with your terminal window or standard shell utilities.
 ```bash
-$ ask say boo | answer | ask why did you say that
-Since I don't have the previous prompt... I can only guess! 👻
+$ ask say boo | answer
+Boo! 
 ```
 
-**3. Perfect Hybrid (`ask | answer -t | ask`):**
-The human sees the reply, but `ask` receives the JSON history to maintain context.
-```bash
-$ ask say boo | answer -t | ask why did you say that
-Boo! 👻
-I said that because you gave me a direct instruction to "say boo." ...
+---
+
+## Workspace Cache Architecture
+
+Your tools automatically crawl upwards from your current working directory to find a `.hallux` folder to claim as a project workspace and initialize a `cache/` directory inside it. If you run your tools outside an active project repository layout, they safely fall back to `~/.config/hallux/cache/` to keep your system clean.
+
+```text
+.hallux/cache/
+└── _home_klotz_wip_models_Qwen3.6-35B...:5d97ec5e...:chatcmpl-iZss...json
 ```
 
-## Key Features
-
-* **Interactive Code Generation:** Prompt the language model with natural language instructions to generate code in various languages.
-* **Seamless Execution:**  Execute the generated code within your shell environment.
-* **Conversation History:** Maintains a JSON-based conversation history for context and iterative refinement.
-* **Simple Scripting:**  Uses a small set of Bash scripts for a lightweight and portable experience.
-* **Clean Output:**  `unfence` script to remove code delimiters, ensuring clean and executable code.
-
-## Components
-
-* **`ask`:** The core script.  Accepts a prompt, sends it to the language model, and manages the conversation history (stored as a JSON array). If it ends the CLI line and output it going to a terminal, it automatically appends the `answer`command. Otherwise, in a pipeline, it just passes the JSON conversation array along.
-* **`bx`:** Executes the specified command and args, and wraps the result in a bash code fence.
-* **`answer`:**  Asks for LLM endpoint for an answer, and outputs the last message to stdout. In a pipeline, stdout is suppressed and only the conversation flows through; however, use `answer --tee`or `answer -t` mid-pipeline to print text to stderr as well as pass JSON through on stdout. With no stdin, extracts the latest message content from the JSON conversation, if available.
-* **`tools`:** Pipeline wrapper around `toolex.py`. Reads a JSON conversation array from resolves tool calls via toolex, and writes the updated conversation array to stdout.
-* **`unfence`:** Removes code blocks enclosed in triple backticks (```) from the input. Crucial for preparing model output for execution.
-* **`story.txt`:**  A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
+---
 
 ## Pipeline Patterns
 
 ### Basic question and answer
-
 ```bash
 ask "Write fib in Python" | answer
 ```
 
 ### Piping command output into a question (use `-i`)
-
 ```bash
 dmesg | ask -i "Spot any SCSI issues" | answer
 ```
 
 ### Chained follow-up questions
-
-Use `answer --tee` or `answer -t` mid-pipeline so the conversation JSON continues to flow on stdout while the human-readable reply appears on stderr:
-
+Use `ask -t` mid-pipeline so the conversation JSON continues to flow on stdout while the human-readable reply appears on stderr:
 ```bash
-dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about the md0 device?" | answer
+dmesg | ask -i "Spot any SCSI issues" | ask -t "What can I do about the md0 device?" | answer
 ```
 
 ### Tool-call resolution with toolex
-
 ```bash
-ask "Spot any SCSI issues with dmesg" | tools linux_tools | answer --tee | ask "What can I do about the md0 device?" | answer
+ask "Spot any SCSI issues with dmesg" | tools linux_tools | ask -t "What can I do about the md0 device?" | answer
 ```
+
+---
 
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
-
-* **OpenAI API Key:**  May be required for accessing the language model.
-* **VIA API Access:** Access to a VIA API instance.
-* **`jq`:**  A lightweight and flexible command-line JSON processor.  Install via your package manager:
-    * **Debian/Ubuntu:** `sudo apt-get install jq`
-    * **macOS:** `brew install jq`
-    * **Windows:**  Download from [https://stedolan.github.io/jq/download/](https://stedolan.github.io/jq/download/)
+* **OpenAI API Key / Local Endpoint:** Required for accessing the inference backend.
+* **`jq`:** A lightweight and flexible command-line JSON processor. Install via your package manager:
+  * **Debian/Ubuntu:** `sudo apt-get install jq`
+  * **macOS:** `brew install jq`
 * **Python 3:** Needed for executing generated Python code.
-* **Bash:** The scripts are written for Bash.
+* **Bash 4+:** The scripts are written specifically for Bash 4 or later.
+
+---
 
 ## Setup
 
-1. **Clone the Repository:**
-
+1. **Clone the Repository & Enable Paths:**
    ```bash
    git clone <repository_url>
    cd answer
@@ -142,31 +126,12 @@ Before you begin, ensure you have the following installed:
    ```
 
 2. **Set Environment Variables:**
-
    ```bash
    export VIA_API_CHAT_BASE="http://localhost:5000"
+   export OPENAI_API_KEY="your-key-if-applicable"
    ```
 
-   See also `$OPENAI_API_KEY`.
-
-## Usage
-
-The `story.txt` file provides a detailed walkthrough of various use cases.  Here's a basic example to get you started:
-
-```bash
-ask write a python function to calculate the factorial of a number | answer | unfence > factorial.py
-./python factorial.py
-```
-
-**Explanation:**
-
-1.  `ask write a python function to calculate the factorial of a number`:  Sends a prompt to the language model requesting a Python function for factorial calculation.
-2.  `answer`: Extracts the generated code from the model's JSON response.
-3.  `unfence`:  Removes any surrounding code fences (triple backticks) to ensure valid Python code.
-4.  `> factorial.py`:  Saves the cleaned code to a file named `factorial.py`.
-5.  `python factorial.py`:  Executes the Python code.
-
-You can combine these commands to build complex workflows.  Explore `story.txt` for more advanced scenarios.
+---
 
 ## License
 
