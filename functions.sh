@@ -165,9 +165,15 @@ function infer () {
   local stdin_content
   stdin_content=$(cat)
 
-  # Strip out the pipeline magic header if present
+  # CLEAN PIPELINE STRIP: Safely strip the magic header line using native Bash string expansion
   local clean_stdin
-  clean_stdin=$(echo "$stdin_content" | sed "1s|^${PIPELINE_MAGIC_HEADER}||")
+  if [[ "$stdin_content" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
+    clean_stdin="${stdin_content#${PIPELINE_MAGIC_HEADER}}"
+    # Strip any leading newlines left over right after the header line split
+    clean_stdin="${clean_stdin#$'\n'}"
+  else
+    clean_stdin="$stdin_content"
+  fi
 
   # Ensure it is a valid JSON array or object
   if [ -z "$clean_stdin" ] || ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
@@ -196,7 +202,7 @@ function infer () {
 
   # Fetch active model for cache footprint mapping
   local server_model fingerprint request_hash cache_match
-  server_model=$(curl -s "${VIA_API_CHAT_BASE}/v1/models" | jq -r '.data[0].id // .data.id // "local_model"')
+  server_model=$(curl -s "${VIA_API_CHAT_BASE}/v1/models" | jq -r '.data[0].id // .id // "local_model"')
   fingerprint=$(printf "%s" "$server_model" | tr '/' '_')
   request_hash=$(printf "%s" "$request" | openssl dgst -sha256 | awk '{print $2}')
 
@@ -205,19 +211,50 @@ function infer () {
   mkdir -p "$cache_dir"
   cache_match=$(find "$cache_dir" -name "${fingerprint}:${request_hash}:*" -print -quit)
 
-  local response
+  local response_json
   if [ -n "$cache_match" ]; then
     printf "🎯" >&2
-    response=$(cat "$cache_match")
+    response_json=$(cat "$cache_match")
   else
     printf "💭" >&2
-    response=$(curl -s -X POST "$endpoint" -H "Authorization: Bearer $api_key" -H "Content-Type: application/json" -d "$request")
+    response_json=$(curl -s -X POST "$endpoint" -H "Authorization: Bearer $api_key" -H "Content-Type: application/json" -d "$request")
     
+    # Check if the server response is an object before indexing keys like "id"
     local response_id
-    response_id=$(printf "%s" "$response" | jq -r '.id // "unknown_id"')
-    printf "%s" "$response" > "${cache_dir}/${fingerprint}:${request_hash}:${response_id}.json"
+    if jq -e 'type == "object"' <<< "$response_json" >/dev/null 2>&1; then
+      response_id=$(printf "%s" "$response_json" | jq -r '.id // "unknown_id"')
+    else
+      response_id="unknown_id"
+    fi
+    
+    printf "%s" "$response_json" > "${cache_dir}/${fingerprint}:${request_hash}:${response_id}.json"
   fi
 
-  # Extract the clean assistant message object and append it onto the history array
-  jq -c --argjson history "$clean_stdin" '$history + [.choices[0].message]' <<< "$response" 2>/dev/null || echo "$clean_stdin"
+  # --- HARDENED TYPE-AGNOSTIC EXTRACTION LAYER ---
+  local assistant_msg_block
+  assistant_msg_block=$(jq -c '
+    if type == "object" then
+      if .choices and (.choices | type == "array") and (length > 0) then
+        .choices[0].message
+      elif .role and .content then
+        .
+      else
+        {"role": "assistant", "content": (.content // .message // "")}
+      fi
+    elif type == "array" and (length > 0) then
+      if .[-1].role == "assistant" then .[-1] else {"role": "assistant", "content": .[-1]} end
+    else
+      {"role": "assistant", "content": (type | tostring)}
+    fi' <<< "$response_json" 2>/dev/null)
+
+  if [ -z "$assistant_msg_block" ] || [ "$assistant_msg_block" = "null" ]; then
+    local fallback_content
+    fallback_content=$(jq -r '.choices[0].message.content // .content // empty' <<< "$response_json" 2>/dev/null)
+    if [ -z "$fallback_content" ] && ! jq -e '.' <<< "$response_json" >/dev/null 2>&1; then
+      fallback_content="$response_json"
+    fi
+    assistant_msg_block=$(jq -n -c --arg c "$fallback_content" '{"role": "assistant", "content": $c}')
+  fi
+
+  jq -c --argjson history "$clean_stdin" --argjson msg "$assistant_msg_block" '$history + [$msg]' <<< "{}"
 }

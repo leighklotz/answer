@@ -36,9 +36,14 @@ if [ ! -t 0 ]; then
   if [ "$PLAIN_INPUT" = "1" ]; then
     messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
   elif [ "$is_json" = true ]; then
-    # Auto-resolve the previous turn if it was an unresolved user query
-    # Pass the stdin string block straight into infer natively via a heredoc/herestring
-    clean_stdin=$(infer <<< "$stdin_content")
+    # MODE: Conversation History (JSON)
+    # 1. Native header strip to avoid sed slash collisions completely
+    clean_stdin="${stdin_content#${PIPELINE_MAGIC_HEADER}}"
+    clean_stdin="${clean_stdin#$'\n'}"
+    # 2. Resolve the previous turn cleanly
+    clean_stdin=$(infer <<< "$clean_stdin")
+
+    # 3. Append your new user prompt directly to the clean conversation history array
     if [ -n "$prompt" ]; then
       new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
       messages=$(jq -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]')
@@ -64,11 +69,16 @@ fi
 # --- CORE ROUTING ENGINE ---
 
 if [ -n "$TEE_MODE" ]; then
-  # Contract Rule: ask -t resolves the state, logs output to stderr, and passes full JSON down stdout
+  # 1. Resolve the conversation state using infer
   full_convo=$(printf "%s\n" "$messages" | infer)
+
+  # 2. Extract the last assistant reply for the human operator
   last_reply=$(jq -r '.[-1].content // empty' <<< "$full_convo")
   
+  # 3. Print the human-readable text to stderr (with a leading newline to clear the emojis)
   printf "\n%s\n" "$last_reply" >&2
+  
+  # 4. CRITICAL: Print the full JSON history to stdout for the next pipe
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$full_convo"
 
 elif [ -t 1 ]; then
