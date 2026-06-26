@@ -13,101 +13,6 @@ fi
 
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-function ask ()
-{
-    local RAW_INPUT=""
-    local ARGS=("$@")
-    local is_attachment=false
-    local has_stdin=false
-
-    # 1. Determine if we are in "Attachment" mode via flags (-i / --input)
-    for arg in "${ARGS[@]}"; do
-        if [[ "$arg" == "-i" ]] || [[ "$arg" == "--input" ]]; then
-            is_attachment=true
-            break
-        fi
-    done
-
-    # 2. Check if stdin has data without consuming it yet (using a temp file to allow re-reading)
-    local tmpfile=$(mktemp)
-    if [ ! -t 0 ]; then
-        cat > "$tmpfile"
-        has_stdin=true
-    else
-        has_stdin=false
-    fi
-
-    # Logic for building the input string based on detected mode
-    if [ "$has_stdin" = true ]; then
-        local first_line=$(head -n 1 "$tmpfile")
-        if [ "$first_line" = "${PIPELINE_MAGIC_HEADER}" ] || [[ "$(echo "$first_line" | tr -d '[:space:]')" == "[" ]]; then
-            # MODE: Conversation History (JSON)
-            # If a prompt is provided in arguments, append it to the history. 
-            if [ $# -gt 0 ]; then
-                local clean_stdin=$(sed "1s/^${PIPELINE_MAGIC_HEADER}//" "$tmpfile")
-                local new_message=$(jq -n --arg prompt "$*" '{"role":"user","content":$prompt}')
-                RAW_INPUT=$(echo "$clean_stdin" | jq --argjson new_msg "$new_message" '$ + [$new_msg]')
-            else
-                # No extra prompt: treat the stdin JSON as the entire messages array.
-                # This allows 'ask' to act as a pass-through for existing conversation states.
-                RAW_INPUT=$(sed "1s/^${PIPELINE_MAGIC_HEADER}//" "$tmpfile")
-            fi
-        elif [ "$is_attachment" = true ] || [[ -z "$*" ]]; then
-             # MODE: Text Attachment or raw context pipe
-             echo "🦶ask: reading attachment/context from stdin" >&2
-             RAW_INPUT=$(cat "$tmpfile")
-        else
-            # MODE: Plain text pipe (e.g., cmd | ask prompt) 
-            echo "🦶ask: appending piped data to prompt" >&2
-            RAW_INPUT=$(cat "$tmpfile")
-        fi
-    fi
-
-    rm -f "$tmpfile"
-
-    # If no input was found and we aren't in a mode that expects it, exit silently.
-    if [ "$has_stdin" = false ] && [ $# -eq 0 ]; then
-        return 0
-    fi
-
-    # Execute the command (passing RAW_INPUT if constructed via jq logic or handling empty)
-    local nascent=""
-    if [[ "$RAW_INPUT" == *"{"* ]] || [[ "$RAW_INPUT" == "["* ]]; then
-         # If we've built a JSON string, pass it to ask.sh as the input stream
-         nascent=$(echo "$RAW_INPUT" | ask.sh "${ARGS[@]}")
-    else
-        # Regular text or command-line prompt mode
-        nascent=$(ask.sh "${ARGS[@]}" <<< "$RAW_INPUT")
-    fi
-
-    local s=$?
-    [ $s -ne 0 ] && { echo "🦶ask ERROR: ask.sh failed: $s" >&2; return 1; }
-
-    # Refined logic for the specific requirement regarding pipes vs interactive mode
-    if [ "$has_stdin" = true ]; then
-        echo "🦶ask: chain detected via stdin, forcing answer." >&2
-        answer <<< "${nascent}"
-    elif [ -t 1 ]; then
-        echo "🦶ask: interactive mode, calling answer" >&2
-        answer <<< "${nascent}"
-    else
-        printf "%s\n" "${nascent}"
-    fi
-}
-
-function answer ()
-{
-    local ANSWER_OUT
-    ANSWER_OUT="$(answer.sh "$@")"
-    local s=$?
-    if [ $s -ne 0 ]; then
-        echo "🦶answer ERROR: answer.sh failed with exit code $s" >&2
-        return 1
-    fi
-
-    printf "%s\n" "${ANSWER_OUT}"
-}
-
 function bx ()
 {
     local quiet
@@ -125,19 +30,6 @@ function bx ()
         echo "🦶bx: ERROR: bx.sh failed with exit code $s" >&2
         return 1
     fi
-}
-
-function answer ()
-{
-    local ANSWER
-    ANSWER="$(answer.sh "$@")"
-    s=$?
-    if [ $s -ne 0 ]; then
-        echo "🦶answer ERROR: answer.sh failed with exit code $s" >&2
-        return 1
-    fi
-
-    printf "%s\n" "${ANSWER}"
 }
 
 function bx ()
@@ -242,4 +134,28 @@ function pipetest()
 help () 
 { 
     help.sh "$@"
+}
+
+function find_cache_dir () {
+  local current_dir
+  current_dir="$(pwd)"
+
+  # 1. Traverse upward looking strictly for a .hallux workspace directory anchor
+  while [ "$current_dir" != "/" ]; do
+    if [ -d "${current_dir}/.hallux" ]; then
+      # Found the workspace anchor! Return the path with the target cache directory appended.
+      printf "%s/.hallux/cache" "$current_dir"
+      return 0
+    fi
+    current_dir="$(dirname "$current_dir")"
+  done
+
+  # 2. Fall back to the user home baseline path if the folder anchor exists
+  if [ -d "${HOME}/.hallux" ]; then
+    printf "%s/.hallux/cache" "${HOME}"
+    return 0
+  fi
+
+  # 3. Ultimate system-standard fallback location
+  printf "%s/.config/hallux/cache" "${HOME}"
 }
