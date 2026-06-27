@@ -9,6 +9,9 @@ PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 # 1. Read stdin and pass through the core infer engine to guarantee a resolved state
 resolved_history=$(infer)
 
+# In answer.sh, right after resolved_history=$(infer)
+echo "DEBUG: resolved_history = $resolved_history" >&2
+
 # 2. Extract strictly the text string content of the final assistant response
 assistant_text=$(jq -r 'if type == "array" and length > 0 then .[-1].content else empty end' <<< "$resolved_history" 2>/dev/null)
 

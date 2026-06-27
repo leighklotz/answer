@@ -40,6 +40,7 @@ if [ ! -t 0 ]; then
     # 1. Native header strip to avoid sed slash collisions completely
     clean_stdin="${stdin_content#${PIPELINE_MAGIC_HEADER}}"
     clean_stdin="${clean_stdin#$'\n'}"
+
     # 2. Resolve the previous turn cleanly
     clean_stdin=$(infer <<< "$clean_stdin")
 

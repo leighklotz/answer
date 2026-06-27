@@ -11,6 +11,11 @@ if ! command -v ask.sh &> /dev/null; then
     echo "🦶$0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
+# Source env.sh if variables are not already defined
+if [ -z "${VIA_API_CHAT_BASE+x}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/env.sh" ]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
+fi
+
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
 function bx ()
@@ -188,7 +193,6 @@ function infer () {
   # NO-OP: If the last message is already an assistant reply, pass it straight through
   if [ "$last_role" != "user" ]; then
     printf "%s\n" "$clean_stdin"
-    return 0
   fi
 
   # --- ACTIVE INFERENCE ENGINE ---
@@ -198,7 +202,7 @@ function infer () {
   # Build OpenAI/llama.cpp compliant body
   local request
   request=$(jq -n --argjson messages "$clean_stdin" --arg model "gpt-3.5-turbo" --argjson max_tokens 4096 \
-    '{model: $model, thinking: true, mode: "instruct", max_tokens: $max_tokens, messages: $messages, top_k: 20, top_p: 0.95, min_p: 0.1, tfs_z: 1, typical_p: 1.0, repeat_penalty: 1.0, repeat_last_n: 1024, presence_penalty: 0.0, frequency_penalty: 0.0, seed: -1}')
+    '{model: $model, thinking: true, max_tokens: $max_tokens, messages: $messages, top_k: 20, top_p: 0.95, min_p: 0.1, tfs_z: 1, typical_p: 1.0, repeat_penalty: 1.0, repeat_last_n: 1024, presence_penalty: 0.0, frequency_penalty: 0.0, seed: -1}')
 
   # Fetch active model for cache footprint mapping
   local server_model fingerprint request_hash cache_match
@@ -218,7 +222,15 @@ function infer () {
   else
     printf "💭" >&2
     response_json=$(curl -s -X POST "$endpoint" -H "Authorization: Bearer $api_key" -H "Content-Type: application/json" -d "$request")
-    
+
+      # DEBUG After curl
+      if [ -z "$response_json" ]; then
+        echo "DEBUG: infer: response_json is empty" >&2
+        echo "[]"
+        return 1
+      fi
+
+
     # Check if the server response is an object before indexing keys like "id"
     local response_id
     if jq -e 'type == "object"' <<< "$response_json" >/dev/null 2>&1; then
