@@ -4,7 +4,7 @@ $ ask write fib in python | ask call it with 20 and note the output | ask just p
 6765
 
 # --- TOOLING MODE ---
-# Use 'answer' to strip JSON so tools like 'python' or 'bash' receive clean text.
+# Use 'answer' at the very end to strip JSON so tools receive clean plain text.
 $ ask write a hello world python script | answer | unfence | python
 Hello World!
 
