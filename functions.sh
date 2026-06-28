@@ -18,6 +18,20 @@ fi
 
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
+function _strip_header() {
+  local input="$1"
+  
+  # Remove the header line
+  input="${input#"${PIPELINE_MAGIC_HEADER}"}"
+  
+  # Remove a single leading newline if present
+  if [[ "$input" == $'\n'* ]]; then
+    input="${input#$'\n'}"
+  fi
+  
+  printf '%s\n' "$input"
+}
+
 function bx ()
 {
     local quiet
@@ -37,7 +51,7 @@ function bx ()
     fi
 }
 
-unfence ()
+function unfence ()
 {
     unfence.sh "$@"
     s=$?
@@ -118,17 +132,17 @@ function pipetest()
 }
 
 # use `builtin help` if you want native bash help command
-help () 
+function help () 
 { 
     help.sh "$@"
 }
 
-ask () 
+function ask () 
 { 
     ask.sh "$@"
 }
 
-function find_cache_dir () {
+function _find_cache_dir () {
   local current_dir
   current_dir="$(pwd)"
 
@@ -152,14 +166,13 @@ function find_cache_dir () {
   printf "%s/.config/hallux/cache" "${HOME}"
 }
 
-function infer () {
+function _infer () {
   local stdin_content clean_stdin last_role
   stdin_content=$(cat)
 
   # Strip optional pipeline header.
   if [[ "$stdin_content" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-    clean_stdin="${stdin_content#${PIPELINE_MAGIC_HEADER}}"
-    clean_stdin="${clean_stdin#$'\n'}"
+    clean_stdin=$(_strip_header "$stdin_content")
   else
     clean_stdin="$stdin_content"
   fi
@@ -189,7 +202,7 @@ function infer () {
       model: $model,
       messages: $messages,
       max_tokens: $max_tokens,
-      thinking: true
+      thinking: false
     }')
 
   local server_model fingerprint request_hash cache_dir cache_match response_json
@@ -199,13 +212,12 @@ function infer () {
   fingerprint=$(printf "%s" "$server_model" | tr '/:' '__')
   request_hash=$(printf "%s" "$request" | openssl dgst -sha256 | awk '{print $2}')
 
-  cache_dir=$(find_cache_dir)
+  cache_dir=$(_find_cache_dir)
   mkdir -p "$cache_dir"
-  cache_match=$(find "$cache_dir" -name "${fingerprint}:${request_hash}:*" -print -quit)
-
-  if [ -n "$cache_match" ]; then
+  cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
+  if [ -f "$cache_file" ]; then
     printf "🎯" >&2
-    response_json=$(cat "$cache_match")
+    response_json=$(cat "$cache_file")
   else
     printf "💭" >&2
     response_json=$(curl -fsS -X POST "$endpoint" \
@@ -213,9 +225,7 @@ function infer () {
       -H "Content-Type: application/json" \
       -d "$request") || return 1
 
-    local response_id
-    response_id=$(jq -r '.id // "unknown_id"' <<< "$response_json" 2>/dev/null || printf "unknown_id")
-    printf "%s" "$response_json" > "${cache_dir}/${fingerprint}:${request_hash}:${response_id}.json"
+    printf "%s" "$response_json" > "$cache_file"
   fi
 
   # Contract: OpenAI-compatible chat completion response.
@@ -225,6 +235,6 @@ function infer () {
     return 1
   fi
 
-  jq -c --argjson history "$clean_stdin" --argjson msg "$assistant_msg" \
-    '$history + [$msg]' <<< '{}'
+  printf '%s\n' "$clean_stdin" | jq -c --argjson msg "$assistant_msg" '. + [$msg]'
 }
+

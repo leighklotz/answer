@@ -37,14 +37,13 @@ if [ ! -t 0 ]; then
     messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
   elif [ "$is_json" = true ]; then
     # MODE: Conversation History (JSON)
-    # 1. Native header strip to avoid sed slash collisions completely
-    clean_stdin="${stdin_content#${PIPELINE_MAGIC_HEADER}}"
-    clean_stdin="${clean_stdin#$'\n'}"
-
+    # 1. remove mime header
+    clean_stdin=$(_strip_header "$stdin_content")
+      
     # 2. Resolve the previous turn cleanly
     # FIX: Capture stderr separately to ensure clean_stdin is pure JSON
     log_info "0. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
-    clean_stdin=$(infer <<< "$clean_stdin" 2>/dev/null)
+    clean_stdin=$(_infer <<< "$clean_stdin" 2>/dev/null)
 
     # FIX: Validate JSON output from infer
     if ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
@@ -56,9 +55,9 @@ if [ ! -t 0 ]; then
     if [ -n "$prompt" ]; then
       new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
       messages=$(jq -n -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]' 2>/dev/null)
-      # Fallback if jq fails
       if [ -z "$messages" ] || ! jq -e '.' <<< "$messages" >/dev/null 2>&1; then
-          messages="$clean_stdin"
+          log_error "Failed to merge new prompt into conversation history"
+          exit 1
       fi
     else
       messages="$clean_stdin"
@@ -82,18 +81,17 @@ fi
 # --- CORE ROUTING ENGINE ---
 
 if [ -n "$TEE_MODE" ]; then
-  # 1. Resolve the conversation state using infer
-  # Note: infer outputs JSON to stdout, emojis to stderr.
+  # 1. Resolve the conversation state (idempotent)
   log_info "1. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
-  full_convo=$(printf "%s\n" "$messages" | infer)
+  full_convo=$(printf "%s\n" "$messages" | _infer)
 
-  # 2. Extract the last assistant reply for the human operator
+  # 2. Extract the last assistant reply
   last_reply=$(jq -r '.[-1].content // empty' <<< "$full_convo" 2>/dev/null)
   
-  # 3. Print the human-readable text to stderr (with a leading newline to clear the emojis)
-  printf "\n%s\n" "$last_reply" >&2
+  # 3. Print human-readable text to stderr
+  printf '\n%s\n' "$last_reply" >&2
   
-  # 4. CRITICAL: Print the full JSON history to stdout for the next pipe
+  # 4. Forward full JSON history to stdout
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$full_convo"
 elif [ -t 1 ]; then
   # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown

@@ -1,19 +1,11 @@
 #!/bin/bash
 
-# Helper to extract the final output line from a command's stdout
-# This script assumes the "ask" command is available and behaves as described in the prompt.
-# It simulates the pipeline logic to verify output correctness.
-
-test_case() {
+function test_case() {
     local description="$1"
-    local pipeline="$2"
+    local actual_output="$2"
     local expected_output="$3"
 
     echo "Testing: $description"
-    
-    # Execute the actual pipeline
-    local actual_output
-    actual_output=$(eval "$pipeline" 2>/dev/null)
     
     # Simplistic verification
     if [[ "$actual_output" == "$expected_output" ]]; then
@@ -26,9 +18,9 @@ test_case() {
 }
 
 # Run test cases based on the prompt's examples
-test_case "Fibonacci 20 Output" "ask write fib in python | ask call it with 20 and note the output | ask just print the output" "6765"
-test_case "Hello World Output" "ask write a hello world python script | answer | unfence | python" "Hello World!"
-test_case "Simple Math 2+3" "ask 2+3=5" "5"
-test_case "Double 2+3" "ask 2+3= | ask double that and output just the result" "10"
-test_case "Modify Number 20" "ask 2+3= | ask use 20 not 2 and otuput just the result" "23"
-test_case "Quicksort Output" "ask 'write a python function for quicksort' | ask 'print just the code with print(quicksort([3,1,4,2]))' | answer | pipetest | unfence | python" "[1, 2, 3, 4]"
+test_case 'Fibonacci 20 Output' "$(ask write fib in python and a call to it with 20 | ask just print the output in one codefence | answer)" '6765'
+test_case 'Hello World Output' "$(ask write a 'Hello, World!' python script and output just the one codefence | answer | unfence | python)" 'Hello World!'
+test_case 'Simple Math 2+3' "$(ask 2+3= | answer)" '5'
+test_case 'Double 2+3' "$(ask 2+3= | ask double that and output just the result | answer)" '10'
+test_case 'Modify Number 20' "$(ask 2+3= | ask use 20 not 2 and output just the result | answer)" '23'
+test_case 'Quicksort Output' "$(ask write a python function for quicksort | ask 'output just the python code and call `print(quicksort([3,1,4,2]))`' | answer | unfence | python)" '[1, 2, 3, 4]'
