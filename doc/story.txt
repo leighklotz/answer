@@ -50,7 +50,8 @@ print(fibonacci(20))
 
 \$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))' | answer | pipetest | unfence | python
 🤖 
-```pythondef fib(n):
+```python
+def fib(n):
     a, b = 0, 1
     for _ in range(n):
         a, b = b, a + b
