@@ -14,7 +14,12 @@ GIT_COMMIT_PROMPT="Below is the output of a git bash session.  Read the session 
 # (bx git status; bx git diff --numstat; bx git diff; git diff --cached) | ask -i "${GIT_COMMIT_PROMPT}" |  answer | pipetest | unfence | bash
 # (bx git status; bx git diff --numstat; bx git diff; git diff --cached) | ask -i "${GIT_COMMIT_PROMPT}" |  answer | unfence --ask | bash
 
-(bx git status; bx git diff --numstat; bx git diff; bx git diff --cached) \
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    echo "$(basename "$0"): PWD=$PWD is not in a git repository"
+    exit 1
+fi
+
+(bx pwd; bx git rev-parse --show-toplevel; bx git status; bx git diff --numstat; bx git diff; bx git diff --cached) \
   | ask -i "${GIT_COMMIT_PROMPT}" \
   | answer \
   | pipetest OK \

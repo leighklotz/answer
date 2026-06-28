@@ -36,39 +36,32 @@ if [ ! -t 0 ]; then
   if [ "$PLAIN_INPUT" = "1" ]; then
     messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
   elif [ "$is_json" = true ]; then
-      # 1. Native header strip
-   clean_stdin="${stdin_content#${PIPELINE_MAGIC_HEADER}}"
-   clean_stdin="${clean_stdin#$'\n'}"
+    # MODE: Conversation History (JSON)
+    # 1. Native header strip to avoid sed slash collisions completely
+    clean_stdin="${stdin_content#${PIPELINE_MAGIC_HEADER}}"
+    clean_stdin="${clean_stdin#$'\n'}"
 
-   # DEBUG: Check if clean_stdin is empty before infer
-   if [ -z "$clean_stdin" ]; then
-     echo "DEBUG ask.sh: clean_stdin is empty after header strip" >&2
-     clean_stdin="[]"
-   fi
+    # 2. Resolve the previous turn cleanly
+    # FIX: Capture stderr separately to ensure clean_stdin is pure JSON
+    clean_stdin=$(infer <<< "$clean_stdin" 2>/dev/null)
 
-   # 2. Resolve the previous turn cleanly
-   # Note: infer expects JSON on stdin, not the header.
-   # We pass clean_stdin directly.
-   clean_stdin=$(infer <<< "$clean_stdin" 2>/dev/null)
+    # FIX: Validate JSON output from infer
+    if ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
+        echo "🦶ask: WARN: infer returned invalid JSON, resetting state." >&2
+        clean_stdin="[]"
+    fi
 
-   # DEBUG: Check if infer returned valid JSON
-   if ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
-     echo "DEBUG ask.sh: infer returned invalid JSON: $clean_stdin" >&2
-     clean_stdin="[]"
-   fi
-
-   # 3. Append your new user prompt
-   if [ -n "$prompt" ]; then
-     new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
-     # Use a temporary variable to avoid overwriting clean_stdin if jq fails
-     messages=$(jq -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]' 2>/dev/null)
-     if [ -z "$messages" ]; then
-       echo "DEBUG ask.sh: jq append failed" >&2
-       messages="$clean_stdin"
-     fi
-   else
-     messages="$clean_stdin"
-   fi
+    # 3. Append your new user prompt directly to the clean conversation history array
+    if [ -n "$prompt" ]; then
+      new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
+      messages=$(jq -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]' 2>/dev/null)
+      # Fallback if jq fails
+      if [ -z "$messages" ] || ! jq -e '.' <<< "$messages" >/dev/null 2>&1; then
+          messages="$clean_stdin"
+      fi
+    else
+      messages="$clean_stdin"
+    fi
   elif [ -n "$prompt" ]; then
     messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
   else
@@ -89,10 +82,11 @@ fi
 
 if [ -n "$TEE_MODE" ]; then
   # 1. Resolve the conversation state using infer
+  # Note: infer outputs JSON to stdout, emojis to stderr.
   full_convo=$(printf "%s\n" "$messages" | infer)
 
   # 2. Extract the last assistant reply for the human operator
-  last_reply=$(jq -r '.[-1].content // empty' <<< "$full_convo")
+  last_reply=$(jq -r '.[-1].content // empty' <<< "$full_convo" 2>/dev/null)
   
   # 3. Print the human-readable text to stderr (with a leading newline to clear the emojis)
   printf "\n%s\n" "$last_reply" >&2
@@ -100,7 +94,11 @@ if [ -n "$TEE_MODE" ]; then
   # 4. CRITICAL: Print the full JSON history to stdout for the next pipe
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$full_convo"
 
+
+
 elif [ -t 1 ]; then
+  echo "🦶DEBUG ask: Sending to answer:" >&2
+
   # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
 else

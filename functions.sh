@@ -37,25 +37,6 @@ function bx ()
     fi
 }
 
-function bx ()
-{
-    local quiet
-    while [[ $# -gt 0 ]]; do
-        case "$1" in 
-            -q) quiet=1; shift ;;
-            -*) echo "🦶bx: unknown option $1" >&2; return 1 ;;
-            *) break ;;
-        esac
-    done
- 
-    bx.sh "$@"
-    s=$?
-    if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
-        echo "🦶bx: ERROR: bx.sh failed with exit code $s" >&2
-        return 1
-    fi
-}
-
 unfence ()
 {
     unfence.sh "$@"
@@ -193,6 +174,7 @@ function infer () {
   # NO-OP: If the last message is already an assistant reply, pass it straight through
   if [ "$last_role" != "user" ]; then
     printf "%s\n" "$clean_stdin"
+    return 0
   fi
 
   # --- ACTIVE INFERENCE ENGINE ---
@@ -217,9 +199,11 @@ function infer () {
 
   local response_json
   if [ -n "$cache_match" ]; then
+    # FIX: Redirect emoji to stderr
     printf "🎯" >&2
     response_json=$(cat "$cache_match")
   else
+    # FIX: Redirect emoji to stderr
     printf "💭" >&2
     response_json=$(curl -s -X POST "$endpoint" -H "Authorization: Bearer $api_key" -H "Content-Type: application/json" -d "$request")
 
@@ -268,5 +252,6 @@ function infer () {
     assistant_msg_block=$(jq -n -c --arg c "$fallback_content" '{"role": "assistant", "content": $c}')
   fi
 
+  # FIX: Output ONLY JSON to stdout. No extra newlines or characters.
   jq -c --argjson history "$clean_stdin" --argjson msg "$assistant_msg_block" '$history + [$msg]' <<< "{}"
 }
