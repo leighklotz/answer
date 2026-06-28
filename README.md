@@ -35,6 +35,15 @@ To allow seamless transitions between "thinking" (conversation) and "doing" (too
 * **`story.txt`**: A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
 
 ---
+## Testing
+
+Automated verification of pipeline outputs is handled by `story-test.sh`. This script simulates expected outputs for common use cases (Fibonacci, Hello World, Math, Sorting) to ensure the `ask`, `answer`, and execution chain behave as documented.
+
+Run tests using:
+```bash
+chmod +x story-test.sh
+./story-test.sh
+
 
 ## Examples
 

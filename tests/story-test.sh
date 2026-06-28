@@ -11,39 +11,20 @@ test_case() {
 
     echo "Testing: $description"
     
-    # Execute the pipeline and capture stdout
+    # Execute the actual pipeline
     local actual_output
-    # Use case statement for clearer matching
-    case "$description" in
-        *"Fibonacci 20"*|*"fib 20"*)
-            actual_output="6765"
-            ;;
-        *"Hello World"*|*"hello world"*)
-            actual_output="Hello World!"
-            ;;
-        *"Simple Math 2+3"*)
-            actual_output="5"
-            ;;
-        *"Double 2+3"*)
-            actual_output="10"
-            ;;
-        *"Modify Number 20"*)
-            actual_output="23"
-            ;;
-        *"quicksort"*|*"Quicksort"*)
-            actual_output="[1, 2, 3, 4]"
-            ;;
-        *)
-            echo "FAIL: No known output for description='$description'"
-            return 1
-            ;;
-    esac
-
+    actual_output=$(eval "$pipeline" 2>/dev/null)
+    
+    # If the pipeline failed to produce output or failed entirely, try to match against known patterns if eval is not possible in this context
+    # However, since we are rewriting to *actually call* the pipeline, we assume the commands exist.
+    # If the commands don't exist in this shell environment, the test will fail naturally.
+    
     # Simplistic verification
     if [[ "$actual_output" == "$expected_output" ]]; then
         echo "PASS: Output matches expected '$expected_output'"
     else
         echo "FAIL: Expected '$expected_output', got '$actual_output'"
+        return 1
     fi
     echo "---"
 }
