@@ -55,7 +55,7 @@ if [ ! -t 0 ]; then
     # 3. Append your new user prompt directly to the clean conversation history array
     if [ -n "$prompt" ]; then
       new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
-      messages=$(jq -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]' 2>/dev/null)
+      messages=$(jq -n -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]' 2>/dev/null)
       # Fallback if jq fails
       if [ -z "$messages" ] || ! jq -e '.' <<< "$messages" >/dev/null 2>&1; then
           messages="$clean_stdin"
