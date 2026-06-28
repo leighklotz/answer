@@ -97,7 +97,7 @@ if [ -n "$TEE_MODE" ]; then
 
 
 elif [ -t 1 ]; then
-  echo "🦶DEBUG ask: Sending to answer:" >&2
+  log_debug "Sending to answer"
 
   # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
