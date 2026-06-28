@@ -13,14 +13,15 @@ resolved_history=$(infer)
 # echo "DEBUG: resolved_history = $resolved_history" >&2
 
 # 2. Extract strictly the text string content of the final assistant response
-# FIX: Robust extraction handling arrays, objects, and missing content
-assistant_text=$(jq -r '
-  if type == "array" and length > 0 then
-    .[-1] | if .content then .content elif .message then .message.content else "No content" end
-  elif type == "object" then
-    if .content then .content elif .message then .message.content else "No content" end
-  else "No history"
-end' <<< "$resolved_history" 2>/dev/null)
+assistant_text=$(jq -r '.[-1].content // empty' <<< "$resolved_history")
+
+# assistant_text=$(jq -r '
+#   if type == "array" and length > 0 then
+#     .[-1] | if .content then .content elif .message then .message.content else "No content" end
+#   elif type == "object" then
+#     if .content then .content elif .message then .message.content else "No content" end
+#   else "No history"
+# end' <<< "$resolved_history" 2>/dev/null)
 
 if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ] || [ "$assistant_text" = "No content" ]; then
   echo "Footanswer ERROR: Cannot extract assistant message content." >&2
