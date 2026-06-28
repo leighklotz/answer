@@ -43,6 +43,7 @@ if [ ! -t 0 ]; then
 
     # 2. Resolve the previous turn cleanly
     # FIX: Capture stderr separately to ensure clean_stdin is pure JSON
+    log_info "0. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
     clean_stdin=$(infer <<< "$clean_stdin" 2>/dev/null)
 
     # FIX: Validate JSON output from infer
@@ -83,6 +84,7 @@ fi
 if [ -n "$TEE_MODE" ]; then
   # 1. Resolve the conversation state using infer
   # Note: infer outputs JSON to stdout, emojis to stderr.
+  log_info "1. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
   full_convo=$(printf "%s\n" "$messages" | infer)
 
   # 2. Extract the last assistant reply for the human operator
@@ -93,15 +95,13 @@ if [ -n "$TEE_MODE" ]; then
   
   # 4. CRITICAL: Print the full JSON history to stdout for the next pipe
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$full_convo"
-
-
-
 elif [ -t 1 ]; then
-  log_debug "Sending to answer"
-
   # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
+  log_debug "Sending to answer"
+  log_info "2. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
 else
   # Contract Rule: Inside a pipe loop, forward the updated full JSON history state
+  log_info "3. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
 fi

@@ -123,6 +123,11 @@ help ()
     help.sh "$@"
 }
 
+ask () 
+{ 
+    ask.sh "$@"
+}
+
 function find_cache_dir () {
   local current_dir
   current_dir="$(pwd)"
