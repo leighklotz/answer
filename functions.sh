@@ -195,7 +195,7 @@ function _infer () {
   request=$(jq -n \
     --argjson messages "$clean_stdin" \
     --arg model "${VIA_MODEL:-gpt-3.5-turbo}" \
-    --argjson thinking "${ENABLE_THINKING:-true}" \
+    --argjson thinking "${ENABLE_THINKING:-false}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-4096}" \
     '{
       model: $model,
