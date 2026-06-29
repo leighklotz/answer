@@ -15,7 +15,7 @@ if [ $# -eq 0 ]; then
 fi
 
 if [ -t 0 ]; then
-    echo "tools: expected JSON conversation array on stdin" >&2
+    echo "🦶tools: expected JSON conversation array on stdin" >&2
     exit 1
 fi
 

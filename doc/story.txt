@@ -1,54 +1,56 @@
 # --- CONVERSATION MODE ---
 # No answer in between; history flows through ask-to-ask pipes directly.
-$ ask write fib in python | ask call it with 20 and note the output | ask just print the output | answer
+$ ask write fib in python | ask call it with 20 and note the output | ask just print the output
 6765
 
 # --- TOOLING MODE ---
-# Use 'answer' to strip JSON so tools like 'python' or 'bash' receive clean text.
+# Use 'answer' at the very end to strip JSON so tools receive clean plain text.
 $ ask write a hello world python script | answer | unfence | python
 Hello World!
 
 # --- HYBRID/OBSERVATION MODE ---
-# Use '-t' if you want to see the code mid-pipeline, but still keep talking to it.
-$ ask 'write an inline bash script for disk usage' | answer -t | ask 'now save that output to a file named usage.txt' | answer
-# [The first script appears on your screen here]
+# Use 'ask -t' if you want to see the code mid-pipeline, but still keep talking to it.
+$ ask -t 'write an inline bash script for disk usage' | ask 'now save that output to a file named usage.txt'
+# [The first script appears on your screen here via stderr]
 
 # --- COMPLEX TOOL CHAIN ---
-$ ask commit my changes with a conventional message | tools git_tools | answer | pipetest | unfence | bash
-```
-# Example python
+$ (bx git status; bx git diff --numstat; bx git diff; bx git diff --cached) | ask -i "${GIT_COMMIT_PROMPT}" | answer | pipetest | unfence | bash
+
+
+## Python Execution and Verification Examples
+
 $ ask write fib in python | answer | unfence
-```python
+
 def fibonacci(n):
-  """
-  Calculates the nth Fibonacci number.
-
-  Args:
-    n: The index of the Fibonacci number to calculate (non-negative integer).
-
-  Returns:
-    The nth Fibonacci number.  Returns n if n is 0 or 1.  Returns -1 if n is negative.
-  """
-
-  if n < 0:
-    return -1  # Handle negative input
-  elif n <= 1:
-    return n  # Base cases: F(0) = 0, F(1) = 1
-  else:
-    # Iterative approach (more efficient)
-    a, b = 0, 1
-    for _ in range(2, n + 1):
-      a, b = b, a + b
-    return b
+    """
+    Calculates the nth Fibonacci number.
+    Args:
+        n: The index of the Fibonacci number to calculate (non-negative integer).
+    Returns:
+        The nth Fibonacci number.
+        Returns n if n is 0 or 1.
+        Returns -1 if n is negative.
+    """
+    if n < 0:
+        return -1  # Handle negative input
+    elif n <= 1:
+        return n   # Base cases: F(0) = 0, F(1) = 1
+    else:
+        # Iterative approach (more efficient)
+        a, b = 0, 1
+        for _ in range(2, n + 1):
+            a, b = b, a + b
+        return b
 
 print(fibonacci(20))
-```
-$ ask write fib in python | ask call it with 20 and note the output | ask just print the output | answer
+
+$ ask write fib in python | ask call it with 20 and note the output | ask just print the output
 6765
-$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))'  | answer | unfence | python
+$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))' | answer | unfence | python
 6765
-$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))'  | answer | pipetest | unfence | python
-🤖 ```python
+\$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))' | answer | pipetest | unfence | python
+🤖 
+```python
 def fib(n):
     a, b = 0, 1
     for _ in range(n):
@@ -58,28 +60,33 @@ def fib(n):
 print(fib(20))
 ```
 🤖 : Y or N? y
-
 6765
-$
 
-# Example: Bash scripting with iterative refinement
-$ ask 'write an inline bash script inside a single code fence to list all files larger than 100MB in /tmp' | answer -t | unfence | bash
+------------------------------
+## Bash Scripting with Iterative Refinement
+
+$ ask -t 'write an inline bash script inside a single code fence to list all files larger than 100MB in /tmp' | unfence | bash
 ```bash
 find /tmp -type f -size +100M -exec ls -lh {} +
 ```
-$ ask 'write a inline bash script inside a single code fence to list files > 100MB' | ask 'modify it to sort by size descending and save to log.txt' | answer | pipetest | unfence | bash
-🤖 ```bash
+
+```bash
+$ ask 'write an inline bash script inside a single code fence to list all files larger than 100MB in /tmp' | ask 'modify it to sort by size descending and save to log.txt' | answer | pipetest | unfence | bash
+🤖 
+```bash
 find . -type f -size +100M -exec du -h {} + | sort -rh > log.txt
 ```
 🤖 : Y or N? y
+$ 
+```
 
-$
+---
+### Single-Shot Code Extraction and Execution
 
-
-# Example 4: Single-shot code extraction and execution
+```bash
 $ ask 'write a python function for quicksort' | ask 'print just the code with `print(quicksort([3,1,4,2]))`' | answer | pipetest | unfence | python
-🤖 ```python
-def quicksort(arr):
+🤖 
+```pythondef quicksort(arr):
     if len(arr) <= 1:
         return arr
     pivot = arr[len(arr) // 2]
@@ -88,26 +95,45 @@ def quicksort(arr):
     right = [x for x in arr if x > pivot]
     return quicksort(left) + middle + quicksort(right)
 
+print(quicksort([3,1,4,2]))
+```
 🤖 : Y or N? y
-
 [1, 2, 3, 4]
+# With answer in the middle using the updated Hybrid Mode pathing
+$ ask -t 'write a python function for quicksort' | ask 'print just the code with `print(quicksort([3,1,4,2]))`' | answer | pipetest | unfence | python
+```
 
-# With answer in the middle
-$ ask 'write a python function for quicksort' | answer -t | ask 'print just the code with `print(quicksort([3,1,4,2]))`' | answer | pipetest | unfence | python
+---
+### Basic Math and Context Preservation Checks
+
+```bash
+$ ask 2+3=
+5
+
+$ ask 2+3= | answer
+2 + 3 = 5
 
 $ ask 2+3=
 5
-$ ask 2+3= | answer
-2 + 3 = 5
-$ ask 2+3= | answer
-2 + 3 = 5
-$ ask 2+3= 
-5
+
 $ ask 2+3= | ask double that
 10
+
 $ ask 2+3= | ask use 20 not 2
 20 + 3 = 23
+# Testing direct pipeline structure output routing via terminal catting
 $ ask 2+3= | cat
+Content-Type: application/x-llm-history+json
+[
+  {
+    "role": "user",
+    "content": "2+3="
+  }
+]
+
+# Testing direct pipeline structure output routing via terminal catting
+$ ask -t 2+3=
+5
 Content-Type: application/x-llm-history+json
 [
   {
@@ -119,4 +145,3 @@ Content-Type: application/x-llm-history+json
     "content": "2 + 3 = 5"
   }
 ]
-$ 

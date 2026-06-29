@@ -1,54 +1,31 @@
 #!/usr/bin/env -S bash
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/logging.sh"
+source "${SCRIPT_DIR}/functions.sh"
 
-TEE_MODE=""
-NO_DECORATE=""
-PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
-
-# arg parsing loop
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --tee|-t)
-            TEE_MODE="1"
-            shift
-            ;;
-        *)
-            echo "Usage: $0 [--tee | -t]" >&2
-            echo "$0: unknown argument $1" >&2
-            exit 1
-            ;;
-    esac
-done
-
-# Read stdin and extract JSON context or raw input
-if [ ! -t 0 ]; then
-    raw_input=$(cat)
-    if [[ "$raw_input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-        # We received a Conversation State (Header + JSON body)
-        json="${raw_input#${PIPELINE_MAGIC_HEADER}}"
-        json="${json#$'\n'}"
-    else
-        # We received raw text or un-headered JSON
-        json="$raw_input"
-    fi
-else
-    # No stdin (direct call)
-    json="[]"
+# 1. Require stdin so interactive invocation fails fast instead of blocking.
+if [ -t 0 ]; then
+  log_and_exit 1 "No stdin detected. Pipe conversation history or input text into answer."
 fi
 
-# Extract the content of the very last message in the history array
-last_content=$(printf "%s\n" "$json" | jq -r 'if type == "array" and length > 0 then .[-1].content else . end' 2>/dev/null)
+# 2. Read stdin and pass through the core infer engine to guarantee a resolved state.
+if ! resolved_history=$(_infer); then
+  log_and_exit 1 "Inference failed."
+fi
 
-if [ -n "$TEE_MODE" ]; then
-    # CASE: OBSERVATION MODE (answer -t)
-    # Print human-readable text to stderr, pass JSON history through stdout.
-    printf "%s\n" "$last_content" >&2
-    printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$json"
-elif [ ! -t 1 ]; then
-    # CASE: TOOL/EXTRACTION MODE (ask | answer | tool)
-    # Convert heavy JSON history into light Plain Text for the next command in pipe.
-    printf "%s\n" "$last_content"
+# 3. Extract strictly the text string content of the final assistant response.
+assistant_text=$(jq -r '.[-1].content // empty' <<< "$resolved_history")
+
+if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ]; then
+  log_and_exit 1 "Cannot extract assistant message content."
+fi
+
+# 4. Always output raw text.
+if [ -t 1 ]; then
+  # EOL Terminal Window: Print a newline to clear the emojis, then print the Markdown response.
+  printf '\n%s\n' "$assistant_text"
 else
-    # CASE: TERMINAL OUTPUT (direct call 'answer' or end of line)
-    # Just print the text to the user.
-    printf "%s\n" "$last_content"
+  # Inside a pipeline: Pipe the raw text string directly to downstream utilities.
+  printf '%s\n' "$assistant_text"
 fi

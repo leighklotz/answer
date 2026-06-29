@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+
 # source this file to define the functions
 
 # Require bash 4+
@@ -11,160 +13,42 @@ if ! command -v ask.sh &> /dev/null; then
     echo "🦶$0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
+# Source env.sh if variables are not already defined
+if [ -z "${VIA_API_CHAT_BASE+x}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/env.sh" ]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
+fi
+
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-function ask ()
-{
-    local RAW_INPUT=""
-    local ARGS=("$@")
-    local is_attachment=false
-    local has_stdin=false
+function _strip_header() {
+  local input="$1"
 
-    # 1. Determine if we are in "Attachment" mode via flags (-i / --input)
-    for arg in "${ARGS[@]}"; do
-        if [[ "$arg" == "-i" ]] || [[ "$arg" == "--input" ]]; then
-            is_attachment=true
-            break
-        fi
-    done
+  # Remove the header line if present.
+  input="${input#"${PIPELINE_MAGIC_HEADER}"}"
 
-    # 2. Check if stdin has data without consuming it yet (using a temp file to allow re-reading)
-    local tmpfile=$(mktemp)
-    if [ ! -t 0 ]; then
-        cat > "$tmpfile"
-        has_stdin=true
-    else
-        has_stdin=false
-    fi
+  # Remove a single leading newline if present.
+  if [[ "$input" == $'\n'* ]]; then
+    input="${input#$'\n'}"
+  fi
 
-    # Logic for building the input string based on detected mode
-    if [ "$has_stdin" = true ]; then
-        local first_line=$(head -n 1 "$tmpfile")
-        if [ "$first_line" = "${PIPELINE_MAGIC_HEADER}" ] || [[ "$(echo "$first_line" | tr -d '[:space:]')" == "[" ]]; then
-            # MODE: Conversation History (JSON)
-            # If a prompt is provided in arguments, append it to the history. 
-            if [ $# -gt 0 ]; then
-                local clean_stdin=$(sed "1s/^${PIPELINE_MAGIC_HEADER}//" "$tmpfile")
-                local new_message=$(jq -n --arg prompt "$*" '{"role":"user","content":$prompt}')
-                RAW_INPUT=$(echo "$clean_stdin" | jq --argjson new_msg "$new_message" '$ + [$new_msg]')
-            else
-                # No extra prompt: treat the stdin JSON as the entire messages array.
-                # This allows 'ask' to act as a pass-through for existing conversation states.
-                RAW_INPUT=$(sed "1s/^${PIPELINE_MAGIC_HEADER}//" "$tmpfile")
-            fi
-        elif [ "$is_attachment" = true ] || [[ -z "$*" ]]; then
-             # MODE: Text Attachment or raw context pipe
-             echo "🦶ask: reading attachment/context from stdin" >&2
-             RAW_INPUT=$(cat "$tmpfile")
-        else
-            # MODE: Plain text pipe (e.g., cmd | ask prompt) 
-            echo "🦶ask: appending piped data to prompt" >&2
-            RAW_INPUT=$(cat "$tmpfile")
-        fi
-    fi
-
-    rm -f "$tmpfile"
-
-    # If no input was found and we aren't in a mode that expects it, exit silently.
-    if [ "$has_stdin" = false ] && [ $# -eq 0 ]; then
-        return 0
-    fi
-
-    # Execute the command (passing RAW_INPUT if constructed via jq logic or handling empty)
-    local nascent=""
-    if [[ "$RAW_INPUT" == *"{"* ]] || [[ "$RAW_INPUT" == "["* ]]; then
-         # If we've built a JSON string, pass it to ask.sh as the input stream
-         nascent=$(echo "$RAW_INPUT" | ask.sh "${ARGS[@]}")
-    else
-        # Regular text or command-line prompt mode
-        nascent=$(ask.sh "${ARGS[@]}" <<< "$RAW_INPUT")
-    fi
-
-    local s=$?
-    [ $s -ne 0 ] && { echo "🦶ask ERROR: ask.sh failed: $s" >&2; return 1; }
-
-    # Refined logic for the specific requirement regarding pipes vs interactive mode
-    if [ "$has_stdin" = true ]; then
-        echo "🦶ask: chain detected via stdin, forcing answer." >&2
-        answer <<< "${nascent}"
-    elif [ -t 1 ]; then
-        echo "🦶ask: interactive mode, calling answer" >&2
-        answer <<< "${nascent}"
-    else
-        printf "%s\n" "${nascent}"
-    fi
-}
-
-function answer ()
-{
-    local ANSWER_OUT
-    ANSWER_OUT="$(answer.sh "$@")"
-    local s=$?
-    if [ $s -ne 0 ]; then
-        echo "🦶answer ERROR: answer.sh failed with exit code $s" >&2
-        return 1
-    fi
-
-    printf "%s\n" "${ANSWER_OUT}"
+  printf '%s\n' "$input"
 }
 
 function bx ()
 {
     local quiet
     while [[ $# -gt 0 ]]; do
-        case "$1" in 
+        case "$1" in
             -q) quiet=1; shift ;;
             -*) echo "🦶bx: unknown option $1" >&2; return 1 ;;
             *) break ;;
         esac
     done
- 
+
     bx.sh "$@"
     local s=$?
     if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
         echo "🦶bx: ERROR: bx.sh failed with exit code $s" >&2
-        return 1
-    fi
-}
-
-function answer ()
-{
-    local ANSWER
-    ANSWER="$(answer.sh "$@")"
-    s=$?
-    if [ $s -ne 0 ]; then
-        echo "🦶answer ERROR: answer.sh failed with exit code $s" >&2
-        return 1
-    fi
-
-    printf "%s\n" "${ANSWER}"
-}
-
-function bx ()
-{
-    local quiet
-    while [[ $# -gt 0 ]]; do
-        case "$1" in 
-            -q) quiet=1; shift ;;
-            -*) echo "🦶bx: unknown option $1" >&2; return 1 ;;
-            *) break ;;
-        esac
-    done
- 
-    bx.sh "$@"
-    s=$?
-    if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
-        echo "🦶bx: ERROR: bx.sh failed with exit code $s" >&2
-        return 1
-    fi
-}
-
-unfence ()
-{
-    unfence.sh "$@"
-    s=$?
-    if [ $s -ne 0 ]; then
-        echo "🦶ERROR: unfence.sh failed with exit code $s" >&2
         return 1
     fi
 }
@@ -173,7 +57,7 @@ function tools ()
 {
     local s
 
-    #  pass through to tools.sh which will error appropriately.
+    # pass through to tools.sh which will error appropriately.
     tools.sh "$@"
     s=$?
 
@@ -183,6 +67,7 @@ function tools ()
     fi
 }
 
+# if input starts with magic header, runs it through answer.
 function pipetest()
 {
     # Sanity Check: If running interactively but no prompt provided, warn of potential hang
@@ -192,25 +77,17 @@ function pipetest()
 
     local user_query="$*"
 
-    # 1. Capture stdin into a temporary file – this allows very large input.
-    local tmpdir tmpfile
-    if ! tmpdir=$(mktemp -d 2>/dev/null) ; then
-        printf >&2 "pipetest: could not create temporary directory\n"
-        return 1
-    fi
-    trap 'rm -rf "$tmpdir"' EXIT
-    if ! tmpfile=$(mktemp --tmpdir="$tmpdir" pipetest.XXXXXX 2>/dev/null) ; then
-        printf >&2 "pipetest: could not create temporary file\n"
-        return 1
+    # Capture stdin first
+    local input=$(cat)
+
+    # If stdin is an unresolved conversation, resolve it to assistant text first.
+    if [[ "$input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
+      input=$(printf '%s\n' "$input" | answer)
     fi
 
-    # 2. Read all of stdin into the temp file.
-    cat >"$tmpfile"
-    
-    local reply
-    local pager
 
     # Auto-detect the best available viewing tool
+    local pager
     if [ -n "${PIPETEST_PAGER}" ]; then
         pager="${PIPETEST_PAGER}"
     elif command -v batcat >/dev/null 2>&1; then
@@ -220,17 +97,18 @@ function pipetest()
     else
         pager="cat"
     fi
-    
+
     # Render file content directly to stderr
-    ${pager} "$tmpfile" 1>&2
-    
-    # Safe interactive prompt from /dev/tty (avoids the racing subshell read)
+    printf "%s" "${input}" | ${pager} 1>&2
+
+    # Safe interactive prompt from /dev/tty
+    local reply
     read -r -p "🤖 ${user_query}: Y or N? " reply < /dev/tty
-    
+
     printf "\n" 1>&2
-    case "${reply,,}" in 
+    case "${reply,,}" in
         y*)
-            cat "$tmpfile"
+            printf "%s" "${input}"
         ;;
         *)
             printf "🚫 discarded\n" 1>&2
@@ -239,7 +117,136 @@ function pipetest()
 }
 
 # use `builtin help` if you want native bash help command
-help () 
-{ 
+function help ()
+{
     help.sh "$@"
+}
+
+function ask ()
+{
+    ask.sh "$@"
+}
+
+function _find_cache_dir () {
+  local current_dir
+  current_dir="$(pwd)"
+
+  # 1. Traverse upward looking strictly for a .hallux workspace directory anchor.
+  while [ "$current_dir" != "/" ]; do
+    if [ -d "${current_dir}/.hallux" ]; then
+      printf "%s/.hallux/cache" "$current_dir"
+      return 0
+    fi
+    current_dir="$(dirname "$current_dir")"
+  done
+
+  # 2. Fall back to the user home baseline path if the folder anchor exists.
+  if [ -d "${HOME}/.hallux" ]; then
+    printf "%s/.hallux/cache" "${HOME}"
+    return 0
+  fi
+
+  # 3. Ultimate system-standard fallback location.
+  printf "%s/.config/hallux/cache" "${HOME}"
+}
+
+function _infer () {
+  local stdin_content clean_stdin last_role
+  stdin_content=$(cat)
+
+  # Strip optional pipeline header.
+  if [[ "$stdin_content" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
+    clean_stdin=$(_strip_header "$stdin_content")
+  else
+    clean_stdin="$stdin_content"
+  fi
+
+  # Contract: _infer takes a JSON array of chat messages.
+  if ! jq -e 'type == "array"' <<< "$clean_stdin" >/dev/null 2>&1; then
+    echo "[]"
+    return 0
+  fi
+
+  # If already resolved, pass through unchanged.
+  last_role=$(jq -r 'if length > 0 then .[-1].role // empty else empty end' <<< "$clean_stdin")
+  if [ "$last_role" != "user" ]; then
+    printf "%s\n" "$clean_stdin"
+    return 0
+  fi
+
+  local api_key="${OPENAI_API_KEY:-}"
+  local endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
+
+  local request
+  request=$(jq -n \
+    --argjson messages "$clean_stdin" \
+    --arg model "${VIA_MODEL:-gpt-3.5-turbo}" \
+    --argjson thinking "${ENABLE_THINKING:-false}" \
+    --argjson max_tokens "${VIA_MAX_TOKENS:-4096}" \
+    '{
+      model: $model,
+      messages: $messages,
+      max_tokens: $max_tokens,
+      thinking: $thinking
+    }')
+
+  local server_model fingerprint request_hash cache_dir cache_file response_json
+  server_model=$(curl -fsS "${VIA_API_CHAT_BASE}/v1/models" |
+    jq -r '.data[0].id // .id // "local_model"' 2>/dev/null || printf "local_model")
+
+  fingerprint=$(printf "%s" "$server_model" | tr '/:' '__')
+  request_hash=$(printf "%s" "$request" | openssl dgst -sha256 | awk '{print $2}')
+
+  cache_dir=$(_find_cache_dir)
+  mkdir -p "$cache_dir"
+  cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
+
+  if [ -f "$cache_file" ]; then
+    printf "🎯" >&2
+    response_json=$(cat "$cache_file")
+  else
+    printf "💭" >&2
+    response_json=$(curl -fsS -X POST "$endpoint" \
+      -H "Authorization: Bearer $api_key" \
+      -H "Content-Type: application/json" \
+      -d "$request") || return 1
+  fi
+
+  # Contract: OpenAI-compatible chat completion response with non-empty assistant content.
+  local assistant_content
+  assistant_content=$(
+    jq -er '
+      .choices[0].message.content
+      | select(type == "string" and length > 0)
+    ' <<< "$response_json" 2>/dev/null
+  ) || {
+    echo "🦶infer: ERROR: empty or missing assistant content in chat completion response" >&2
+    jq -c '{id, object, choices, error}' <<< "$response_json" >&2 2>/dev/null || true
+    return 1
+  }
+
+  # Only cache responses that passed validation.
+  if [ ! -f "$cache_file" ]; then
+    local tmp_cache
+    tmp_cache="${cache_file}.$$"
+    printf "%s" "$response_json" > "$tmp_cache"
+    mv "$tmp_cache" "$cache_file"
+  fi
+
+  local assistant_msg
+  assistant_msg=$(jq -n -c --arg c "$assistant_content" \
+    '{role: "assistant", content: $c}')
+
+  printf '%s\n' "$clean_stdin" | jq -c --argjson msg "$assistant_msg" '. + [$msg]'
+}
+
+function hx() {
+    if [ "$1" == "clear_cache" ]; then
+        cache_dir=$(_find_cache_dir)
+        echo "rm -rf $cache_dir"
+        return 0
+    else
+        echo "usage: hx clear_cache"
+        return 1
+    fi
 }

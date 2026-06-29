@@ -1,159 +1,104 @@
 #!/usr/bin/env -S bash
-
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
-
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-function usage {
-  echo "Usage: ask [options] [prompt]"
-  echo ""
-  echo "  -i, --input <prompt>           Specify the prompt to ask."
-  echo "  --use-system-message           Prepend SYSTEM_MESSAGE env var to the conversation."
-  echo "  bx cat <file> | ask -i <question>  Ask a question about the output of a bash command."
-  echo "  <bash command> | ask -i <question>  Same as above, piping the command's output."
-  echo "  ask -i <question> < (bash command)  Alternative way to pipe the command's output."
-  echo "  --help                          Display this help message."
-  echo ""
-  echo "Example:"
-  echo "  ask -i 'What is the capital of France?'"
-  echo "  bx cat my_script.sh | ask -i 'What does this script do?'"
-}
+PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
 # --- ARGUMENT PARSING ---
 USE_SYSTEM_MSG=false
 PLAIN_INPUT=""
-: "${TEMPERATURE:=}"
+TEE_MODE=""
 
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -i|--input)
-            PLAIN_INPUT="1"
-            shift
-            ;;
-        --use-system-message)
-            USE_SYSTEM_MSG=true
-            shift
-            ;;
-        --help)
-            usage
-            exit 0
-            ;;
-        *)
-            # Stop parsing flags when we hit the first non-option argument
-            break
-            ;;
-    esac
+  case "$1" in
+    -i|--input) PLAIN_INPUT="1"; shift ;;
+    --use-system-message) USE_SYSTEM_MSG=true; shift ;;
+    --tee|-t) TEE_MODE="1"; shift ;;
+    --help) echo "Usage: ask [-i|--input] [--use-system-message] [--tee|-t] [prompt]" >&2; exit 0 ;;
+    *) break ;;
+  esac
 done
 
 prompt="$*"
 
-# --- INPUT HANDLING ---
-input=""
+# --- INPUT HANDLING & HISTORY BUILDING ---
 if [ ! -t 0 ]; then
-    # Capture everything from stdin first to avoid multiple reads issues
-    stdin_content=$(cat)
-    
-    # Check if it's a JSON conversation (Magic Header or raw array starting with '[')
-    first_char=$(echo "$stdin_content" | head -c 1 | tr -d '[:space:]')
-    is_json=false
-    if [ "$first_char" = "[" ] || echo "$stdin_content" | grep -q "^${PIPELINE_MAGIC_HEADER}" ; then
-        is_json=true
-    fi
-
-    # Use PLAIN_INPUT (set by -i) to distinguish between text attachment and history
-    if [ "$PLAIN_INPUT" = "1" ]; then
-         # MODE: Text Attachment (-i)
-         messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
-    elif [ "$is_json" = true ]; then
-         # MODE: Conversation History (JSON)
-         clean_stdin=$(echo "$stdin_content" | sed "1s/^${PIPELINE_MAGIC_HEADER}//")
-         if [ -n "$prompt" ]; then
-            new_message=$(jq -n --arg prompt "$prompt" '{"role":"user","content":$prompt}')
-            messages=$(jq --argjson new_msg "$new_message" --argjson history <(echo "$clean_stdin") '$history + [$new_msg]')
-         else
-            # If no prompt provided, treat stdin JSON as the entire messages array directly.
-            messages="$clean_stdin"
-         fi
-    elif [ -n "$prompt" ]; then
-        # MODE: Plain text pipe (e.g., cat file | ask prompt) 
-        messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
-    else
-         # If it's just raw text piped without a prompt or -i, treat as context for an empty prompt? 
-         # Or if user provided no args and piping nothing but stdin is data.
-         messages=$(jq -n --arg p "" --arg c "$stdin_content" '[{role:"user", content: $c}]')
-    fi
-elif [ ! -z "$prompt" ]; then
-    # No stdin, but prompt exists (e.g., ask "hello")
-    messages=$(jq -n --arg prompt "$prompt" '[{"role":"user","content":$prompt}]')
-else
-     exit 1 # Nothing to do
-fi
-
-# Ensure messages is a valid array even if empty or malformed above
-if [[ ! "$messages" =~ ^\[ ]]; then
-    echo "ask: error parsing input into JSON conversation." >&2
-    exit 1
-fi
-
-# --- SYSTEM MESSAGE INJECTION ---
-if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
-    # Prepend the system message to the start of the messages array.
-    messages=$(jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages")
-fi
-
-# API setup
-api_key="${OPENAI_API_KEY:-}"
-VIA_API_CHAT_COMPLETIONS_ENDPOINT="${VIA_API_CHAT_BASE}/v1/chat/completions"
-
-# Perform API call
-response="$(curl -s -X POST "${VIA_API_CHAT_COMPLETIONS_ENDPOINT}" \
-    -H "Authorization: Bearer $api_key" \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --argjson messages "$messages" \
-    --arg model "gpt-3.5-turbo" \
-    --argjson max_tokens 4096 \
-    '{model: $model,
-      thinking: true,
-      mode: "instruct",
-      max_tokens: $max_tokens,
-      messages: $messages,
-      top_k: 20,
-      top_p: 0.95,
-      min_p: 0.1,
-      tfs_z: 1,
-      typical_p: 1.0,
-      repeat_penalty: 1.0,
-      repeat_last_n: 1024,
-      presence_penalty: 0.0,
-      frequency_penalty: 0.0,
-      dry_multiplier: 0,
-      dry_base: 1.75,
-      dry_allowed_length: 2,
-      dry_penalty_last_n: 1024,
-      xtc_probability: 0,
-      xtc_threshold: 0.1,
-      seed: -1,
-      ignore_eos: false,
-      n_predict: 10482,
-      enable_thinking: true,
-      cache_prompt: true}')")"
-
-# Extract and append the reply
-assistant_reply="$(jq -r '.choices[0].message.content // empty' <<< "$response")"
-
-if [ -z "$assistant_reply" ]; then
-  log_and_exit 1 "Cannot parse API response: ${response}"
-else
-  new_assistant_message=$(jq -n --arg content "$assistant_reply" '{"role":"assistant","content":$content}')
-  messages=$(jq --argjson reply "$new_assistant_message" '. + [$reply]' <<< "$messages")
-  
-  if [ -t 1 ]; then
-      # If it's a terminal, we want the user to see the text, so pipe the JSON to 'answer' 
-      printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | answer
+  stdin_content=$(cat)
+  is_history=false
+  if echo "$stdin_content" | grep -q "^${PIPELINE_MAGIC_HEADER}" ; then
+    is_history=true
   else
-      # If it's in a pipe, output the header + JSON so 'tools' or 'answer' can parse it.
-      printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
+    PLAIN_INPUT="1"
   fi
+
+  if [ "$PLAIN_INPUT" = "1" ]; then
+    messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
+  elif [ "$is_history" = true ]; then
+    # MODE: Conversation History (JSON)
+    # 1. remove mime header
+    clean_stdin=$(_strip_header "$stdin_content")
+      
+    # 2. Resolve the previous turn cleanly
+    # FIX: Capture stderr separately to ensure clean_stdin is pure JSON
+    log_info "0. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
+    if ! clean_stdin=$(_infer <<< "$clean_stdin" 2>/dev/null); then
+      log_and_exit 1 "Inference failed while resolving prior conversation state."
+    fi
+
+    # FIX: Validate JSON output from infer
+    if ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
+        echo "🦶ask: WARN: infer returned invalid JSON, resetting state." >&2
+        clean_stdin="[]"
+    fi
+
+    # 3. Append your new user prompt directly to the clean conversation history array
+    if [ -n "$prompt" ]; then
+      new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
+      messages=$(jq -n -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]' 2>/dev/null)
+      if [ -z "$messages" ] || ! jq -e '.' <<< "$messages" >/dev/null 2>&1; then
+          log_and_exit 1 "Failed to merge new prompt into conversation history."
+      fi
+    else
+      messages="$clean_stdin"
+    fi
+  elif [ -n "$prompt" ]; then
+    messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
+  else
+    messages=$(jq -n --arg p "" --arg c "$stdin_content" '[{role:"user", content: $c}]')
+  fi
+elif [ -n "$prompt" ]; then
+  messages=$(jq -n --arg p "$prompt" '[{"role":"user","content":$p}]')
+else
+  exit 1
+fi
+
+# Apply system context if requested
+if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
+  messages=$(jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages")
+fi
+
+# --- CORE ROUTING ENGINE ---
+
+if [ -n "$TEE_MODE" ]; then
+  # 1. Resolve the conversation state (idempotent)
+  full_convo=$(printf "%s\n" "$messages" | _infer)
+
+  # 2. Extract the last assistant reply
+  last_reply=$(jq -r '.[-1].content // empty' <<< "$full_convo" 2>/dev/null)
+  
+  # 3. Print human-readable text to stderr
+  printf '\n%s\n' "$last_reply" >&2
+  
+  # 4. Forward full JSON history to stdout
+  printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$full_convo"
+elif [ -t 1 ]; then
+  # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
+  log_debug "Sending to answer"
+  printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
+else
+  # Contract Rule: Inside a pipe loop, forward the updated full JSON history state
+  log_info "3. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
+  printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
 fi
