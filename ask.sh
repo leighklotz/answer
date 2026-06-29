@@ -83,7 +83,6 @@ fi
 
 if [ -n "$TEE_MODE" ]; then
   # 1. Resolve the conversation state (idempotent)
-  log_info "1. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
   full_convo=$(printf "%s\n" "$messages" | _infer)
 
   # 2. Extract the last assistant reply
@@ -97,7 +96,6 @@ if [ -n "$TEE_MODE" ]; then
 elif [ -t 1 ]; then
   # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
   log_debug "Sending to answer"
-  log_info "2. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
 else
   # Contract Rule: Inside a pipe loop, forward the updated full JSON history state
