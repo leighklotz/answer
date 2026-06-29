@@ -44,10 +44,10 @@ def fibonacci(n):
 
 print(fibonacci(20))
 
-\$ ask write fib in python | ask call it with 20 and note the output | ask just print the output6765
-
-\$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))' | answer | unfence | python6765
-
+$ ask write fib in python | ask call it with 20 and note the output | ask just print the output
+6765
+$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))' | answer | unfence | python
+6765
 \$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))' | answer | pipetest | unfence | python
 🤖 
 ```python
