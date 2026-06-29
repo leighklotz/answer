@@ -50,7 +50,8 @@ print(fibonacci(20))
 
 \$ ask write fib in python | ask print just the code ready to execute plus 'print(fib(20))' | answer | pipetest | unfence | python
 🤖 
-```pythondef fib(n):
+```python
+def fib(n):
     a, b = 0, 1
     for _ in range(n):
         a, b = b, a + b
@@ -105,19 +106,33 @@ $ ask -t 'write a python function for quicksort' | ask 'print just the code with
 ### Basic Math and Context Preservation Checks
 
 ```bash
-$ ask 2+3=5
+$ ask 2+3=
+5
 
-$ ask 2+3= | answer2 + 3 = 5
+$ ask 2+3= | answer
+2 + 3 = 5
 
-$ ask 2+3= | answer2 + 3 = 5
+$ ask 2+3=
+5
 
-$ ask 2+3=5
-
-$ ask 2+3= | ask double that10
+$ ask 2+3= | ask double that
+10
 
 $ ask 2+3= | ask use 20 not 220 + 3 = 23
+
 # Testing direct pipeline structure output routing via terminal catting
 $ ask 2+3= | cat
+Content-Type: application/x-llm-history+json
+[
+  {
+    "role": "user",
+    "content": "2+3="
+  }
+]
+
+# Testing direct pipeline structure output routing via terminal catting
+$ ask -t 2+3=
+5
 Content-Type: application/x-llm-history+json
 [
   {

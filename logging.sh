@@ -45,17 +45,17 @@ function log_verbose {
 }
 
 function log_debug {
-    local prog="$(basename "$0")"
-    local message="$1"
     if [ -n "${DEBUG}" ]; then
+        local prog="$(basename "$0")"
+        local message="$1"
         log_with_icon '🐞' "${COLOR_BLUE}DEBUG ${prog}:${NOCOLOR} ${message}"
     fi
 }
 
 function log_info {
-    local prog="$(basename "$0")"
-    local message="$1"
     if [ -n "${INFO}" ]; then
+        local prog="$(basename "$0")"
+        local message="$1"
         log_with_icon 'ℹ*' "${COLOR_GREEN}INFO ${prog}:${NOCOLOR} ${message}"
     fi
 }
