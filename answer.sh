@@ -6,30 +6,25 @@ source "${SCRIPT_DIR}/functions.sh"
 
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-# 1. Read stdin and pass through the core infer engine to guarantee a resolved state
-resolved_history=$(_infer)
+# 1. Read stdin and pass through the core infer engine to guarantee a resolved state.
+if ! resolved_history=$(_infer); then
+  log_error "Inference failed."
+  exit 1
+fi
 
-# 2. Extract strictly the text string content of the final assistant response
+# 2. Extract strictly the text string content of the final assistant response.
 assistant_text=$(jq -r '.[-1].content // empty' <<< "$resolved_history")
 
-# assistant_text=$(jq -r '
-#   if type == "array" and length > 0 then
-#     .[-1] | if .content then .content elif .message then .message.content else "No content" end
-#   elif type == "object" then
-#     if .content then .content elif .message then .message.content else "No content" end
-#   else "No history"
-# end' <<< "$resolved_history" 2>/dev/null)
-
-if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ] || [ "$assistant_text" = "No content" ]; then
+if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ]; then
   log_error "Cannot extract assistant message content."
   exit 1
 fi
 
-# 3. Always output raw text (no more history JSON leaks)
+# 3. Always output raw text.
 if [ -t 1 ]; then
-  # EOL Terminal Window: Print a newline to clear the emojis, then print the Markdown response
+  # EOL Terminal Window: Print a newline to clear the emojis, then print the Markdown response.
   printf '\n%s\n' "$assistant_text"
 else
-  # Inside a pipe line: Pipe the raw text string directly to downstream utilities
+  # Inside a pipeline: Pipe the raw text string directly to downstream utilities.
   printf '%s\n' "$assistant_text"
 fi

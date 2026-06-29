@@ -20,15 +20,15 @@ PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
 function _strip_header() {
   local input="$1"
-  
-  # Remove the header line
+
+  # Remove the header line if present.
   input="${input#"${PIPELINE_MAGIC_HEADER}"}"
-  
-  # Remove a single leading newline if present
+
+  # Remove a single leading newline if present.
   if [[ "$input" == $'\n'* ]]; then
     input="${input#$'\n'}"
   fi
-  
+
   printf '%s\n' "$input"
 }
 
@@ -36,13 +36,13 @@ function bx ()
 {
     local quiet
     while [[ $# -gt 0 ]]; do
-        case "$1" in 
+        case "$1" in
             -q) quiet=1; shift ;;
             -*) echo "🦶bx: unknown option $1" >&2; return 1 ;;
             *) break ;;
         esac
     done
- 
+
     bx.sh "$@"
     local s=$?
     if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
@@ -65,7 +65,7 @@ function tools ()
 {
     local s
 
-    #  pass through to tools.sh which will error appropriately.
+    # pass through to tools.sh which will error appropriately.
     tools.sh "$@"
     s=$?
 
@@ -74,7 +74,6 @@ function tools ()
         return $s
     fi
 }
-
 
 function pipetest()
 {
@@ -117,7 +116,7 @@ function pipetest()
     # Render file content directly to stderr
     ${pager} "$tmpfile" 1>&2
 
-    # Safe interactive prompt from /dev/tty (avoids the racing subshell read)
+    # Safe interactive prompt from /dev/tty
     read -r -p "🤖 ${user_query}: Y or N? " reply < /dev/tty
 
     printf "\n" 1>&2
@@ -132,13 +131,13 @@ function pipetest()
 }
 
 # use `builtin help` if you want native bash help command
-function help () 
-{ 
+function help ()
+{
     help.sh "$@"
 }
 
-function ask () 
-{ 
+function ask ()
+{
     ask.sh "$@"
 }
 
@@ -146,28 +145,24 @@ function _find_cache_dir () {
   local current_dir
   current_dir="$(pwd)"
 
-  # 1. Traverse upward looking strictly for a .hallux workspace directory anchor
+  # 1. Traverse upward looking strictly for a .hallux workspace directory anchor.
   while [ "$current_dir" != "/" ]; do
     if [ -d "${current_dir}/.hallux" ]; then
-      # Found the workspace anchor! Return the path with the target cache directory appended.
       printf "%s/.hallux/cache" "$current_dir"
       return 0
     fi
     current_dir="$(dirname "$current_dir")"
   done
 
-  # 2. Fall back to the user home baseline path if the folder anchor exists
+  # 2. Fall back to the user home baseline path if the folder anchor exists.
   if [ -d "${HOME}/.hallux" ]; then
     printf "%s/.hallux/cache" "${HOME}"
     return 0
   fi
 
-  # 3. Ultimate system-standard fallback location
+  # 3. Ultimate system-standard fallback location.
   printf "%s/.config/hallux/cache" "${HOME}"
 }
-
-
-
 
 function _infer () {
   local stdin_content clean_stdin last_role
@@ -180,7 +175,7 @@ function _infer () {
     clean_stdin="$stdin_content"
   fi
 
-  # Contract: infer takes a JSON array of chat messages.
+  # Contract: _infer takes a JSON array of chat messages.
   if ! jq -e 'type == "array"' <<< "$clean_stdin" >/dev/null 2>&1; then
     echo "[]"
     return 0
@@ -209,7 +204,7 @@ function _infer () {
       thinking: $thinking
     }')
 
-  local server_model fingerprint request_hash cache_dir cache_match response_json
+  local server_model fingerprint request_hash cache_dir cache_file response_json
   server_model=$(curl -fsS "${VIA_API_CHAT_BASE}/v1/models" |
     jq -r '.data[0].id // .id // "local_model"' 2>/dev/null || printf "local_model")
 
@@ -219,6 +214,7 @@ function _infer () {
   cache_dir=$(_find_cache_dir)
   mkdir -p "$cache_dir"
   cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
+
   if [ -f "$cache_file" ]; then
     printf "🎯" >&2
     response_json=$(cat "$cache_file")
@@ -228,19 +224,32 @@ function _infer () {
       -H "Authorization: Bearer $api_key" \
       -H "Content-Type: application/json" \
       -d "$request") || return 1
-
-    printf "%s" "$response_json" > "$cache_file"
   fi
 
-  # Contract: OpenAI-compatible chat completion response.
+  # Contract: OpenAI-compatible chat completion response with non-empty assistant content.
   local assistant_content
-  assistant_content=$(jq -er '.choices[0].message.content // empty' <<< "$response_json" 2>/dev/null) || {
-      log_warn "infer: ERROR: no assistant content in chat completion response" 
-      return 1
+  assistant_content=$(
+    jq -er '
+      .choices[0].message.content
+      | select(type == "string" and length > 0)
+    ' <<< "$response_json" 2>/dev/null
+  ) || {
+    log_warn "infer: ERROR: empty or missing assistant content in chat completion response"
+    jq -c '{id, object, choices, error}' <<< "$response_json" >&2 2>/dev/null || true
+    return 1
   }
 
-  assistant_msg=$(jq -n -c --arg c "$assistant_content" '{role: "assistant", content: $c}')
+  # Only cache responses that passed validation.
+  if [ ! -f "$cache_file" ]; then
+    local tmp_cache
+    tmp_cache="${cache_file}.$$"
+    printf "%s" "$response_json" > "$tmp_cache"
+    mv "$tmp_cache" "$cache_file"
+  fi
+
+  local assistant_msg
+  assistant_msg=$(jq -n -c --arg c "$assistant_content" \
+    '{role: "assistant", content: $c}')
 
   printf '%s\n' "$clean_stdin" | jq -c --argjson msg "$assistant_msg" '. + [$msg]'
 }
-

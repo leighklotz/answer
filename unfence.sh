@@ -14,4 +14,9 @@ elif jq -e 'type == "array"' <<< "$input" >/dev/null 2>&1; then
   input=$(printf '%s\n' "$input" | "${SCRIPT_DIR}/answer")
 fi
 
-awk '/^```$/ { flag = 0; next } /^```.*$/ { flag = 1; next } flag { print }' <<< "$input"
+# Extract only the first fenced block.
+awk '
+  /^```$/ && flag { exit }
+  /^```.*$/ && !flag { flag = 1; next }
+  flag { print }
+' <<< "$input"
