@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+
 # source this file to define the functions
 
 # Require bash 4+
@@ -75,6 +77,7 @@ function tools ()
     fi
 }
 
+# if input starts with magic header, runs it through answer.
 function pipetest()
 {
     # Sanity Check: If running interactively but no prompt provided, warn of potential hang
@@ -84,25 +87,17 @@ function pipetest()
 
     local user_query="$*"
 
-    # 1. Capture stdin into a temporary file – this allows very large input.
-    local tmpdir tmpfile
-    if ! tmpdir=$(mktemp -d 2>/dev/null) ; then
-        printf >&2 "pipetest: could not create temporary directory\n"
-        return 1
-    fi
-    trap 'rm -rf "$tmpdir"' EXIT
-    if ! tmpfile=$(mktemp --tmpdir="$tmpdir" pipetest.XXXXXX 2>/dev/null) ; then
-        printf >&2 "pipetest: could not create temporary file\n"
-        return 1
+    # Capture stdin first
+    local input=$(cat)
+
+    # If stdin is an unresolved conversation, resolve it to assistant text first.
+    if [[ "$input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
+      input=$(printf '%s\n' "$input" | answer)
     fi
 
-    # 2. Read all of stdin into the temp file.
-    cat >"$tmpfile"
-
-    local reply
-    local pager
 
     # Auto-detect the best available viewing tool
+    local pager
     if [ -n "${PIPETEST_PAGER}" ]; then
         pager="${PIPETEST_PAGER}"
     elif command -v batcat >/dev/null 2>&1; then
@@ -114,15 +109,16 @@ function pipetest()
     fi
 
     # Render file content directly to stderr
-    ${pager} "$tmpfile" 1>&2
+    printf "%s" "${input}" | ${pager} 1>&2
 
     # Safe interactive prompt from /dev/tty
+    local reply
     read -r -p "🤖 ${user_query}: Y or N? " reply < /dev/tty
 
     printf "\n" 1>&2
     case "${reply,,}" in
         y*)
-            cat "$tmpfile"
+            printf "%s" "${input}"
         ;;
         *)
             printf "🚫 discarded\n" 1>&2
@@ -234,7 +230,7 @@ function _infer () {
       | select(type == "string" and length > 0)
     ' <<< "$response_json" 2>/dev/null
   ) || {
-    log_warn "infer: ERROR: empty or missing assistant content in chat completion response"
+    echo "🦶infer: ERROR: empty or missing assistant content in chat completion response" >&2
     jq -c '{id, object, choices, error}' <<< "$response_json" >&2 2>/dev/null || true
     return 1
   }

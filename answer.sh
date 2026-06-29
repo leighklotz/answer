@@ -4,8 +4,6 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
-
 # 1. Require stdin so interactive invocation fails fast instead of blocking.
 if [ -t 0 ]; then
   log_and_exit 1 "No stdin detected. Pipe conversation history or input text into answer."
