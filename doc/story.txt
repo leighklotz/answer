@@ -118,8 +118,8 @@ $ ask 2+3=
 $ ask 2+3= | ask double that
 10
 
-$ ask 2+3= | ask use 20 not 220 + 3 = 23
-
+$ ask 2+3= | ask use 20 not 2
+20 + 3 = 23
 # Testing direct pipeline structure output routing via terminal catting
 $ ask 2+3= | cat
 Content-Type: application/x-llm-history+json
