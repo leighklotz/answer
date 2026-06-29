@@ -26,16 +26,16 @@ prompt="$*"
 # --- INPUT HANDLING & HISTORY BUILDING ---
 if [ ! -t 0 ]; then
   stdin_content=$(cat)
-  first_char=$(echo "$stdin_content" | head -c 1 | tr -d '[:space:]')
-  
-  is_json=false
-  if [ "$first_char" = "[" ] || echo "$stdin_content" | grep -q "^${PIPELINE_MAGIC_HEADER}" ; then
-    is_json=true
+  is_history=false
+  if echo "$stdin_content" | grep -q "^${PIPELINE_MAGIC_HEADER}" ; then
+    is_history=true
+  else
+    PLAIN_INPUT="1"
   fi
 
   if [ "$PLAIN_INPUT" = "1" ]; then
     messages=$(jq -n --arg p "$prompt" --arg c "$stdin_content" '[{role:"user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
-  elif [ "$is_json" = true ]; then
+  elif [ "$is_history" = true ]; then
     # MODE: Conversation History (JSON)
     # 1. remove mime header
     clean_stdin=$(_strip_header "$stdin_content")

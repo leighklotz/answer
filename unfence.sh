@@ -10,8 +10,6 @@ input=$(cat)
 # If stdin is an unresolved conversation, resolve it to assistant text first.
 if [[ "$input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
   input=$(printf '%s\n' "$input" | "${SCRIPT_DIR}/answer")
-elif jq -e 'type == "array"' <<< "$input" >/dev/null 2>&1; then
-  input=$(printf '%s\n' "$input" | "${SCRIPT_DIR}/answer")
 fi
 
 # Extract only the first fenced block.
