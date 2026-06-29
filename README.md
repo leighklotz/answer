@@ -40,10 +40,10 @@ To allow seamless transitions between "thinking" (conversation) and "doing" (too
 Automated verification of pipeline outputs is handled by `story-test.sh`. This script simulates expected outputs for common use cases (Fibonacci, Hello World, Math, Sorting) to ensure the `ask`, `answer`, and execution chain behave as documented.
 
 Run tests using:
-```bash
-chmod +x story-test.sh
-./story-test.sh
-
+~~~bash
+chmod +x tests/story-test.sh
+./tests/story-test.sh
+~~~
 
 ## Examples
 
