@@ -166,6 +166,9 @@ function _find_cache_dir () {
   printf "%s/.config/hallux/cache" "${HOME}"
 }
 
+
+
+
 function _infer () {
   local stdin_content clean_stdin last_role
   stdin_content=$(cat)
@@ -197,12 +200,13 @@ function _infer () {
   request=$(jq -n \
     --argjson messages "$clean_stdin" \
     --arg model "${VIA_MODEL:-gpt-3.5-turbo}" \
+    --argjson thinking "${ENABLE_THINKING:-true}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-4096}" \
     '{
       model: $model,
       messages: $messages,
       max_tokens: $max_tokens,
-      thinking: false
+      thinking: $thinking
     }')
 
   local server_model fingerprint request_hash cache_dir cache_match response_json
@@ -229,11 +233,13 @@ function _infer () {
   fi
 
   # Contract: OpenAI-compatible chat completion response.
-  local assistant_msg
-  if ! assistant_msg=$(jq -c '.choices[0].message | {role: "assistant", content: (.content // "")}' <<< "$response_json" 2>/dev/null); then
-    echo "🦶infer: ERROR: response was not OpenAI-compatible chat JSON" >&2
-    return 1
-  fi
+  local assistant_content
+  assistant_content=$(jq -er '.choices[0].message.content // empty' <<< "$response_json" 2>/dev/null) || {
+      log_warn "infer: ERROR: no assistant content in chat completion response" 
+      return 1
+  }
+
+  assistant_msg=$(jq -n -c --arg c "$assistant_content" '{role: "assistant", content: $c}')
 
   printf '%s\n' "$clean_stdin" | jq -c --argjson msg "$assistant_msg" '. + [$msg]'
 }
