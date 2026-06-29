@@ -59,7 +59,8 @@ def fib(n):
 
 print(fib(20))
 ```
-🤖 : Y or N? y6765
+🤖 : Y or N? y
+6765
 
 ------------------------------
 ## Bash Scripting with Iterative Refinement
