@@ -53,16 +53,6 @@ function bx ()
     fi
 }
 
-function unfence ()
-{
-    unfence.sh "$@"
-    s=$?
-    if [ $s -ne 0 ]; then
-        echo "🦶ERROR: unfence.sh failed with exit code $s" >&2
-        return 1
-    fi
-}
-
 function tools ()
 {
     local s
@@ -248,4 +238,15 @@ function _infer () {
     '{role: "assistant", content: $c}')
 
   printf '%s\n' "$clean_stdin" | jq -c --argjson msg "$assistant_msg" '. + [$msg]'
+}
+
+function hx() {
+    if [ "$1" == "clear_cache" ]; then
+        cache_dir=$(_find_cache_dir)
+        echo "rm -rf $cache_dir"
+        return 0
+    else
+        echo "usage: hx clear_cache"
+        return 1
+    fi
 }

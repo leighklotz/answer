@@ -18,3 +18,7 @@ awk '
   /^```.*$/ && !flag { flag = 1; next }
   flag { print }
 ' <<< "$input"
+
+if [ $? -ne 0 ]; then
+    log_exit 1 "unfence failed ($s)"
+fi
