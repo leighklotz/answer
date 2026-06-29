@@ -36,7 +36,7 @@ run_test 'Fibonacci 20 Output' "$(ask 'write fib(n:int):int in python and a call
 # ask.sh lines 71-75 (no-stdin prompt), 96-99 (terminal stdout via answer)
 run_test 'Hello World Output' "$(ask write a 'Hello, World!' python script and output just the one codefence | answer | unfence | python)" 'Hello, World!'
 # ask.sh lines 71-75 (no-stdin prompt), 100-103 (pipe stdout); second ask exercises lines 38-65 (history handling)
-run_test 'Simple Math 2+3' "$(ask 2+3= | ask just the answer | answer)" '5'
+run_test 'Simple Math 2+3' "$(ask 2+3= | ask output just the answer | answer)" '5'
 # ask.sh lines 71-75, 38-65 (history handling), 100-103 (pipe stdout)
 run_test 'Double 2+3' "$(ask 2+3= | ask double that and output just the number | answer)" '10'
 # Non-deterministic: LLM may return '23' or '20 + 3 = 23' depending on model response.
