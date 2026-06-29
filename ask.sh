@@ -43,7 +43,9 @@ if [ ! -t 0 ]; then
     # 2. Resolve the previous turn cleanly
     # FIX: Capture stderr separately to ensure clean_stdin is pure JSON
     log_info "0. TEE_MODE=$TEE_MODE messages=${messages//$'\n'/\\n}"
-    clean_stdin=$(_infer <<< "$clean_stdin" 2>/dev/null)
+    if ! clean_stdin=$(_infer <<< "$clean_stdin" 2>/dev/null); then
+      log_and_exit 1 "Inference failed while resolving prior conversation state."
+    fi
 
     # FIX: Validate JSON output from infer
     if ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
@@ -56,8 +58,7 @@ if [ ! -t 0 ]; then
       new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
       messages=$(jq -n -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]' 2>/dev/null)
       if [ -z "$messages" ] || ! jq -e '.' <<< "$messages" >/dev/null 2>&1; then
-          log_error "Failed to merge new prompt into conversation history"
-          exit 1
+          log_and_exit 1 "Failed to merge new prompt into conversation history."
       fi
     else
       messages="$clean_stdin"
