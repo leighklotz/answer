@@ -12,7 +12,7 @@ cat > "$tmp_raw"
 
 # 2. Resolve magic header if necessary
 if [[ "$(head -c 100 "$tmp_raw")" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-    log_warn "Magic header detected. Resolving via answer..."
+    log_info "answering..."
     
     # Create a specific temp file for the resolved content and register it immediately
     tmp_resolved=$(mktemp_reg)
