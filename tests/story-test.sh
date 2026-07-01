@@ -62,15 +62,18 @@ run_test 'Simple Math 2+3' "$(ask what is 2+3= | ask output just the answer | an
 
 run_test 'Double 2+3' "$(ask 2+3= | ask double that and output just the number | answer)" '10'
 
-# Non-deterministic: LLM may return '23' or '20 + 3 = 23' depending on model response.
 run_test 'Bash math 2+3' "$(ask 2+3= | ask in a bash one-liner | unfence | bash)" '5'
 
-# ask.sh lines 71-75 (no-stdin prompt), 38-65 (history handling), 100-103 (pipe stdout)
+run_test "ask ask" "$(ask 20+30= | ask output a single bash one-liner in a codefence  | ask now change it to octal  | pipetest | ./unfence|bash)" "62"
+
 run_test 'Quicksort Python Output' "$(ask write a python function for quicksort | ask 'output just the python code and call `print(quicksort([3,1,4,2]))`' | answer | unfence | python)" '[1, 2, 3, 4]'
 
 if (( failures > 0 )); then
     echo "$failures test(s) failed."
     exit 1
 fi
+
+#
+
 
 echo "All tests passed."

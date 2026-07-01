@@ -145,3 +145,7 @@ Content-Type: application/x-llm-history+json
     "content": "2 + 3 = 5"
   }
 ]
+
+# Double Ask
+$ ask 20+30= | ask output a single bash one-liner in a codefence  | ask now change it to octal  | pipetest | ./unfence | bash
+62
