@@ -61,7 +61,7 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
     tail -n +2 "$stdin_tmp" > "$clean_stdin_tmp"
 
     log_info "0. TEE_MODE=$TEE_MODE resolving incoming history"
-    if ! clean_stdin=$(_infer < "$clean_stdin_tmp" 2>/dev/null); then
+    if ! clean_stdin=$(_infer < "$clean_stdin_tmp"); then
       log_and_exit 1 "Inference failed while resolving prior conversation state."
     fi
 
