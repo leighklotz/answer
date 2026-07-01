@@ -26,7 +26,7 @@ To allow seamless transitions between "thinking" (conversation) and "doing" (too
 ## Core Components
 
 * **`infer()`**: *The Engine Primitive.* An internal shared helper function. It checks if a conversation history array ends with a `user` query. If it does, it calculates your byte-accurate local cache keys, logs your horizontal tracking status emojis (`🎯` or `💭`) to `stderr`, runs the inference call, appends the `assistant` object, and spits the updated full JSON history out to `stdout`.
-* **`ask`**: *The State Builder.* Manages conversational turn-taking. It processes inputs, hooks into `infer()` to catch up on un-resolved context strings, appends your new query block, and pipes directly to `answer` if it detects it is at the end of a line (terminal window).
+* * **ask**: *The State Builder.* Manages conversational turn-taking. It processes inputs, hooks into `infer()` to catch up on un-resolved context strings, appends your new query block, and pipes directly to `answer` if it detects it is at the end of a line (terminal window). Use `-i` (or `--input`) to enable interactive mode for multi-line `stdin` input (terminated with `Ctrl-D`).
 * **`answer`**: *The Text Extractor.* The terminal endpoint of the execution tree. It takes your conversation data, resolves it, pushes a clean newline to `stderr` to wrap up your emoji tracker row, and delivers raw text tokens to `stdout`.
 * **`bx`**: Executes a target command and wraps its raw console output inside a clean markdown code fence.
 * **`unfence`**: Strips triple-backtick (```) markdown fences from an incoming text stream to prepare code for execution.
