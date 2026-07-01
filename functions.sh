@@ -20,8 +20,10 @@ fi
 
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-function _strip_header() {
-  local input="$1"
+function _strip_header(){
+  local input
+  # Read the entire stdin into the 'input' variable
+  input=$(cat)
 
   # Remove the header line if present.
   input="${input#"${PIPELINE_MAGIC_HEADER}"}"
@@ -31,7 +33,7 @@ function _strip_header() {
     input="${input#$'\n'}"
   fi
 
-  printf '%s\n' "$input"
+  printf '%s' "$input"
 }
 
 function bx ()
@@ -151,51 +153,54 @@ function _find_cache_dir () {
 }
 
 function _infer () {
-  local stdin_content clean_stdin last_role
-  stdin_content=$(cat)
+  local tmp_json tmp_req last_role
+  tmp_json=$(mktemp)
+  tmp_req=$(mktemp)
+  trap 'rm -f "$tmp_json" "$tmp_req"' EXIT
 
-  # Strip optional pipeline header.
-  if [[ "$stdin_content" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-    clean_stdin=$(_strip_header "$stdin_content")
+  # Read first line to check for header
+  read -r first_line
+  if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
+    cat > "$tmp_json"
   else
-    clean_stdin="$stdin_content"
+    printf "%s\n" "$first_line" > "$tmp_json"
+    cat >> "$tmp_json"
   fi
 
   # Contract: _infer takes a JSON array of chat messages.
-  if ! jq -e 'type == "array"' <<< "$clean_stdin" >/dev/null 2>&1; then
+  if ! jq -e 'type == "array"' < "$tmp_json" >/dev/null 2>&1; then
     echo "[]"
     return 0
   fi
 
   # If already resolved, pass through unchanged.
-  last_role=$(jq -r 'if length > 0 then .[-1].role // empty else empty end' <<< "$clean_stdin")
+  last_role=$(jq -r 'if length > 0 then .[-1].role // empty else empty end' < "$tmp_json")
   if [ "$last_role" != "user" ]; then
-    printf "%s\n" "$clean_stdin"
+    cat "$tmp_json"
     return 0
   fi
 
   local api_key="${OPENAI_API_KEY:-}"
   local endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
 
-  local request
-  request=$(jq -n \
-    --argjson messages "$clean_stdin" \
+  jq \
     --arg model "${VIA_MODEL:-gpt-3.5-turbo}" \
     --argjson thinking "${ENABLE_THINKING:-false}" \
-    --argjson max_tokens "${VIA_MAX_TOKENS:-4096}" \
+    --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     '{
       model: $model,
-      messages: $messages,
+      messages: .,
       max_tokens: $max_tokens,
-      thinking: $thinking
-    }')
+      thinking: $thinking,
+      thinking_budget_tokens: 20000
+    }' < "$tmp_json" > "$tmp_req"
 
   local server_model fingerprint request_hash cache_dir cache_file response_json
   server_model=$(curl -fsS "${VIA_API_CHAT_BASE}/v1/models" |
     jq -r '.data[0].id // .id // "local_model"' 2>/dev/null || printf "local_model")
 
   fingerprint=$(printf "%s" "$server_model" | tr '/:' '__')
-  request_hash=$(printf "%s" "$request" | openssl dgst -sha256 | awk '{print $2}')
+  request_hash=$(openssl dgst -sha256 < "$tmp_req" | awk '{print $2}')
 
   cache_dir=$(_find_cache_dir)
   mkdir -p "$cache_dir"
@@ -206,44 +211,43 @@ function _infer () {
     response_json=$(cat "$cache_file")
   else
     printf "💭" >&2
+    # log_warn "request=$(cat "$tmp_req")"
     response_json=$(curl -fsS -X POST "$endpoint" \
-      -H "Authorization: Bearer $api_key" \
-      -H "Content-Type: application/json" \
-      -d "$request") || return 1
+                         -H "Authorization: Bearer $api_key" \
+                         -H "Content-Type: application/json" \
+                         -d @"$tmp_req") || return 1
+    # log_warn "response_json=$response_json"
   fi
 
   # Contract: OpenAI-compatible chat completion response with non-empty assistant content.
   local assistant_content
   assistant_content=$(
-    jq -er '
+    printf "%s" "$response_json" | jq -er '
       .choices[0].message.content
       | select(type == "string" and length > 0)
-    ' <<< "$response_json" 2>/dev/null
+    ' 2>/dev/null
   ) || {
     echo "🦶infer: ERROR: empty or missing assistant content in chat completion response" >&2
-    jq -c '{id, object, choices, error}' <<< "$response_json" >&2 2>/dev/null || true
+    printf "%s" "$response_json" | jq -c '{id, object, choices, error}' 2>/dev/null || true
     return 1
   }
 
   # Only cache responses that passed validation.
   if [ ! -f "$cache_file" ]; then
-    local tmp_cache
-    tmp_cache="${cache_file}.$$"
-    printf "%s" "$response_json" > "$tmp_cache"
-    mv "$tmp_cache" "$cache_file"
+    printf "%s" "$response_json" > "$cache_file"
   fi
 
-  local assistant_msg
-  assistant_msg=$(jq -n -c --arg c "$assistant_content" \
-    '{role: "assistant", content: $c}')
+  local assistant_msg_json
+  assistant_msg_json=$(printf "%s" "$assistant_content" | jq -R -s -c '{role: "assistant", content: .}')
 
-  printf '%s\n' "$clean_stdin" | jq -c --argjson msg "$assistant_msg" '. + [$msg]'
+  # Combine the original array with the new assistant message
+  jq -s -c '.[0] + .[1:]' <(cat "$tmp_json") <(printf "%s" "$assistant_msg_json")
 }
 
 function hx() {
     if [ "$1" == "clear_cache" ]; then
         cache_dir=$(_find_cache_dir)
-        echo "rm -rf $cache_dir"
+        echo "rm -rf $cache_dir" | pipetest "Remove this directory?" | bash
         return 0
     else
         echo "usage: hx clear_cache"

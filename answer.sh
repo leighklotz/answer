@@ -15,7 +15,8 @@ if ! resolved_history=$(_infer); then
 fi
 
 # 3. Extract strictly the text string content of the final assistant response.
-assistant_text=$(jq -r '.[-1].content // empty' <<< "$resolved_history")
+# echo "resolved_history=$resolved_history"
+assistant_text=$(jq -r '.[-1].content | select (. != null) | tostring // empty' <<< "$resolved_history")
 
 if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ]; then
   log_and_exit 1 "Cannot extract assistant message content."
