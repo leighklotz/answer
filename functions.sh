@@ -259,7 +259,13 @@ function _infer () {
 
   # Only cache responses that passed validation.
   if [ ! -f "$cache_file" ]; then
-    printf "%s" "$response_json" > "$cache_file"
+    local tmp_cache
+    tmp_cache=$(mktemp "${cache_file}.tmp.XXXXXX") || {
+      _delete_registered_files cleanup_files
+      return 1
+    }
+    _register_file_deletion cleanup_files "$tmp_cache"
+    printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
   fi
 
   local assistant_msg_json
