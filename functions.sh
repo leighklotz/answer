@@ -102,6 +102,7 @@ function tools ()
 # if input starts with magic header, runs it through answer.
 function pipetest()
 {
+    log_warn "pipetest() is obsolescent"
     # Sanity Check: If running interactively but no prompt provided, warn of potential hang
     if [ -t 0 ] && [[ "$*" != *"-i"* ]]; then
         echo "🦶pipetest: No user query detected in arguments; waiting for STDIN..." >&2
