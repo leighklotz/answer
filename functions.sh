@@ -99,10 +99,12 @@ function tools ()
     fi
 }
 
-# if input starts with magic header, runs it through answer.
+# 2. if input starts with magic header, get answer
+# 2. prompt answer and ask for confirmation
+# 3. cancel oo output answer
+# unfence also has this built in
 function pipetest()
 {
-    log_warn "pipetest() is obsolescent"
     # Sanity Check: If running interactively but no prompt provided, warn of potential hang
     if [ -t 0 ] && [[ "$*" != *"-i"* ]]; then
         echo "🦶pipetest: No user query detected in arguments; waiting for STDIN..." >&2
