@@ -56,7 +56,7 @@ function log_info {
     if [ -n "${INFO}" ]; then
         local prog="$(basename "$0")"
         local message="$1"
-        log_with_icon 'ℹ*' "${COLOR_GREEN}INFO ${prog}:${NOCOLOR} ${message}"
+        log_with_icon 'ℹ' "${COLOR_GREEN}INFO ${prog}:${NOCOLOR} ${message}"
     fi
 }
 

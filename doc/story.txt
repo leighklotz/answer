@@ -14,7 +14,7 @@ $ ask -t 'write an inline bash script for disk usage' | ask 'now save that outpu
 # [The first script appears on your screen here via stderr]
 
 # --- COMPLEX TOOL CHAIN ---
-$ (bx git status; bx git diff --numstat; bx git diff; bx git diff --cached) | ask -i "${GIT_COMMIT_PROMPT}" | answer | pipetest | unfence | bash
+$ ask evaluate 2+3 in a bash oneliner in a codefence | answer | pipetest | unfence | bash
 
 
 ## Python Execution and Verification Examples
@@ -145,3 +145,7 @@ Content-Type: application/x-llm-history+json
     "content": "2 + 3 = 5"
   }
 ]
+
+# Double Ask
+$ ask 20+30= | ask output a single bash one-liner in a codefence  | ask now change it to octal  | pipetest | ./unfence | bash
+62

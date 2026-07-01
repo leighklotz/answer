@@ -1,8 +1,27 @@
 #!/usr/bin/env bash
 
+TEST_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+if [ ! -f "${TEST_DIR}/../env.sh" ]; then
+    echo "ERROR: ${TEST_DIR}/../env.sh is required for tests/story-test.sh" >&2
+    exit 1
+fi
+source "${TEST_DIR}/../env.sh"
+source "${TEST_DIR}/../logging.sh"
+source "${TEST_DIR}/../functions.sh"
+
+
 export ENABLE_THINKING=false
 
 failures=0
+
+INFO=1g
+
+echo "Checking scripts"
+for cmd in answer ask bx help-commit help tools unfence;
+do
+  printf "%s = %s\n" "$cmd" "$(type -t "$cmd")"
+done
+
 
 function test_case() {
     local description="$1"
@@ -12,9 +31,9 @@ function test_case() {
     echo "Testing: $description"
 
     if [[ "$actual_output" == "$expected_output" ]]; then
-        echo "PASS: Output matches expected '$expected_output'"
+        log_info "PASS: Output matches expected '$expected_output'"
     else
-        echo "FAIL: Expected '$expected_output', got '$actual_output'"
+        log_error "FAIL: Expected '$expected_output', got '$actual_output'"
         echo "---"
         return 1
     fi
@@ -33,21 +52,28 @@ function run_test() {
 
 run_test 'Fibonacci 20 Python Output' "$(ask 'write fib(n:int):int in python and a call to it with 20' | ask just print the output in one codefence | answer | unfence | python)" '6765'
 
-run_test 'Hello World Python Output' "$(ask write a 'Hello, World!' python script and output just the one codefence | answer | unfence | python)" 'Hello, World!'
+run_test 'Hello World Python Output' "$(ask "write a 'Hello, World!' python script and output just the one codefence" | answer | unfence | python)" 'Hello, World!'
+
+run_test 'Complex Tool Chain' "$(ask 'evaluate 2+3 in a bash oneliner in a codefence' | answer | pipetest | unfence | bash)" "5"
+
+
 
 run_test 'Simple Math 2+3' "$(ask what is 2+3= | ask output just the answer | answer)" '5'
 
 run_test 'Double 2+3' "$(ask 2+3= | ask double that and output just the number | answer)" '10'
 
-# Non-deterministic: LLM may return '23' or '20 + 3 = 23' depending on model response.
 run_test 'Bash math 2+3' "$(ask 2+3= | ask in a bash one-liner | unfence | bash)" '5'
 
-# ask.sh lines 71-75 (no-stdin prompt), 38-65 (history handling), 100-103 (pipe stdout)
+run_test "ask ask" "$(ask 20+30= | ask output a single bash one-liner in a codefence  | ask now change it to octal  | pipetest | ./unfence|bash)" "62"
+
 run_test 'Quicksort Python Output' "$(ask write a python function for quicksort | ask 'output just the python code and call `print(quicksort([3,1,4,2]))`' | answer | unfence | python)" '[1, 2, 3, 4]'
 
 if (( failures > 0 )); then
     echo "$failures test(s) failed."
     exit 1
 fi
+
+#
+
 
 echo "All tests passed."

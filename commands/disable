@@ -1,6 +1,6 @@
 # disable.sh: source this file
 
-export PATH=$(echo "$PATH" | sed -e "s|:$HOME/wip/answer:|:|g" \
+export PATH=$(echo "$PATH" | sed -e "s|:$HOME/wip/answer:|:|g
                                -e "s|^$HOME/wip/answer:||" \
                                -e "s|:$HOME/wip/answer$||" \
                                -e 's|::|:|g')
