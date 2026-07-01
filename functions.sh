@@ -275,7 +275,7 @@ function _infer () {
 function hx() {
     if [ "$1" == "clear_cache" ]; then
         cache_dir=$(_find_cache_dir)
-        echo "rm -rf $cache_dir" | pipetest "Remove this directory?" | bash
+        echo "rm -rf $(printf '%q' "$cache_dir")" | pipetest "Remove this directory?" | bash
         return 0
     else
         echo "usage: hx clear_cache"
