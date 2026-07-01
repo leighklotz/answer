@@ -5,8 +5,6 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
-
 # --- ARGUMENT PARSING ---
 USE_SYSTEM_MSG=false
 PLAIN_INPUT=""
