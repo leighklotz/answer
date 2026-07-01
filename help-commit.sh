@@ -19,8 +19,41 @@ if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     exit 1
 fi
 
-(bx pwd; bx git rev-parse --show-toplevel; bx git status; bx git diff --numstat; bx git diff; bx git diff --cached) \
-  | ask -i "${GIT_COMMIT_PROMPT}" \
+function usage() {
+    local p=$(basename "$0")
+    echo "$p: [--help] | [--quiet] [git diff options] [--] [ask options]"
+    echo $'- --quiet: suppress introductory message'
+    echo $'- any next arguments until `--` are given to `git diff`'
+    echo $'- all after a `--` is given as parameters to `ask`'
+}
+
+
+# help-commit [git diff options] -- [help options]
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help)
+            usage
+            exit 1
+            ;;
+        --quiet|-q)
+            QUIET=1
+            shift
+            ;;
+        --)
+            shift
+            ASK_OPTIONS=("$@")
+            break
+            ;;
+        *)
+            GIT_DIFF_OPTIONS+="${1} "
+            shift
+            ;;
+    esac
+done
+
+
+(bx pwd; bx git rev-parse --show-toplevel; bx git status; bx git diff --numstat ${GIT_DIFF_OPTIONS}; bx git diff ${GIT_DIFF_OPTIONS}; bx git diff --cached ${GIT_DIFF_OPTIONS}) \
+  | ask -i "${GIT_COMMIT_PROMPT}" ${ASK_OPTIONS} \
   | answer \
   | unfence \
   | bash
