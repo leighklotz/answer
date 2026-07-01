@@ -281,7 +281,15 @@ function _infer () {
 function hx() {
     if [ "$1" == "clear_cache" ]; then
         cache_dir=$(_find_cache_dir)
-        echo "rm -rf $(printf '%q' "$cache_dir")" | pipetest "Remove this directory?" | bash
+        # Instead of pipetest, we use a simple read for confirmation
+        echo "⚠️  Are you sure you want to remove $cache_dir? (y/N)" >&2
+        read -r -p "Confirm: " reply < /dev/tty
+        if [[ "$reply" =~ ^[Yy]$ ]]; then
+            rm -rf "$cache_dir"
+            echo "🗑️  Cache cleared."
+        else
+            echo "🚫 Cancelled."
+        fi
         return 0
     else
         echo "usage: hx clear_cache"
