@@ -108,9 +108,9 @@ fi
 
 # Apply system context if requested
 if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
-    # this fails if $SYSTEM_MESSAGE is but that is ok
-    # TODO: assure that the stdin is json array
-    # TODO: Assure this works
+    # this fails if $SYSTEM_MESSAGE is large, but that is ok
+    # TODO: assure that stdin is a JSON array
+    # TODO: verify this works
   messages=$(jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages")
 fi
 
