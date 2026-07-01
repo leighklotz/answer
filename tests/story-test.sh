@@ -17,7 +17,7 @@ failures=0
 INFO=1g
 
 echo "Checking scripts"
-for cmd in answer ask bx functions help-commit help tools unfence;
+for cmd in answer ask bx help-commit help tools unfence;
 do
   printf "%s = %s\n" "$cmd" "$(type -t "$cmd")"
 done
