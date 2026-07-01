@@ -131,7 +131,7 @@ if [ -n "$TEE_MODE" ]; then
 elif [ -t 1 ]; then
   # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
   log_debug "Sending to answer"
-  printf "%s\n" "$messages" | "${SCRIPT_DIR}/answer"
+  printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
 else
   # Contract Rule: Inside a pipe loop, forward the updated full JSON history state
   log_info "3. TEE_MODE=$TEE_MODE forwarding messages"
