@@ -20,6 +20,25 @@ fi
 
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
+# Single global list for file cleanup
+CLEANUP_FILES=()
+
+function _register_file_deletion() {
+  CLEANUP_FILES+=("$@")
+}
+
+function _delete_registered_files() {
+  local file
+  for file in "${CLEANUP_FILES[@]}"; do
+      if [ -f "$file" ]; then
+          rm -f -- "$file"
+      elif [ -d "$file" ]; then
+          rmdir "$file"
+      fi
+  done
+  CLEANUP_FILES=()
+}
+
 function _strip_header(){
   local input
   # Read the entire stdin into the 'input' variable
@@ -152,30 +171,12 @@ function _find_cache_dir () {
   printf "%s/.config/hallux/cache" "${HOME}"
 }
 
-function _register_file_deletion() {
-  local cleanup_list_name="$1"
-  shift
-  local -n cleanup_list_ref="$cleanup_list_name"
-  cleanup_list_ref+=("$@")
-}
-
-function _delete_registered_files() {
-  local cleanup_list_name="$1"
-  local -n cleanup_list_ref="$cleanup_list_name"
-  local file
-  for file in "${cleanup_list_ref[@]}"; do
-    rm -f -- "$file"
-  done
-  cleanup_list_ref=()
-}
-
 function _infer () {
   local tmp_json tmp_req last_role
-  local -a cleanup_files=()
   tmp_json=$(mktemp)
-  _register_file_deletion cleanup_files "$tmp_json"
+  _register_file_deletion "$tmp_json"
   tmp_req=$(mktemp)
-  _register_file_deletion cleanup_files "$tmp_req"
+  _register_file_deletion "$tmp_req"
 
   # Read first line to check for header
   read -r first_line
@@ -189,7 +190,7 @@ function _infer () {
   # Contract: _infer takes a JSON array of chat messages.
   if ! jq -e 'type == "array"' < "$tmp_json" >/dev/null 2>&1; then
     echo "[]"
-    _delete_registered_files cleanup_files
+    _delete_registered_files
     return 0
   fi
 
@@ -197,7 +198,7 @@ function _infer () {
   last_role=$(jq -r 'if length > 0 then .[-1].role // empty else empty end' < "$tmp_json")
   if [ "$last_role" != "user" ]; then
     cat "$tmp_json"
-    _delete_registered_files cleanup_files
+    _delete_registered_files
     return 0
   fi
 
@@ -237,7 +238,7 @@ function _infer () {
                          -H "Authorization: Bearer $api_key" \
                          -H "Content-Type: application/json" \
                          -d @"$tmp_req") || {
-      _delete_registered_files cleanup_files
+      _delete_registered_files
       return 1
     }
     # log_warn "response_json=$response_json"
@@ -253,7 +254,7 @@ function _infer () {
   ) || {
     echo "🦶infer: ERROR: empty or missing assistant content in chat completion response" >&2
     printf "%s" "$response_json" | jq -c '{id, object, choices, error}' 2>/dev/null || true
-    _delete_registered_files cleanup_files
+    _delete_registered_files
     return 1
   }
 
@@ -261,10 +262,10 @@ function _infer () {
   if [ ! -f "$cache_file" ]; then
     local tmp_cache
     tmp_cache=$(mktemp "${cache_file}.tmp.XXXXXX") || {
-      _delete_registered_files cleanup_files
+      _delete_registered_files
       return 1
     }
-    _register_file_deletion cleanup_files "$tmp_cache"
+    _register_file_deletion "$tmp_cache"
     printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
   fi
 
@@ -274,7 +275,7 @@ function _infer () {
   # Combine the original array with the new assistant message
   jq -s -c '.[0] + .[1:]' <(cat "$tmp_json") <(printf "%s" "$assistant_msg_json")
   local infer_status=$?
-  _delete_registered_files cleanup_files
+  _delete_registered_files
   return $infer_status
 }
 

@@ -5,30 +5,34 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-# Setup temporary files using the functions.sh registration mechanism
-local -a cleanup_files=()
+# 1. Use the global list from functions.sh
 tmp_raw=$(mktemp)
-_register_file_deletion cleanup_files "$tmp_raw"
+_register_file_deletion "$tmp_raw"
 fenced_file=$(mktemp)
-_register_file_deletion cleanup_files "$fenced_file"
+_register_file_deletion "$fenced_file"
 
-# Ensure cleanup on exit
-trap '_delete_registered_files cleanup_files' EXIT
+# 2. Ensure cleanup on exit
+trap '_delete_registered_files' EXIT
 
-# 1. Read stdin and resolve magic header if necessary
-if [[ "$(head -c 100)" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-    cat > "$tmp_raw"
-    # Note: Assuming 'answer' is in PATH or available via functions.sh context
-    if ! answer < "$tmp_raw" > "$tmp_raw.resolved"; then
-        log_exit 1 "Failed to resolve magic header via answer"
+# 1. Read stdin into tmp_raw immediately
+cat > "$tmp_raw"
+
+# 2. Resolve magic header if necessary
+if [[ "$(head -c 100 "$tmp_raw")" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
+    log_warn "Magic header detected. Resolving via answer..."
+    
+    # Create a specific temp file for the resolved content and register it immediately
+    tmp_resolved=$(mktemp)
+    _register_file_deletion "$tmp_resolved"
+
+    if ! answer < "$tmp_raw" > "$tmp_resolved"; then
+        log_and_exit 1 "Failed to resolve magic header via answer"
     fi
-    mv "$tmp_raw.resolved" "$tmp_raw"
-else
-    cat > "$tmp_raw"
+    # Move resolved content back to tmp_raw
+    mv "$tmp_resolved" "$tmp_raw"
 fi
 
-# 2. Extract the first code block using awk
-# This extracts content between the first ``` and the next ```
+# 3. Extract the first code block using awk
 awk '
   /^```/ { 
     if (flag) { exit }
@@ -40,12 +44,10 @@ awk '
 
 # If no block was found, exit
 if [ ! -s "$fenced_file" ]; then
-    log_exit 1 "No fenced code block found in input"
+    log_and_exit 1 "No fenced code block found in input"
 fi
 
-# 3. Display content via pager to stderr
-# Using logic from functions.sh to determine pager
-local pager
+# 4. Display content via pager to stderr
 if [ -n "${PIPETEST_PAGER}" ]; then
     pager="${PIPETEST_PAGER}"
 elif command -v batcat >/dev/null 2>&1; then
@@ -59,8 +61,7 @@ fi
 cat "$fenced_file" | ${pager} 1>&2
 printf "\n" 1>&2
 
-# 4. Safe interactive confirmation
-local reply
+# 5. Safe interactive confirmation
 if [ -t 0 ]; then
     read -r -p "🤖 Proceed with this command? (y/N): " reply < /dev/tty
 else
@@ -78,3 +79,4 @@ case "${reply,,}" in
         exit 0
         ;;
 esac
+

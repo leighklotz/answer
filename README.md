@@ -11,7 +11,7 @@ To allow seamless transitions between "thinking" (conversation) and "doing" (too
 * **How it works:** `ask` passes heavy JSON arrays containing full history through pipes via a magic header. If a trailing `ask` detects a pending user prompt from the previous step, it automatically calls `infer()` to resolve it before adding the next turn.
 * **Pattern:** `ask "Q1" | ask "Follow up Q2"`
 
-### 2. Tool/Extraction Mode (`ask | answer | tool`)
+### 2. Tool/Extraction Mode (`ask | answer | tools`)
 * **Goal:** Take the text result of an LLM and pass it straight to a shell command (like `python`, `bash`, or `pipetest`).
 * **How it works:** The `answer` command acts as your permanent pipeline "Cut-Point." It auto-resolves any pending queries using `infer()`, drops the outer JSON history envelopes entirely, and outputs **Pristine Plain Text** markdown strings. This acts as a natural gatekeeper for standard shell utilities.
 * **Pattern:** `bx cat file.txt | ask "Refactor this code" | answer | pipetest OK | unfence | bash`
