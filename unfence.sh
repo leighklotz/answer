@@ -5,16 +5,9 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-# 1. Use the global list from functions.sh
-tmp_raw=$(mktemp)
-_register_file_deletion "$tmp_raw"
-fenced_file=$(mktemp)
-_register_file_deletion "$fenced_file"
-
-# 2. Ensure cleanup on exit
-trap '_delete_registered_files' EXIT
-
 # 1. Read stdin into tmp_raw immediately
+tmp_raw=$(mktemp_reg)
+fenced_file=$(mktemp_reg)
 cat > "$tmp_raw"
 
 # 2. Resolve magic header if necessary
@@ -22,8 +15,7 @@ if [[ "$(head -c 100 "$tmp_raw")" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
     log_warn "Magic header detected. Resolving via answer..."
     
     # Create a specific temp file for the resolved content and register it immediately
-    tmp_resolved=$(mktemp)
-    _register_file_deletion "$tmp_resolved"
+    tmp_resolved=$(mktemp_reg)
 
     if ! answer < "$tmp_raw" > "$tmp_resolved"; then
         log_and_exit 1 "Failed to resolve magic header via answer"

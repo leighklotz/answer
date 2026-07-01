@@ -12,9 +12,9 @@ TEE_MODE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -i|--input) PLAIN_INPUT="1"; shift ;;
+    -i | --input) PLAIN_INPUT="1"; shift ;;
     --use-system-message) USE_SYSTEM_MSG=true; shift ;;
-    --tee|-t) TEE_MODE="1"; shift ;;
+    --tee | -t) TEE_MODE="1"; shift ;;
     --help) echo "Usage: ask [-i|--input] [--use-system-message] [--tee|-t] [prompt]" >&2; exit 0 ;;
     *) break ;;
   esac
@@ -23,32 +23,28 @@ done
 prompt="$*"
 
 # --- INPUT HANDLING & HISTORY BUILDING ---
-if [ ! -t 0 ]; then
-  stdin_tmp=$(mktemp)
-  clean_stdin_tmp=""
+if [ ! -t 0 ] || ([ -t 0 ] && [ "$PLAIN_INPUT" = "1" ]); then
+  stdin_tmp=$(mktemp_reg)
+  
+  # Prompt if we are in a TTY and -i was specified
+  [ -t 0 ] && [ "$PLAIN_INPUT" == "1" ] && printf "💬 Give input followed by Ctrl-D:\n" >&2
 
-  cleanup() {
-    rm -f "$stdin_tmp"
-    if [ -n "$clean_stdin_tmp" ]; then
-      rm -f "$clean_stdin_tmp"
-    fi
-  }
-  trap cleanup EXIT
-
+  # Read STDIN
   cat > "$stdin_tmp"
 
   is_history=false
-  first_line=""
-  IFS= read -r first_line < "$stdin_tmp" || true
-  if [ "$first_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
-    is_history=true
-  else
-    PLAIN_INPUT="1"
+  if [ "$PLAIN_INPUT" != "1" ]; then
+      first_line=""
+      IFS= read -r first_line < "$stdin_tmp" || true
+      if [ "$first_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
+          is_history=true
+      else
+          PLAIN_INPUT="1"
+      fi
   fi
 
   if [ "$PLAIN_INPUT" = "1" ]; then
-      # TODO: this fails if $prompt is large; cannot pass arbitrarily-long cli args to jq
-      # GOOD: This works with large stdin
+      # Does this work with large stdin
       messages=$(jq -n \
                     --arg p "$prompt" \
                     --rawfile c "$stdin_tmp" \
@@ -56,7 +52,7 @@ if [ ! -t 0 ]; then
   elif [ "$is_history" = true ]; then
     # MODE: Conversation History (JSON)
     # 1. Remove the MIME header without passing the whole payload as argv.
-    clean_stdin_tmp=$(mktemp)
+    clean_stdin_tmp=$(mktemp_reg)
     tail -n +2 "$stdin_tmp" > "$clean_stdin_tmp"
 
     # 2. Resolve the previous turn cleanly.

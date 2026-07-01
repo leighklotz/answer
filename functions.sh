@@ -27,17 +27,28 @@ function _register_file_deletion() {
   CLEANUP_FILES+=("$@")
 }
 
+function mktemp_reg() {
+  local tmp
+  if ! tmp=$(mktemp "$@"); then
+    log_and_exit 1 "failed to create temp file"
+  fi
+  _register_file_deletion "$tmp"
+  echo "$tmp"
+}
+
 function _delete_registered_files() {
   local file
   for file in "${CLEANUP_FILES[@]}"; do
-      if [ -f "$file" ]; then
+      if [ -d "$file" ] && [ ! -L "$file" ]; then
+          rmdir -- "$file" || log_warn "Unable to delete directory $file"
+      elif [ -f "$file" ] || [ -L "$file" ]; then
           rm -f -- "$file"
-      elif [ -d "$file" ]; then
-          rmdir "$file"
       fi
   done
   CLEANUP_FILES=()
 }
+
+trap _delete_registered_files EXIT INT TERM HUP
 
 function _strip_header(){
   local input
@@ -173,10 +184,8 @@ function _find_cache_dir () {
 
 function _infer () {
   local tmp_json tmp_req last_role
-  tmp_json=$(mktemp)
-  _register_file_deletion "$tmp_json"
-  tmp_req=$(mktemp)
-  _register_file_deletion "$tmp_req"
+  tmp_json=$(mktemp_reg)
+  tmp_req=$(mktemp_reg)
 
   # Read first line to check for header
   read -r first_line
@@ -190,7 +199,6 @@ function _infer () {
   # Contract: _infer takes a JSON array of chat messages.
   if ! jq -e 'type == "array"' < "$tmp_json" >/dev/null 2>&1; then
     echo "[]"
-    _delete_registered_files
     return 0
   fi
 
@@ -198,7 +206,6 @@ function _infer () {
   last_role=$(jq -r 'if length > 0 then .[-1].role // empty else empty end' < "$tmp_json")
   if [ "$last_role" != "user" ]; then
     cat "$tmp_json"
-    _delete_registered_files
     return 0
   fi
 
@@ -238,7 +245,6 @@ function _infer () {
                          -H "Authorization: Bearer $api_key" \
                          -H "Content-Type: application/json" \
                          -d @"$tmp_req") || {
-      _delete_registered_files
       return 1
     }
     # log_warn "response_json=$response_json"
@@ -254,18 +260,13 @@ function _infer () {
   ) || {
     echo "🦶infer: ERROR: empty or missing assistant content in chat completion response" >&2
     printf "%s" "$response_json" | jq -c '{id, object, choices, error}' 2>/dev/null || true
-    _delete_registered_files
     return 1
   }
 
   # Only cache responses that passed validation.
   if [ ! -f "$cache_file" ]; then
     local tmp_cache
-    tmp_cache=$(mktemp "${cache_file}.tmp.XXXXXX") || {
-      _delete_registered_files
-      return 1
-    }
-    _register_file_deletion "$tmp_cache"
+    tmp_cache=$(mktemp_reg "${cache_file}.tmp.XXXXXX")
     printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
   fi
 
@@ -275,16 +276,14 @@ function _infer () {
   # Combine the original array with the new assistant message
   jq -s -c '.[0] + .[1:]' <(cat "$tmp_json") <(printf "%s" "$assistant_msg_json")
   local infer_status=$?
-  _delete_registered_files
   return $infer_status
 }
 
 function hx() {
     if [ "$1" == "clear_cache" ]; then
         cache_dir=$(_find_cache_dir)
-        # Instead of pipetest, we use a simple read for confirmation
         echo "⚠️  Are you sure you want to remove $cache_dir? (y/N)" >&2
-        read -r -p "Confirm: " reply < /dev/tty
+        read -r -p "Delete directory? (y/N): " reply < /dev/tty
         if [[ "$reply" =~ ^[Yy]$ ]]; then
             rm -rf "$cache_dir"
             echo "🗑️  Cache cleared."
@@ -297,3 +296,5 @@ function hx() {
         return 1
     fi
 }
+
+
