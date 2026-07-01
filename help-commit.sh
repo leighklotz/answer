@@ -22,6 +22,5 @@ fi
 (bx pwd; bx git rev-parse --show-toplevel; bx git status; bx git diff --numstat; bx git diff; bx git diff --cached) \
   | ask -i "${GIT_COMMIT_PROMPT}" \
   | answer \
-  | pipetest 'Commit these changes?' \
   | unfence \
   | bash
