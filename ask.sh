@@ -23,78 +23,71 @@ done
 prompt="$*"
 
 # --- INPUT HANDLING & HISTORY BUILDING ---
-if [ ! -t 0 ] || ([ -t 0 ] && [ "$PLAIN_INPUT" = "1" ]); then
+# If stdin is a pipe OR if we are in a TTY and -i was specified
+if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
   stdin_tmp=$(mktemp_reg)
   
   # Prompt if we are in a TTY and -i was specified
-  [ -t 0 ] && [ "$PLAIN_INPUT" == "1" ] && printf "💬 Give input followed by Ctrl-D:\n" >&2
+  if [[ -t 0 && "$PLAIN_INPUT" == "1" ]]; then
+    printf "💬 Give input followed by Ctrl-D:\n" >&2
+  fi
 
   # Read STDIN
   cat > "$stdin_tmp"
 
   is_history=false
-  if [ "$PLAIN_INPUT" != "1" ]; then
+  # If we are not in "-i" mode, check if the input is a history continuation
+  if [[ "$PLAIN_INPUT" != "1" ]]; then
       first_line=""
       IFS= read -r first_line < "$stdin_tmp" || true
-      if [ "$first_line" = "${PIPELINE_MAGIC_HEADER}" ]; then
+      if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
           is_history=true
       else
-          PLAIN_INPUT="1"
+          # If it's not history and not -i, we treat the piped input as the content
+          # but we don't set PLAIN_INPUT="1" because we want to preserve the prompt merge logic below
+          : 
       fi
   fi
 
-  if [ "$PLAIN_INPUT" = "1" ]; then
-      # Does this work with large stdin
+  if [[ "$PLAIN_INPUT" == "1" ]]; then
+      # MODE: Plain Input (via -i or manual stdin)
       messages=$(jq -n \
                     --arg p "$prompt" \
                     --rawfile c "$stdin_tmp" \
                     '[{role: "user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
-  elif [ "$is_history" = true ]; then
+  elif [[ "$is_history" == true ]]; then
     # MODE: Conversation History (JSON)
-    # 1. Remove the MIME header without passing the whole payload as argv.
     clean_stdin_tmp=$(mktemp_reg)
     tail -n +2 "$stdin_tmp" > "$clean_stdin_tmp"
 
-    # 2. Resolve the previous turn cleanly.
-    # Capture stderr separately to ensure clean_stdin is pure JSON.
     log_info "0. TEE_MODE=$TEE_MODE resolving incoming history"
     if ! clean_stdin=$(_infer < "$clean_stdin_tmp" 2>/dev/null); then
       log_and_exit 1 "Inference failed while resolving prior conversation state."
     fi
 
-    # Validate JSON output from infer.
     if ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
       echo "🦶ask: WARN: infer returned invalid JSON, resetting state." >&2
       clean_stdin="[]"
     fi
 
-    # 3. Append the new user prompt directly to the clean conversation history array.
-    if [ -n "$prompt" ]; then
-      # TODO: this fails if $prompt is large; cannot pass arbitrarily-long cli args to jq
+    if [[ -n "$prompt" ]]; then
       new_msg=$(jq -n --arg p "$prompt" '{"role":"user","content":$p}')
-      # TODO: this fails if $prompt is large; cannot pass arbitrarily-long cli args to jq
       messages=$(jq -n -c --argjson n "$new_msg" --argjson h "$clean_stdin" '$h + [$n]' 2>/dev/null)
-      if [ -z "$messages" ] || ! jq -e '.' <<< "$messages" >/dev/null 2>&1; then
+      if [[ -z "$messages" ]] || ! jq -e '.' <<< "$messages" >/dev/null 2>&1; then
         log_and_exit 1 "Failed to merge new prompt into conversation history."
       fi
     else
       messages="$clean_stdin"
     fi
-  elif [ -n "$prompt" ]; then
-    messages=$(
-        # TODO: this fails if $prompt is large; cannot pass arbitrarily-long cli args to jq
-        # GOOD: This works with large stdin
-      jq -n \
-        --arg p "$prompt" \
-        --rawfile c "$stdin_tmp" \
-        '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]'
-    )
+  elif [[ -n "$prompt" ]]; then
+    # MODE: Prompt + Piped Content
+    messages=$(jq -n --arg p "$prompt" --rawfile c "$stdin_tmp" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
   else
-    # GOOD: this works with long content
+    # MODE: Only Piped Content
     messages=$(jq -n --rawfile c "$stdin_tmp" '[{role:"user", content: $c}]')
   fi
-elif [ -n "$prompt" ]; then
-  # TODO: this fails if $prompt is large; cannot pass arbitrarily-long cli args to jq
+elif [[ -n "$prompt" ]]; then
+  # MODE: Interactive Command Line Argument (No stdin, no -i)
   messages=$(jq -n --arg p "$prompt" '[{"role":"user","content":$p}]')
 else
   exit 1
