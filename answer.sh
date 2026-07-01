@@ -38,9 +38,9 @@ fi
 
 # 5. Always output raw text.
 if [ -t 1 ]; then
-  # EOL Terminal Window: Print a newline to clear the emojis, then print the Markdown response.
-  printf '\n%s\n' "$assistant_text"
+  # EOL 
+  printf '%s\n' "$assistant_text"
 else
-  # Inside a pipeline: Pipe the raw text string directly to downstream utilities.
+  # Inside a pipeline
   printf '%s\n' "$assistant_text"
 fi

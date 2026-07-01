@@ -50,17 +50,13 @@ else
     pager="cat"
 fi
 
-cat "$fenced_file" | ${pager} 1>&2
-printf "\n" 1>&2
-
 # 5. Safe interactive confirmation
-if [ -t 0 ]; then
+if [ ! -t 1 ]; then
+    cat "$fenced_file" | ${pager} 1>&2
     read -r -p "🤖 Proceed with this command? (y/N): " reply < /dev/tty
 else
     reply="y"
 fi
-
-printf "\n" 1>&2
 
 case "${reply,,}" in
     y*)

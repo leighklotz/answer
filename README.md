@@ -29,7 +29,7 @@ To allow seamless transitions between "thinking" (conversation) and "doing" (too
 * * **ask**: *The State Builder.* Manages conversational turn-taking. It processes inputs, hooks into `infer()` to catch up on un-resolved context strings, appends your new query block, and pipes directly to `answer` if it detects it is at the end of a line (terminal window). Use `-i` (or `--input`) to enable interactive mode for multi-line `stdin` input (terminated with `Ctrl-D`).
 * **`answer`**: *The Text Extractor.* The terminal endpoint of the execution tree. It takes your conversation data, resolves it, pushes a clean newline to `stderr` to wrap up your emoji tracker row, and delivers raw text tokens to `stdout`.
 * **`bx`**: Executes a target command and wraps its raw console output inside a clean markdown code fence.
-* **`unfence`**: Strips triple-backtick (```) markdown fences from an incoming text stream to prepare code for execution.
+* **`unfence`**: Outputs only the first markdown code fences from the incoming text; if used in a pipeline, asks for confirmation.
 * **`pipetest`**: Captures clean text from `stdin`, runs it through a pager visualizer on `stderr`, and safely pauses to ask you `Y/N` via your keyboard before feeding it forward.
 * **`tools`**: Pipeline wrapper around `toolex.py`. Reads a JSON conversation array, resolves native LLM tool calls via toolex, and writes the updated conversation array to stdout.
 * **`story.txt`**: A comprehensive file containing example usage scenarios, prompts, and expected outputs to help you get started.
