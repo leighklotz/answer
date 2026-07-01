@@ -57,7 +57,7 @@ ask "What is 20+30?" | ask "Convert that result to octal"
 
 **Running code (Tooling Mode):**
 ```bash
-ask "Write a python script to list files" | answer | unfence | python
+ask "Write a python script to list files" | unfence | python
 ```
 
 ### Test Case: Context Preservation
@@ -92,23 +92,40 @@ Your tools automatically crawl upwards from your current working directory to fi
 
 ### Basic question and answer
 ```bash
-ask "Write fib in Python" | answer
+ask "Write fib in Python"
 ```
 
-### Piping command output into a question (use `-i`)
+### Piping command output into a question
 ```bash
-dmesg | ask -i "Spot any SCSI issues" | answer
+dmesg | ask "Spot any SCSI issues"
+```
+
+### Pausing for input command output into a question
+```bash
+$ ask -i What is this emoji?
+💬 Give input followed by Ctrl-D:
+🥟
+^D
+💭
+This emoji is a **dumpling** (🥟).
+$ help -i explain 
+💬 Give input followed by Ctrl-D:
+if [[ -t 0 ]]; then
+^D
+💭
+The expression `[[ -t 0 ]]` is a Bash conditional used to check if **standard input (stdin)** is connected to an **interactive terminal**.
+...
 ```
 
 ### Chained follow-up questions
 Use `ask -t` mid-pipeline so the conversation JSON continues to flow on stdout while the human-readable reply appears on stderr:
 ```bash
-dmesg | ask -i "Spot any SCSI issues" | ask -t "What can I do about the md0 device?" | answer
+dmesg | help "Spot any SCSI issues" | help -t "What can I do about the md0 device?" | help "Write a command to check the drive status" | unfence | bash
 ```
 
 ### Tool-call resolution with toolex
 ```bash
-ask "Spot any SCSI issues with dmesg" | tools linux_tools | ask -t "What can I do about the md0 device?" | answer
+ask "Spot any SCSI issues with dmesg" | tools linux_tools | ask "What can I do about the md0 device?"
 ```
 
 ---
