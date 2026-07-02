@@ -17,7 +17,7 @@ When an LLM generates a response, it typically wraps code within Markdown fences
 | Feature | Behavior |
 |---------|---------|
 | **First-Block Extraction** | If the input contains multiple code blocks, `unfence` only extracts the content of the first one. |
-| **JSON Auto-Resolution** | If the input starts with the `PIPELINE_MAGIC_HEADER`, `unfence` automatically invokes `answer` to resolve the JSON conversation history into plain text before attempting extraction. |
+| **Auto-answer** | If the input does not yet have an assistant reply, `unfence` automatically invokes `answer` (the same "auto-answer" mechanism used by `ask`) to resolve the JSON conversation history into plain text before attempting extraction. |
 | **Pipeline Safety** | When its output is being piped to another command (e.g., `unfence | bash`), `unfence` provides a safety gate that requires explicit user confirmation before allowing the code to flow to `stdout`. |
 | **Error Handling** | If no Markdown code block is detected in the input, the command exits with an error. |
 
@@ -29,7 +29,7 @@ To prevent the accidental execution of incorrect or dangerous code in a pipeline
 2.  **Confirmation:** The user is prompted: `🤖 Proceed with this command? (y/N): ` via the actual terminal (`/dev/tty`).
 3.  **Decision:**
     *   **`y` / `Y`**: The content is sent to `stdout` for the next command in the pipeline.
-    *   **Any other key**: The process is aborted, and `🚫 discarded` is printed to `stderr`.
+    *   **Any other key**: The process exits prints `🚫 discarded` to `stderr`.
 
 *Note: If running `unfence` directly in a terminal (without a pipe), the command outputs the code immediately without prompting.*
 
@@ -49,7 +49,7 @@ ask "Write a python function to calculate primes" | answer | unfence | python
 ```
 
 **3. Direct Pipeline from `ask`**
-Because `unfence` can resolve JSON history, you can skip the `answer` command in a pipeline:
+Since `unfence` handles "auto-answer" resolution automatically, you can skip the explicit `answer` command in a pipeline:
 ```bash
 ask "Give me a bash one-liner to check disk usage" | unfence | bash
 ```

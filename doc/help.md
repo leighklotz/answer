@@ -1,6 +1,6 @@
 # help
 
-**help** is a specialized wrapper for the `ask` command, pre-configured with a high-performance system prompt designed for technical assistance. It is optimized for tasks involving Linux administration, Bash scripting, Python programming, and general software engineering queries.
+**help** is a specialized wrapper for the `ask` command, pre-configured with a prompt designed for technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering.
 
 ## Synopsis
 

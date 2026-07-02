@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash -e
+#!/usr/bin/env -S bash -ex
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/env.sh"
@@ -32,4 +32,7 @@ for cmd in answer ask bx help-commit help unfence; do
 
     context+=(README.md tests/story-test.sh doc/*.md)
     lx "${context[@]}" | help "$prompt" | answer > "$dest"
+    if [ -z "$dest" ]; then
+        log_and_exit 1 "$dest was empty"
+    fi
 done

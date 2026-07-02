@@ -8,17 +8,27 @@
 ask [OPTIONS] [PROMPT...]
 ```
 
-When invoked as a shell function (via `enable.sh`), `ask` provides an enhanced interactive experience by automatically piping results to `answer` when used in a terminal.
+## Pipeline Model
+The `ask` command always generates **JSON** to preserve the conversation state. However, JSON is difficult for humans to read in a terminal.
+*   **`ask`**: Produces raw JSON (The "Machine" layer).
+*   **`answer`**: Converts JSON into human-readable text (The "Presentation" layer).
+
+The `ask` command includes an **"Auto-answer"** feature: if it detects it is running in an interactive terminal, it automatically pipes its JSON through `answer` for you.
+
+- **Interactive Mode (Auto-answer):** When running in a terminal where `stdout` is the screen, `ask` automatically pipes the JSON through `answer`. You see human-readable text.
+- **Pipeline Mode:** When `ask` is used in a script or piped into another command, it outputs **raw JSON**. This allows the next command to read the conversation state.
+- **Manual Mode:** If `ask`'s output is redirected to a file (`> file.json`), auto-answer is disabled, and the file will contain raw JSON.
 
 ## Description
 
-`ask` is designed to be the primary entry point for starting or continuing a conversation. It can operate in several modes depending on whether it is receiving input from a pipe, a terminal, or a file. It manages conversation state by passing full JSON arrays of message objects between pipeline stages.
+`ask` is designed to be the primary entry point for starting or continuing a conversation. It manages conversation state by passing full JSON arrays of message objects between pipeline stages.
 
 ## Options
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
 | `-i` | `--input` | **Attachment Mode:** If used with a pipe or in a terminal, treats `stdin` as raw text to be prepended to the `PROMPT` with an `ATTACHMENT:` label. In interactive mode, this enables multi-line input (terminated with `Ctrl-D`). |
+| `-t` | `--tee` | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated, resolved JSON conversation history to **stdout**. |
 | `--use-system-message` | | Prepends the content of the `$SYSTEM_MESSAGE` environment variable as a `system` role message to the conversation. |
 | `--help` | | Print usage information and exit. |
 
@@ -36,8 +46,9 @@ The behavior of `ask` changes based on the input source:
 
 | Context | Behavior |
 |---------|----------|
-| **Interactive (Terminal)** | The JSON output is automatically passed to `answer`. The user sees the human-readable text response, and the global `LAST_ANSWER` variable is updated. |
-| **Pipeline (Non-Terminal)** | Outputs the `PIPELINE_MAGIC_HEADER` followed by the updated JSON conversation array to `stdout`. This allows the next command in the pipe (like `ask` or `tools`) to continue the conversation. |
+| **Interactive (Terminal)** | **Auto-answered:** The JSON is automatically passed to `answer`. The user sees text, and the global `LAST_ANSWER` variable is updated. |
+| **Pipeline (Non-Terminal)** | Outputs the `PIPELINE_MAGIC_HEADER` followed by the updated JSON conversation array to `stdout`. |
+| **Observation (`--tee`)** | Prints the human-readable text response to **stderr** and sends the resolved JSON conversation history to **stdout**. |
 
 ## Environment Variables
 
@@ -45,7 +56,7 @@ The behavior of `ask` changes based on the input source:
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | _(empty)_ | Bearer token for API authentication. |
 | `VIA_API_CHAT_BASE` | `http://localhost:5000` | The base URL for the OpenAI-compatible API. |
-| `SYSTEM_MESSAGE` | _(empty)_ | The text used as the initial `system` role message when `--use-system-message` is passed. |
+| `SYSTEM_MESSAGE` | _(empty)_ | The text used as the initial `system` role message when `--use-system-message` is used. |
 
 ## Examples
 
@@ -56,7 +67,7 @@ $ ask "What is the capital of Japan?"
 The capital of Japan is Tokyo.
 ```
 
-**2. Piped Text as Context (Standard Pipe)**
+**2. Piped Text as Context**
 Pass the contents of a file to the LLM. The content will be prefixed with `CONTEXT:` in the message.
 ```bash
 $ cat logs.txt | ask "Are there any errors in these logs?"
@@ -73,11 +84,11 @@ The provided attachment contains several warnings...
 ```
 
 **4. Chained Conversation (Pipeline Mode)**
-Maintain state across multiple commands.
+The first `ask` provides JSON to the second `ask`, allowing it to remember the context.
 ```bash
 $ ask "Who is the President of France?" | ask "How old is he?"
 💭
-Emmanuel Macron is the President of France. He was born in 1977, making him approximately 46 years old.
+Emmanuel Macron is the President of France. He was born in 1977.
 ```
 
 **5. Using System Messages**
@@ -90,5 +101,11 @@ $ ask "How do I check disk usage?" --use-system-message
 Send a file, ask a question, resolve tool calls, and finally extract the text.
 ```bash
 $ cat code.py | ask "Refactor this" | tools python_tools | answer
+```
+
+**7. Observation Mode (Mid-Pipeline)**
+Use `-t` to see the human text in the terminal while passing JSON down the pipe.
+```bash
+$ ask "Write a bash script" | ask -t "Add error handling" | answer
 ```
 

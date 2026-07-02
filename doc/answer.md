@@ -1,8 +1,8 @@
 # answer
 
-**answer** is the "Text Extractor" and pipeline "Cut-Point" in the Answer framework. Its primary role is to strip away the JSON conversation history used by `ask` and `tools` to deliver the raw, human-readable text content of the final assistant message.
+**answer** is the "Text Extractor" and pipeline "Cut-Point" in the Answer framework. It bridges the gap between LLM conversation state (JSON) and standard shell execution (Plain Text). It is a **state-resolving** command: if the input history ends with a `user` message, `answer` will automatically trigger the inference engine to complete the turn before extracting the resulting assistant text.
 
-The `answer` command is a shell function that provides an enhanced interface (supporting `--tee` and interactive mode) by wrapping the core `answer.sh` execution script.
+The `answer` command is a shell function that provides an enhanced interactive interface (supporting `--tee` and `LAST_ANSWER` retrieval) by wrapping the core `answer.sh` execution script.
 
 ## Synopsis
 
@@ -24,8 +24,9 @@ In a pipeline, `ask` and `tools` pass heavy JSON arrays to maintain conversation
 
 | Condition | Behavior |
 |-----------|----------|
-| **Piped Input** | Reads the JSON conversation array from `stdin`. It is designed to recognize the `PIPELINE_MAGIC_HEADER` to ensure seamless transitions between `ask` stages. |
-| **Interactive (Terminal)** | (Provided by shell function) If called directly in a terminal and the global `LAST_ANSWER` variable is set, it retrieves and prints the content of that variable. |
+| **Piped Input** | Reads the JSON conversation array from `stdin`. If the array ends with a `user` message, `answer` resolves the turn via `_infer` before extracting the text. |
+| **Piped Input (Raw Text)** | Reads raw text from `stdin`, treats it as a single-turn history, resolves it, and outputs the assistant's response. |
+| **Interactive (Terminal)** | (Provided by shell function) If called directly in a terminal and the global `LAST_ANSWER` variable is set, it retrieves and prints the content of that variable without requiring `stdin`. |
 
 ## Output Modes
 
@@ -40,7 +41,7 @@ The behavior of `answer` changes depending on how it is used in a pipeline:
 ## Examples
 
 **1. Direct Extraction (Terminal Mode)**
-Get just the text response in your terminal.
+Get just the text response of the last turn in your terminal.
 ```bash
 ask "What is the capital of France?" | answer
 # Output: Paris
@@ -58,26 +59,4 @@ See what the LLM is thinking/doing in the terminal, but keep the JSON state flow
 ask "Write a bash loop" | answer --tee | ask "Now add error handling" | answer
 ```
 *In this example, the bash loop code appears on your screen (via `stderr`), but the `ask` command receives the JSON history via `stdout` to maintain context.*
-```
-
----
-
-### Updated `doc/IMPL.md` (Section: `answer.sh`)
-
-```markdown
-## `answer.sh`
-
-**Language:** Bash  
-**Dependencies:** `jq`
-
-#### Input & Extraction
-The script is a low-level utility designed to run within a pipeline. 
-1. **Stdin Requirement:** It requires `stdin` to be present; it will exit if called in a purely interactive terminal (`[ -t 0 ]`).
-2. **JSON Resolution:** It detects the `PIPELINE_MAGIC_HEADER` to identify existing conversation histories.
-3. **Extraction Logic:** It uses `jq` to navigate the JSON array, targeting the `content` field of the very last object in the array. It includes safety checks to ensure the content is not null and is a valid string.
-
-#### Output
-The script outputs the extracted string to `stdout`. 
-
-*Note: High-level features such as argument parsing (`--tee`), terminal-based `LAST_ANSWER` retrieval, and stderr/stdout splitting are handled by the `answer()` shell function defined in `functions.sh`, which wraps this script.*
 
