@@ -1,67 +1,62 @@
-### Usage
+# unfence
 
-The `unfence` script extracts the first Markdown code block (delimited by ` ``` `) from a text stream. It is designed to process LLM outputs, ensuring that only the code—and not the conversational text—is passed through to the next command.
+**unfence** is a utility that extracts the raw content from the first Markdown code block found in an input stream. It is primarily used to strip away Markdown formatting and surrounding conversational text, making LLM-generated output ready for direct execution by shell interpreters.
 
-#### Key Features
-* **Magic Header Resolution:** If the input starts with the sequence defined in `PIPELINE_MAGIC_HEADER`, the script automatically resolves the content using the `answer` command before extraction.
-* **Automatic Extraction:** Uses `awk` to isolate exactly the first fenced code block found in the input.
-* **Smart Paging:** Displays the extracted code in a pager sent to `stderr` for easy previewing. It prioritizes `batcat`, then `bat`, and finally `cat`.
-* **Confirmation:** To prevent accidental execution of malicious or incorrect code, the script requires manual confirmation via a prompt sent to the terminal (`/dev/tty`).
-
-#### Basic Pipe Usage
-Pipe the output of a command into the script to preview the code before it is sent to `stdout`.
+## Synopsis
 
 ```bash
-# Example: Extracting code from an ASK command
-🦶$ ask "Write a python script to list files" | unfence
-💭
-from pathlib import Path
-
-def list_files_simple(directory="."):
-    path = Path(directory)
-    
-    print(f"Listing files in: {path.absolute()}")
-    
-    # .iterdir() loops through everything in the directory
-    for item in path.iterdir():
-        if item.is_file():
-            print(f"FILE: {item.name}")
-        elif item.is_dir():
-            print(f"DIR : {item.name}")
-
-# Run the function
-list_files_simple(".")
-🦶$ 
-
-# Example: Extracting code from a stored markdown file
-🦶$ cat response.md | unfence
-echo 'Hello, World!'
+<text-with-fences> | unfence
 ```
 
-#### Interactive Confirmation
-Because the script reads confirmation from `/dev/tty`, it will prompt you even when used in a pipeline:
-`🤖 Proceed with this command? (y/N):`
+## Description
 
-* **Press `y`:** The code is printed to `stdout`.
-* **Press any other key (or Enter):** The code is discarded, and the script exits.
+When an LLM generates a response, it typically wraps code within Markdown fences (e.g., ` ```bash `). `unfence` scans the input, identifies the first occurrence of a code block, and isolates the content within those markers. This allows you to bridge the gap between a text-based LLM response and a command-line execution environment.
 
-The script is most commonly used as an intermediary to safely pipe code into a shell:
+## Key Features
 
+| Feature | Behavior |
+|---------|---------|
+| **First-Block Extraction** | If the input contains multiple code blocks, `unfence` only extracts the content of the first one. |
+| **Auto-answer** | If the input does not yet have an assistant reply, `unfence` automatically invokes `answer` (the same "auto-answer" mechanism used by `ask`) to resolve the JSON conversation history into plain text before attempting extraction. |
+| **Pipeline Safety** | When its output is being piped to another command (e.g., `unfence | bash`), `unfence` provides a safety gate that requires explicit user confirmation before allowing the code to flow to `stdout`. |
+| **Error Handling** | If no Markdown code block is detected in the input, the command exits with an error. |
+
+## Pipeline Safety Gate
+
+To prevent the accidental execution of incorrect or dangerous code in a pipeline, `unfence` provides a safety gate when its `stdout` is redirected or piped:
+
+1.  **Preview:** The extracted content is displayed to **stderr** via a pager (preferring `batcat` or `bat` for syntax highlighting and line numbers) so it does not interfere with the pipe.
+2.  **Confirmation:** The user is prompted: `🤖 Proceed with this command? (y/N): ` via the actual terminal (`/dev/tty`).
+3.  **Decision:**
+    *   **`y` / `Y`**: The content is sent to `stdout` for the next command in the pipeline.
+    *   **Any other key**: The process exits prints `🚫 discarded` to `stderr`.
+
+*Note: If running `unfence` directly in a terminal (without a pipe), the command outputs the code immediately without prompting.*
+
+## Examples
+
+**1. Direct Execution (The "Code-to-Shell" Pattern)**
+Extract a bash script from an LLM response and run it immediately.
 ```bash
-# Preview the command in a pager, then execute it if confirmed
-🦶$ ask "Give me a one-liner to check disk usage" | unfence | bash
-|---|---|
-|1│df -h|
-|---|---|
-🤖 Proceed with this command? (y/N): y
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/nvme1n1p2  3.6T  3.3T  202G  95% /
-🦶$ 
+ask "Write a script to list all running processes" | answer | unfence | bash
+```
+*(Note: This will trigger the safety prompt before `bash` executes the code.)*
+
+**2. Extracting Python Code**
+Clean the output of a conversational response to use in a Python interpreter.
+```bash
+ask "Write a python function to calculate primes" | answer | unfence | python
 ```
 
-#### Environment Variables
-| Variable | Description |
-| :--- | :--- |
-| `PIPELINE_MAGIC_HEADER` | The string used to identify input that needs resolution via the `answer` command. |
-| `PIPETEST_PAGER` | Allows you to override the default pager detection. |
+**3. Direct Pipeline from `ask`**
+Since `unfence` handles "auto-answer" resolution automatically, you can skip the explicit `answer` command in a pipeline:
+```bash
+ask "Give me a bash one-liner to check disk usage" | unfence | bash
+```
+
+**4. Viewing Content in Terminal**
+If you simply want to see the clean code without executing it, run it without a pipe:
+```bash
+ask "Write a python script" | answer | unfence
+```
 

@@ -99,10 +99,12 @@ function tools ()
     fi
 }
 
-# if input starts with magic header, runs it through answer.
+# 2. if input starts with magic header, get answer
+# 2. prompt answer and ask for confirmation
+# 3. cancel oo output answer
+# unfence also has this built in
 function pipetest()
 {
-    log_warn "pipetest() is obsolescent"
     # Sanity Check: If running interactively but no prompt provided, warn of potential hang
     if [ -t 0 ] && [[ "$*" != *"-i"* ]]; then
         echo "🦶pipetest: No user query detected in arguments; waiting for STDIN..." >&2
@@ -281,19 +283,19 @@ function _infer () {
 }
 
 function hx() {
-    if [ "$1" == "clear_cache" ]; then
+    if [ "$1" == "cache" ] && [ "$2" == "clear" ]; then
         cache_dir=$(_find_cache_dir)
         echo "⚠️  Are you sure you want to remove $cache_dir? (y/N)" >&2
         read -r -p "Delete directory? (y/N): " reply < /dev/tty
         if [[ "$reply" =~ ^[Yy]$ ]]; then
-            rm -rf "$cache_dir"
-            echo "🗑️  Cache cleared."
+            rm -rf -- "$cache_dir"
+            echo "🗑️  Cache  cleaed."
         else
             echo "🚫 Cancelled."
         fi
         return 0
     else
-        echo "usage: hx clear_cache"
+        echo "usage: hx cache clear"
         return 1
     fi
 }
