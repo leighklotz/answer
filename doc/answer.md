@@ -1,8 +1,3 @@
-To ensure the documentation accurately reflects the provided source code, I have updated `doc/answer.md` to distinguish between the high-level `answer` shell function (which provides the user-facing features) and the `answer.sh` script (which acts as the low-level execution engine). I have also corrected the implementation notes in `doc/IMPL.md`, as the current version incorrectly claims the `answer.sh` script handles flags and interactive mode.
-
-### Updated `doc/answer.md`
-
-```markdown
 # answer
 
 **answer** is the "Text Extractor" and pipeline "Cut-Point" in the Answer framework. Its primary role is to strip away the JSON conversation history used by `ask` and `tools` to deliver the raw, human-readable text content of the final assistant message.
@@ -85,4 +80,4 @@ The script is a low-level utility designed to run within a pipeline.
 The script outputs the extracted string to `stdout`. 
 
 *Note: High-level features such as argument parsing (`--tee`), terminal-based `LAST_ANSWER` retrieval, and stderr/stdout splitting are handled by the `answer()` shell function defined in `functions.sh`, which wraps this script.*
-```
+

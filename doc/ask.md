@@ -1,12 +1,3 @@
-Based on the logic in `ask.sh`, the current documentation in `doc/ask.md` is largely accurate but lacks precision regarding how the script distinguishes between "Attachment" mode (using `-i`) and standard "Context" mode (piping raw text without `-i`). 
-
-In `ask.sh`:
-- If `-i` is used: The prompt and stdin are joined with `\n\nATTACHMENT:\n`.
-- If piped text is provided without `-i`: The prompt and stdin are joined with `\n\nCONTEXT:\n`.
-
-Here is the updated `doc/ask.md` with these distinctions clarified to ensure users know exactly how their input is being formatted for the LLM.
-
-```markdown
 # ask
 
 **ask** is the "State Builder" in the Answer framework. It is responsible for sending user prompts to the LLM API, managing the conversational history, and ensuring the conversation state flows correctly through Unix pipes.
@@ -100,4 +91,4 @@ Send a file, ask a question, resolve tool calls, and finally extract the text.
 ```bash
 $ cat code.py | ask "Refactor this" | tools python_tools | answer
 ```
-```
+

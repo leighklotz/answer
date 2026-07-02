@@ -1,6 +1,3 @@
-Based on the implementation in `bx.sh`, I have updated `doc/bx.md` to accurately reflect the order of operations (the code fence is opened *before* the prompt is printed) and to ensure the description matches the code's logic.
-
-```markdown
 # bx
 
 **bx** is a utility that executes a shell command and wraps its output within a Markdown bash code fence. It is designed to prepare command-line output for consumption by LLMs (to provide structured context) or for clean visual documentation.
@@ -59,5 +56,5 @@ $ non_existent_command
 /bin/bash: line 1: non_existent_command: command not found
 ```
 *(The exit status of this command will be non-zero)*
-```
-```
+
+

@@ -1,8 +1,3 @@
-Based on the source code in `help-commit.sh`, the current documentation in `doc/help-commit.md` is mostly accurate but misses the `-q` shorthand for the `--quiet` flag.
-
-Here is the updated `doc/help-commit.md`:
-
-```markdown
 # help-commit
 
 **help-commit** is a specialized utility in the Answer framework that automates the generation and execution of `git commit` commands. It analyzes your current git state—including status, file changes, and staged changes—using an LLM and produces a `git commit` command following the Conventional Commits specification.
@@ -68,4 +63,4 @@ $ help-commit -q
 
 * **0:** Success (The command was executed or the LLM requested more info).
 * **1:** Failure (Not in a git repository or an error occurred during the pipeline).
-```
+

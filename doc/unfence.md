@@ -1,10 +1,3 @@
-Based on a comparison between the implementation in `unfence.sh` and the documentation in `doc/unfence.md`, there is a discrepancy in the description of the "Safety Gate." 
-
-The code implements **Pipeline Safety** (triggering a prompt when `stdout` is a pipe, such as in `unfence | bash`) rather than "Interactive Mode" (triggering a prompt when running in a terminal). The documentation currently describes the latter, which is the inverse of the actual logic.
-
-Here is the updated `doc/unfence.md`:
-
-```markdown
 # unfence
 
 **unfence** is a utility that extracts the raw content from the first Markdown code block found in an input stream. It is primarily used to strip away Markdown formatting and surrounding conversational text, making LLM-generated output ready for direct execution by shell interpreters.
@@ -66,4 +59,4 @@ If you simply want to see the clean code without executing it, run it without a 
 ```bash
 ask "Write a python script" | answer | unfence
 ```
-```
+
