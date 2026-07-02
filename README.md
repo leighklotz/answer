@@ -21,7 +21,49 @@ To allow seamless transitions between "thinking" (conversation) and "doing" (too
 * **How it works:** The `--tee` (or `-t`) flag on `ask` resolves the current turn, prints the human-readable text out to `stderr` for you to look at, but sends the full conversation JSON history down `stdout`.
 * **Pattern:** `ask -t "Generate base bash script" | ask "Add error handling to it"`
 
+## Pipeline Usage Models
+
+`Answer` is designed to transition seamlessly between interactive chat and automated shell pipelines using four primary patterns:
+
+**1. Interactive Chat (Human-Centric)**
+When running `ask` directly in a terminal, it automatically formats the output into human-readable text.
+```bash
+$ ask "How do I list files by size?"
+```
+
+**2. Stateful Conversations (Chaining)**
+To maintain context across multiple commands, pipe one `ask` into another. The framework automatically manages the underlying conversation history.
+```bash
+$ ask "Who is the President?" | ask "How old is he?"
+```
+
+**3. Text Extraction (Tooling/Shell Mode)**
+To use LLM output in standard shell commands (like `bash` or `python`), use `answer` as a "cut-point" to convert the JSON conversation state into plain text.
+```bash
+$ ask "Write a hello world script" | answer | bash
+```
+
+**4. Mid-Pipeline Observation (Hybrid Mode)**
+To see what the LLM is saying without breaking the pipeline, use the `--tee` (`-t`) flag. This prints human-readable text to your screen (`stderr`) while passing the JSON state forward (`stdout`) for the next command.
+```bash
+$ ask "Plan a script" | ask -t "Write the code" | answer
+```
+
 ---
+
+## How it Works: The Dual-Layer Logic
+
+The framework separates data for machines and data for humans to satisfy both interactive and automated environments.
+
+* **Machine Layer (`ask`):** Uses **JSON** to pass the entire conversation history (system messages, user prompts, and assistant responses) through pipes.
+* **Human Layer (`answer`):** Acts as the presentation layer, stripping the JSON structure to deliver **Pristine Plain Text** for users and shell utilities.
+
+**Auto-Answer Mechanism:**
+To ensure a seamless experience, `ask` detects its execution environment:
+* **In a Terminal:** `ask` detects the TTY and automatically pipes its JSON through `answer` so you see text immediately.
+* **In a Pipe:** `ask` bypasses auto-answer and outputs **raw JSON** so the next command in the chain can maintain the conversation state.
+
+> **Implementation Note:** When passing JSON through a pipe, `ask` prepends a `PIPELINE_MAGIC_HEADER`. This allows subsequent `ask` commands to instantly distinguish between "raw text context" (like `cat logs.txt | ask`) and "actual conversation history" (like `ask "Q1" | ask "Q2"`).
 
 ## Core Components
 
