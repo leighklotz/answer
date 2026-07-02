@@ -10,21 +10,26 @@ mkdir -p doc
 
 for cmd in answer ask bx help-commit help unfence; do
     echo -n "cmd=$cmd "
-    if [ -f doc/"${cmd}.md" ]; then
-        echo "- exists"
+    doc_md="doc/${cmd}.md"
+    doc_md_new="doc/${cmd}.md.new"
+    dest=""
+    if [ -f "${cmd}.sh" ]; then
+        src="${cmd}.sh"
     else
-        if [ -f "${cmd}.sh" ]; then
-            SRC="${cmd}.sh"
-        else
-            SRC="functions.sh"
-        fi
-
-        DEST="doc/${cmd}.md"
-        CTX_ARGS=()
-        [ -n "$SRC" ] && CTX_ARGS+=("$SRC")
-        CTX_ARGS+=(README.md tests/story-test.sh doc/*.md)
-
-        echo "- documenting for $DEST"
-        lx "${CTX_ARGS[@]}" | help "document the $cmd command for $DEST" | answer > "$DEST"
+        src="functions.sh"
     fi
+
+    context=()
+    [ -n "$src" ] && context+=("$src")
+
+    if [ -f $doc_md ]; then
+        prompt="Check and update the usage document for the $cmd command in $src"
+        dest="${doc_md_new}"
+    else
+        prompt="Create the usage document for the $cmd command for $src"
+        dest="${doc_md}"
+    fi
+
+    context+=(README.md tests/story-test.sh doc/*.md)
+    lx "${context[@]}" | help "$prompt" | answer > "$dest"
 done
