@@ -28,6 +28,8 @@ function usage() {
 }
 
 
+GIT_DIFF_OPTIONS=""
+
 # help-commit [git diff options] -- [help options]
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -54,7 +56,7 @@ done
 log_warn "ASK_OPTIONS=$ASK_OPTIONS"
 log_warn "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 
-(bx pwd; bx git rev-parse --show-toplevel; bx git status; bx git diff --numstat ${GIT_DIFF_OPTIONS}; bx git diff ${GIT_DIFF_OPTIONS}; bx git diff --cached ${GIT_DIFF_OPTIONS}) \
+(bx pwd; bx git rev-parse --show-toplevel; git diff --stat --no-merges ${GIT_DIFF_OPTIONS}; bx git diff --numstat ${GIT_DIFF_OPTIONS}; bx git diff ${GIT_DIFF_OPTIONS}; bx git diff --cached ${GIT_DIFF_OPTIONS}) \
   | ask -i "${GIT_COMMIT_PROMPT}" ${ASK_OPTIONS} \
   | answer \
   | unfence \
