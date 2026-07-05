@@ -1,6 +1,6 @@
 # help
 
-**help** is a specialized wrapper for the `ask` command, pre-configured with a prompt designed for technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering.
+**help** is a specialized wrapper for the `ask` command, pre-configured with a system prompt optimized for high-precision technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering.
 
 ## Synopsis
 
@@ -10,7 +10,7 @@ help [OPTIONS] [PROMPT...]
 
 ## Description
 
-While `ask` is the general-purpose state builder for the framework, `help` is a convenience command that automatically injects a specific `SYSTEM_MESSAGE`. This persona instructs the LLM to act as a highly capable technical assistant, ensuring responses are precise, instruction-following, and focused on programming and system administration.
+`help` is a convenience command that automatically injects a specialized `SYSTEM_MESSAGE` into the LLM context. While `ask` is a general-purpose state builder, `help` is tuned for efficiency: it is configured to provide direct answers and executable code while **avoiding unnecessary exposition** (optimized for a one-shot, question-and-response workflow).
 
 **Note:** While `help` uses a default technical persona, you can override this behavior by setting the `SYSTEM_MESSAGE` environment variable before running the command.
 

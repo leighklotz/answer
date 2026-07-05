@@ -14,6 +14,9 @@ The `answer` command is a shell function that provides an enhanced interactive i
 
 In a pipeline, `ask` and `tools` pass heavy JSON arrays to maintain conversation state. The `answer` command acts as a gatekeeper that allows you to transition from "conversation mode" (passing JSON) to "tooling/shell mode" (passing plain text).
 
+### The Resolution Step
+Unlike a simple parser, `answer` is an active participant in the pipeline. If the incoming JSON history represents an incomplete conversation (i.e., the last message is from the `user`), `answer` executes an inference call to generate the assistant's response. It then strips the JSON metadata and delivers the final response as raw text.
+
 ## Options
 
 | Flag | Long form | Description |
@@ -24,7 +27,7 @@ In a pipeline, `ask` and `tools` pass heavy JSON arrays to maintain conversation
 
 | Condition | Behavior |
 |-----------|----------|
-| **Piped Input** | Reads the JSON conversation array from `stdin`. If the array ends with a `user` message, `answer` resolves the turn via `_infer` before extracting the text. |
+| **Piped Input** | Reads the mime-header and JSON conversation array from `stdin`. If the array ends with a `user` message, `answer` resolves the turn via `_infer` before extracting the text. |
 | **Piped Input (Raw Text)** | Reads raw text from `stdin`, treats it as a single-turn history, resolves it, and outputs the assistant's response. |
 | **Interactive (Terminal)** | (Provided by shell function) If called directly in a terminal and the global `LAST_ANSWER` variable is set, it retrieves and prints the content of that variable without requiring `stdin`. |
 
