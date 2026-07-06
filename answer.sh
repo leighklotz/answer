@@ -9,34 +9,23 @@ source "${SCRIPT_DIR}/functions.sh"
 if [ -t 0 ]; then
   log_and_exit 1 "No stdin detected. Pipe conversation history or input text into answer."
 fi
-
-# 2. Prefer pipeline history with header; be lenient with raw JSON during migration.
-IFS= read -r first_line || true
-if [ "$first_line" = "$PIPELINE_MAGIC_HEADER" ]; then
+# 
+# 2. Read stdin and pass through the core infer engine to guarantee a resolved state.
   infer_input=$(cat)
-else
-  remaining=$(cat)
-  if [ -n "$remaining" ]; then
-    infer_input="${first_line}"$'\n'"${remaining}"
-  else
-    infer_input="${first_line}"
+
+  if ! resolved_history=$(printf "%s" "$infer_input" | _infer); then
+    log_and_exit 1 "Inference failed."
   fi
-fi
 
-# 3. Read stdin and pass through the core infer engine to guarantee a resolved state.
-if ! resolved_history=$(printf "%s" "$infer_input" | _infer); then
-  log_and_exit 1 "Inference failed."
-fi
-
-# Print a newline to stderr to move the cursor past the cache icons 
+# 3. Print a newline to stderr to move the cursor past the cache icons 
 # before the final output is printed to stderr console.
-if [ -t 1 ]; then
+  if [ -t 1 ]; then
     printf '\n' >&2
-fi
+  fi
 
 # 4. Extract strictly the text string content of the final assistant response.
 # echo "resolved_history=$resolved_history"
-assistant_text=$(jq -r '.[-1].content | select (. != null) | tostring // empty' <<< "$resolved_history")
+  assistant_text=$(jq -r '.[-1].content | select (. != null) | tostring // empty' <<< "$resolved_history")
 
 if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ]; then
   log_and_exit 1 "Cannot extract assistant message content."

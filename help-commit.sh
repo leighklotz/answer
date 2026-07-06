@@ -53,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# options are sent bare on the line since there can be multiple options
 log_warn "ASK_OPTIONS=$ASK_OPTIONS"
 log_warn "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 
