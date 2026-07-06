@@ -28,6 +28,12 @@ if ! resolved_history=$(printf "%s" "$infer_input" | _infer); then
   log_and_exit 1 "Inference failed."
 fi
 
+# Print a newline to stderr to move the cursor past the cache icons 
+# before the final output is printed to stderr console.
+if [ -t 1 ]; then
+    printf '\n' >&2
+fi
+
 # 4. Extract strictly the text string content of the final assistant response.
 # echo "resolved_history=$resolved_history"
 assistant_text=$(jq -r '.[-1].content | select (. != null) | tostring // empty' <<< "$resolved_history")
