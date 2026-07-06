@@ -2,7 +2,7 @@
 
 printf '```bash
 $ %s\n' "${*}"
-${*}
+"$@"
 s=$?
 printf '```\n'
 exit $s
