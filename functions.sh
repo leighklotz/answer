@@ -279,7 +279,7 @@ function hx() {
             echo "no cache is available"
             return 1;
         fi
-        echo "⚠️  Are you sure you want to remove $cache_dir? (y/N)" >&2
+        echo "⚠️ Are you sure you want to remove $cache_dir? (y/N)" >&2
         read -r -p "Delete directory? (y/N): " reply < /dev/tty
         if [[ "$reply" =~ ^[Yy]$ ]]; then
             rm -rf -- "$cache_dir"
@@ -292,14 +292,22 @@ function hx() {
         cache_dir=$(_find_cache_dir)
         echo "$cache_dir"
         return 0
+    elif [ "$1" == "cache" ] && [ "$2" == "disable" ]; then
+        export NO_CACHE=1
+        echo "⚠️ Cache disabled."
+        return 0
+    elif [ "$1" == "cache" ] && [ "$2" == "enable" ]; then
+        export NO_CACHE=""
+        unset NO_CACHE
+        echo "⚠️ Cache enabled."
+        return 0
     elif [ "$1" == "disable" ]; then
         source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
     elif [ "$1" == "answer" ] || [ "$1" == "enable" ]; then
         source ~/wip/answer/commands/enable
     else
-        echo "usage: hx cache clear"
+        echo "usage: hx cache {clear|show|enable}"
         return 1
     fi
 }
-
 
