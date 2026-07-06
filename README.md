@@ -49,6 +49,12 @@ To see what the LLM is saying without breaking the pipeline, use the `--tee` (`-
 $ ask "Plan a script" | ask -t "Write the code" | answer
 ```
 
+**5. Paging**
+For large log files, you can use split to page through files without context overlap.
+```bash
+sudo dmesg | split -l 1000 --filter="help.sh look for anomalies in this 1000-line segment of dmesg output"
+```
+
 ---
 
 ## How it Works: The Dual-Layer Logic
