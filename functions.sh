@@ -294,6 +294,10 @@ function hx() {
             echo "🚫 Cancelled."
         fi
         return 0
+    elif [ "$1" == "disable" ]; then
+        source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
+    elif [ "$1" == "answer" ] || [ "$1" == "enable" ]; then
+        source ~/wip/answer/commands/enable
     else
         echo "usage: hx cache clear"
         return 1
