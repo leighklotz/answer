@@ -8,6 +8,8 @@
 ask [OPTIONS] [PROMPT...]
 ```
 
+The first non-flag argument begins the prompt.
+
 ## Pipeline Model
 The `ask` command always generates **JSON** to preserve the conversation state. However, JSON is difficult for humans to read in a terminal.
 *   **`ask`**: Produces raw JSON (The "Machine" layer).
@@ -38,7 +40,7 @@ The behavior of `ask` changes based on the input source:
 
 | Condition | Behavior |
 |-----------|----------|
-| **Interactive (Terminal)** | Reads the command-line arguments as the user's prompt. |
+| **Interactive (Terminal)** | Reads the command-line arguments (starting from the first non-flag) as the user's prompt. |
 | **Piped (JSON History)** | If `stdin` starts with the `PIPELINE_MAGIC_HEADER`, it treats the input as a full JSON conversation history and appends the prompt as a new `user` message. |
 | **Piped (Raw Text)** | If `stdin` is a pipe but does **not** contain the magic header, it treats the incoming text as raw content to be prepended to the prompt (prefixed with `CONTEXT:`). |
 
@@ -108,4 +110,3 @@ Use `-t` to see the human text in the terminal while passing JSON down the pipe.
 ```bash
 $ ask "Write a bash script" | ask -t "Add error handling" | answer
 ```
-

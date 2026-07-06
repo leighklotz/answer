@@ -15,7 +15,9 @@ while [[ $# -gt 0 ]]; do
     -i | --input) PLAIN_INPUT="1"; shift ;;
     --use-system-message) USE_SYSTEM_MSG=true; shift ;;
     --tee | -t) TEE_MODE="1"; shift ;;
-    --help) echo "Usage: ask [-i|--input] [--use-system-message] [--tee|-t] [prompt]" >&2; exit 0 ;;
+    --) break ;;
+    --help) echo "Usage: ask [-i|--input] [--use-system-message] [--tee|-t] [prompt]" >&2; exit 0;;
+    --*|-*) echo "unrecognized option $1"; exit 0 ;;
     *) break ;;
   esac
 done
