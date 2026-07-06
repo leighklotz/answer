@@ -55,7 +55,7 @@ done
 
 # options are sent bare on the line since there can be multiple options
 # ASK_OPTIONS is an array but GIT_DIFF_OPTIONS is built up word by word
-log_warn "ASK_OPTIONS=$ASK_OPTIONS"
+log_warn "ASK_OPTIONS=${ASK_OPTIONS[@]}"
 log_warn "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 
 (bx pwd; bx git rev-parse --show-toplevel; git diff --stat --no-merges ${GIT_DIFF_OPTIONS}; bx git diff --numstat ${GIT_DIFF_OPTIONS}; bx git diff ${GIT_DIFF_OPTIONS}; bx git diff --cached ${GIT_DIFF_OPTIONS}) \

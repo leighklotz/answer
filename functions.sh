@@ -50,21 +50,6 @@ function _delete_registered_files() {
 
 trap _delete_registered_files EXIT INT TERM HUP
 
-function _strip_header(){
-  local input
-  # Read the entire stdin into the 'input' variable
-  input=$(cat)
-
-  # Remove the header line if present.
-  input="${input#"${PIPELINE_MAGIC_HEADER}"}"
-
-  # Remove a single leading newline if present.
-  if [[ "$input" == $'\n'* ]]; then
-    input="${input#$'\n'}"
-  fi
-
-  printf '%s' "$input"
-}
 
 function bx ()
 {
@@ -163,6 +148,9 @@ function ask ()
 }
 
 function _find_cache_dir () {
+  if [ -n "$NO_CACHE" ]; then
+    return 0
+  fi
   local current_dir
   current_dir="$(pwd)"
 
@@ -235,15 +223,17 @@ function _infer () {
   request_hash=$(openssl dgst -sha256 < "$tmp_req" | awk '{print $2}')
 
   cache_dir=$(_find_cache_dir)
-  mkdir -p "$cache_dir"
-  cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
+  cache_file=""
+  if [ -n "$cache_dir" ]; then
+      mkdir -p "$cache_dir"
+      cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
+  fi
 
-  if [ -f "$cache_file" ]; then
+  if  [ -n "$cache_dir" ] && [ -f "$cache_file" ]; then
     printf "🎯" >&2
     response_json=$(cat "$cache_file")
   else
     printf "💭" >&2
-    # log_warn "request=$(cat "$tmp_req")"
     response_json=$(curl -fsS -X POST "$endpoint" \
                          -H "Authorization: Bearer $api_key" \
                          -H "Content-Type: application/json" \
@@ -267,7 +257,7 @@ function _infer () {
   }
 
   # Only cache responses that passed validation.
-  if [ ! -f "$cache_file" ]; then
+  if [ -n "$cache_file" ] && [ ! -f "$cache_file" ]; then
     local tmp_cache
     tmp_cache=$(mktemp_reg "${cache_file}.tmp.XXXXXX")
     printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
@@ -285,6 +275,10 @@ function _infer () {
 function hx() {
     if [ "$1" == "cache" ] && [ "$2" == "clear" ]; then
         cache_dir=$(_find_cache_dir)
+        if [ -z "$cache_dir" ]; then
+            echo "no cache is available"
+            return 1;
+        fi
         echo "⚠️  Are you sure you want to remove $cache_dir? (y/N)" >&2
         read -r -p "Delete directory? (y/N): " reply < /dev/tty
         if [[ "$reply" =~ ^[Yy]$ ]]; then

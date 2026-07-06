@@ -11,9 +11,7 @@ if [ -t 0 ]; then
 fi
 # 
 # 2. Read stdin and pass through the core infer engine to guarantee a resolved state.
-  infer_input=$(cat)
-
-  if ! resolved_history=$(printf "%s" "$infer_input" | _infer); then
+  if ! resolved_history=$(cat | _infer); then
     log_and_exit 1 "Inference failed."
   fi
 
