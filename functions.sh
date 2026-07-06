@@ -294,6 +294,10 @@ function hx() {
             echo "🚫 Cancelled."
         fi
         return 0
+    elif [ "$1" == "cache" ] && [ "$2" == "show" ]; then
+        cache_dir=$(_find_cache_dir)
+        echo "$cache_dir"
+        return 0
     elif [ "$1" == "disable" ]; then
         source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
     elif [ "$1" == "answer" ] || [ "$1" == "enable" ]; then
