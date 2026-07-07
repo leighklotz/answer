@@ -50,6 +50,7 @@ fi
 
 # 5. Safe interactive confirmation when unfence is used in a pipeline
 if [ ! -t 1 ]; then
+    echo "" >&2
     cat "$fenced_file" | ${pager} 1>&2
     read -r -p "🤖 Proceed with this command? (y/N): " reply < /dev/tty
 else
