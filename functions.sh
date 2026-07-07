@@ -29,7 +29,7 @@ function _register_file_deletion() {
 
 function mktemp_reg() {
   local tmp
-  if ! tmp=$(mktemp "$@"); then
+  if ! tmp=$(mktemp "${TMPDIR:-/tmp}/$@"); then
     log_and_exit 1 "failed to create temp file"
   fi
   log_debug "mktemp $tmp"
@@ -313,3 +313,4 @@ function hx() {
 
 alias to_awk='help output the calculation in a code fence as an awk script to be used as stdin to \`awk -f -\`'
 alias to_bash='help output the calculation in a code fence as a bash script to be used as stdin to \`bash\`'
+alias to_python='help output the calculation in a code fence as a python script to be used as stdin to \`python\`'
