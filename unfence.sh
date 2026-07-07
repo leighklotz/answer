@@ -52,7 +52,8 @@ awk '
 
 num_blocks=$(wc -l < "$tmp_meta")
 if [ "$num_blocks" -eq 0 ]; then
-    log_and_exit 1 "No fenced code block found in input"
+    log_warn "No fenced code block found"
+    exit 2
 fi
 
 # 4. Display content via pager to stderr (So user can see the whole board)

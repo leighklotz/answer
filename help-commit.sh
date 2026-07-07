@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash 
 
+set -o pipefail
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
@@ -63,3 +64,14 @@ log_trace "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
   | answer \
   | unfence \
   | bash
+
+# Capture the exit status of the last command in the pipe (thanks to pipefail)
+STATUS=$?
+
+if [ $STATUS -eq 2 ]; then
+    # Code 2 means 'unfence' found no blocks. Exit cleanly and silently.
+    exit 0
+fi
+
+# If it was anything else, exit with that status (error or success)
+exit $STATUS
