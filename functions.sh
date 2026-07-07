@@ -211,7 +211,7 @@ function _infer () {
       messages: .,
       max_tokens: $max_tokens,
       thinking: $thinking,
-      thinking_budget_tokens: 20000
+      thinking_budget_tokens: 5000
     }' < "$tmp_json" > "$tmp_req"
 
   local server_model fingerprint request_hash cache_dir cache_file response_json
