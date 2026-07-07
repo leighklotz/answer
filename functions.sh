@@ -20,49 +20,54 @@ fi
 
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-# Single global list for file cleanup
-CLEANUP_FILES=()
-
-function _register_file_deletion() {
-  CLEANUP_FILES+=("$@")
-}
+# Tempfile Registry
+# --- SHARED WORKSPACE SETUP ---
+# Initialize a shared temporary workspace IF NOT inherited, OR if the inherited dir was deleted.
+if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
+    export HALLUX_RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hallux_run.XXXXXX")"
+    
+    # CRITICAL: Track the EXACT process ID that created this directory.
+    export HALLUX_RUN_OWNER_PID="$BASHPID"
+fi
 
 function mktemp_reg() {
-  local tmp
-  if ! tmp=$(mktemp "${TMPDIR:-/tmp}/$@"); then
-    log_and_exit 1 "failed to create temp file"
-  fi
-  log_debug "mktemp $tmp"
-  _register_file_deletion "$tmp"
-  echo "$tmp"
+    local tmp
+    # Force the template to be created INSIDE our shared run directory
+    if ! tmp=$(mktemp "$HALLUX_RUN_DIR/$1"); then
+        log_and_exit 1 "failed to create temp file"
+    fi
+    log_debug "mktemp $tmp"
+    MKTEMP_REG="$tmp"
+    return 0
 }
 
 function mktemp_reg_lit() {
-  local tmp
-  if ! tmp=$(mktemp "$@"); then
-    log_and_exit 1 "failed to create temp file"
-  fi
-  log_debug "mktemp $tmp"
-  _register_file_deletion "$tmp"
-  echo "$tmp"
+    local tmp
+    # For literal paths (like caching alongside the target file), use standard mktemp.
+    # We do not track these in the run dir because they are used for atomic file moves.
+    if ! tmp=$(mktemp "$1"); then
+        log_and_exit 1 "failed to create temp file"
+    fi
+    log_debug "mktemp $tmp"
+    MKTEMP_REG="$tmp"
+    return 0
 }
 
-function _delete_registered_files() {
-  local file
-  log_warn _delete_registered_files
-  for file in "${CLEANUP_FILES[@]}"; do
-      if [ -d "$file" ] && [ ! -L "$file" ]; then
-          log_warn rmdir "$file"
-          rmdir -- "$file" || log_warn "Unable to delete directory $file"
-      elif [ -f "$file" ] || [ -L "$file" ]; then
-          log_warn rm "$file"
-          rm -f -- "$file"
-      fi
-  done
-  CLEANUP_FILES=()
+function _cleanup_run_dir() {
+    # If a subshell or a downstream pipeline script exits, it inherits the trap 
+    # but its $BASHPID will not match the original owner.
+    # This prevents subshells/pipes from nuking the workspace while the parent is still alive.
+    if [[ "$BASHPID" != "$HALLUX_RUN_OWNER_PID" ]]; then
+        return 0
+    fi
+    
+    if [[ -d "$HALLUX_RUN_DIR" ]]; then
+        log_warn "Cleaning up workspace: $HALLUX_RUN_DIR"
+        rm -rf -- "$HALLUX_RUN_DIR"
+    fi
 }
 
-trap _delete_registered_files EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
+trap '_cleanup_run_dir' EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
 
 function bx ()
 {
@@ -188,8 +193,10 @@ function _find_cache_dir () {
 
 function _infer () {
   local tmp_json tmp_req last_role
-  tmp_json=$(mktemp_reg 'infer.XXXXXX.json')
-  tmp_req=$(mktemp_reg 'response.XXXXXX.json')
+  log_warn "calling mktemp_reg 'infer.XXXXXX.json'"
+  mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
+  log_warn "calling mktemp_reg 'response.XXXXXX.json'"
+  mktemp_reg 'response.XXXXXX.json' && tmp_req="$MKTEMP_REG"
 
   # Read first line to check for header
   read -r first_line
@@ -272,7 +279,7 @@ function _infer () {
   # Only cache responses that passed validation.
   if [ -n "$cache_file" ] && [ ! -f "$cache_file" ]; then
     local tmp_cache
-    tmp_cache=$(mktemp_reg_lit "${cache_file}.tmp.XXXXXX")
+    mktemp_reg_lit "${cache_file}.tmp.XXXXXX" && tmp_cache="$MKTEMP_REG"
     printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
   fi
 
