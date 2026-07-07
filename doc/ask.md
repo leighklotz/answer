@@ -12,11 +12,7 @@ ask [OPTIONS] [PROMPT...]
 The first non-flag argument begins the prompt.
 
 ## Pipeline Model
-The `ask` command always generates **JSON** to preserve the conversation state. However, JSON is difficult for humans to read in a terminal.
-*   **`ask`**: Produces raw JSON (the "Machine" layer).
-*   **`answer`**: Converts JSON into human-readable text (the "Presentation" layer).
-
-The `ask` command includes an **"Auto-answer"** feature: if it detects it is running in an interactive terminal, it automatically pipes its JSON through `answer` for you.
+The `ask` command always generates **JSON** to preserve the conversation state, but when used to pipe to another **Answer** tool, or when output is direct to a a terminal, `ask` auto-answers and outputs only the last assistant response.
 
 - **Interactive Mode (Auto-answer):** When running in a terminal where `stdout` is the screen, `ask` automatically pipes the JSON through `answer`. You see human-readable text.
 - **Pipeline Mode:** When `ask` is used in a script or piped into another command, it outputs **raw JSON**. This allows the next command to read the conversation state.
@@ -24,7 +20,7 @@ The `ask` command includes an **"Auto-answer"** feature: if it detects it is run
 
 ## Description
 
-`ask` is designed to be the primary entry point for starting or continuing a conversation. It manages conversation state by passing full JSON arrays of message objects between pipeline stages.
+`ask`, and wrappers such as `help`, are designed to be the primary entry point for starting or continuing a conversation. They manages conversation state by passing full conversation between pipeline stages.
 
 ## Options
 

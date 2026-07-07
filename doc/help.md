@@ -12,58 +12,59 @@ The first non-flag argument begins the prompt.
 
 ## Description
 
-`help` is a convenience command that automatically injects a specialized `SYSTEM_MESSAGE` into the LLM context. While `ask` is a general-purpose state builder, `help` is tuned for efficiency: it is configured to provide direct answers and executable code while **avoiding unnecessary exposition** (optimized for a one-shot, question-and-response workflow).
+`help` is a convenience command that automatically injects a specialized `SYSTEM_MESSAGE` into the LLM context to ensure highly technical, concise, and executable responses. While `ask` is a general-purpose state builder for any conversation type, `help` is tuned for efficiency: it is configured to provide direct answers and actionable code while **avoiding unnecessary exposition**.
 
-**Note:** While `help` uses a default technical persona, you can override this behavior by setting the `SYSTEM_MESSAGE` environment variable before running the command.
+**Note:** By default, `help` uses the "Technical Assistant" persona (optimized for coding/Linux). You can override this global behavior by setting the `SYSTEM_MESSAGE` environment variable before running the command. Because of how `help` is implemented, it always operates in `--use-system-message` mode to ensure context integrity.
 
-When used in a pipeline, `help` behaves exactly like `ask`, managing conversational history and allowing for complex, stateful technical workflows.
+When used in a pipeline, `help` behaves exactly like `ask`, managing conversational history and allowing for complex, stateful technical workflows through JSON objects.
 
 ## Options
 
-Since `help` is a wrapper for `ask`, it supports all `ask` options:
+Since `help` acts as an optimized interface for `ask`, it supports all of its operational flags:
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-i` | `--input` | **Attachment Mode:** Treats `stdin` as raw text to be prepended to the `PROMPT` (as an "attachment") rather than as a JSON conversation history. In a terminal, this enables multi-line input (terminated with `Ctrl-D`). |
-| `-t` | `--tee` | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated, resolved JSON conversation history to **stdout**. |
-| `--help` | | Print usage information and exit. |
+| `-i` | `--input` | **Attachment Mode:** Treats `stdin` (from a pipe or TTY) as raw text to be appended with an `ATTACHMENT:` label. In a terminal, this enables multi-line input via Ctrl+D. |
+| `-t` | `--tee` | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated JSON conversation history through **stdout**. This is essential for mid-pipeline inspection. |
 
 ## Input Modes
 
+Since `help` inherits all logic from `ask`, it supports multiple input streams:
+
 | Condition | Behavior |
 |-----------|----------|
-| **Interactive (Terminal)** | Reads the command-line arguments as the user's prompt. |
-| **Piped (JSON History)** | If `stdin` starts with the `PIPELINE_MAGIC_HEADER`, it treats the input as a JSON conversation history. |
-| **Piped (Raw Text)** | If `stdin` is a pipe but contains raw text, it treats the incoming text as context to be prepended to the prompt. |
+| **Interactive (Terminal)** | Reads command-line arguments as the user's prompt and outputs to terminal via a human-readable format. |
+| **Piped (JSON History)** | If `stdin` starts with `PIPELINE_MAGIC_HEADER`, it treats the input as an existing JSON conversation history to be extended. |
+| **Piped (Raw Text) + Prompt** | Treats incoming text from `stdin` as context, appended to your command-line prompt. |
 
 ## Examples
 
 **1. Quick Technical Query**
-Get immediate assistance with a Linux command or programming concept.
+Get immediate assistance with a Linux command or programming concept without setting up complex environment variables.
 ```bash
 $ help "How do I recursively find all .log files larger than 100MB?"
 ```
 
 **2. Analyzing Command History**
-Pass your recent shell history to `help` to understand or refactor what you have been doing.
+Pipe your recent shell history into `help` to have an LLM explain and optimize your workflow.
 ```bash
 $ history 20 | help "Explain the commands I just ran and suggest improvements"
 ```
 
-**3. Debugging Command Output**
-Pipe the output of a failing command directly into `help` to diagnose the issue.
+**3. Debugging Pipeline Output**
+Directly pipe error logs or command outputs for instant diagnosis.
 ```bash
 $ dmesg | tail -n 20 | help "Are there any critical hardware errors here?"
 ```
 
-**4. Code Generation and Refactoring**
-Use it within a pipeline to transform code or scripts.
+**4. Code Generation & Refactoring in a Pipe**
+Use `help` to transform code, passing the output through an extraction tool like `unfence`.
 ```bash
 $ cat script.sh | help "Refactor this to use associative arrays" | unfence | bash
 ```
 
-**5. Chained Technical Investigation**
-Use mid-pipeline observation to see the logic while continuing the conversation.
+**5. Mid-Pipeline Observation**
+Use `-t` (tee) to monitor the LLM's thought process or response in your terminal without breaking a JSON pipeline intended for another tool.
 ```bash
-$ ls -l | help -t "Explain these permissions" | help "How would I change them for the owner?"
+$ ls -l | help "Explain these permissions" --tee | ask "Now show me how to change them"
 ```
