@@ -311,3 +311,5 @@ function hx() {
     fi
 }
 
+alias to_awk='help output the calculation in a code fence as an awk script to be used as stdin to \`awk -f -\`'
+alias to_bash='help output the calculation in a code fence as a bash script to be used as stdin to \`bash\`'
