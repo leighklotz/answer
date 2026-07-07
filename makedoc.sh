@@ -32,6 +32,7 @@ for cmd in answer ask bx help-commit help unfence; do
 
     context+=(README.md tests/story-test.sh doc/*.md)
     lx "${context[@]}" | help "$prompt" | answer > "$dest"
+    echo >&2
     if [ ! -s "$dest" ]; then
         log_and_exit 1 "$dest was empty"
     fi
