@@ -18,20 +18,30 @@ if [ -z "${VIA_API_CHAT_BASE+x}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/env.s
     source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 fi
 
+# MIME Headers
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
 # Tempfile Registry
 # --- SHARED WORKSPACE SETUP ---
-# Initialize a shared temporary workspace IF NOT inherited, OR if the inherited dir was deleted.
-if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
-    export HALLUX_RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hallux_run.XXXXXX")"
-    # track the process ID that created this directory
-    export HALLUX_RUN_OWNER_PID="$BASHPID"
-    echo "Creating $HALLUX_RUN_DIR pid=$HALLUX_RUN_OWNER_PID"
-fi
+
+function _ensure_workspace() {
+    # Initialize a shared temporary workspace ONLY when a temp file is actually requested.
+    if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
+        export HALLUX_RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hallux_run.XXXXXX")"
+        # Track the process ID that created this directory
+        export HALLUX_RUN_OWNER_PID="$BASHPID"
+        log_trace "Creating $HALLUX_RUN_DIR pid=$HALLUX_RUN_OWNER_PID"
+    fi
+    
+    # Register the cleanup trap only in processes that are actually using temp files.
+    # (Setting this inside the function prevents hijacking interactive shell traps)
+    trap '_cleanup_run_dir' EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
+}
 
 function mktemp_reg() {
     local tmp
+    _ensure_workspace
+    
     # Force the template to be created INSIDE our shared run directory
     if ! tmp=$(mktemp "$HALLUX_RUN_DIR/$1"); then
         log_and_exit 1 "failed to create temp file"
@@ -56,7 +66,6 @@ function mktemp_reg_lit() {
 function _cleanup_run_dir() {
     # If a subshell or a downstream pipeline script exits, it inherits the trap 
     # but its $BASHPID will not match the original owner.
-    # This prevents subshells/pipes from nuking the workspace while the parent is still alive.
     if [[ "$BASHPID" != "$HALLUX_RUN_OWNER_PID" ]]; then
         return 0
     fi
@@ -66,8 +75,6 @@ function _cleanup_run_dir() {
         rm -rf -- "$HALLUX_RUN_DIR"
     fi
 }
-
-trap '_cleanup_run_dir' EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
 
 function bx ()
 {
