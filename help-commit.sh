@@ -69,7 +69,8 @@ log_trace "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 STATUS=$?
 
 if [ $STATUS -eq 2 ]; then
-    # Code 2 means 'unfence' found no blocks. Exit cleanly and silently.
+    # code 2 means 'unfence' found no blocks, or perhaps bash did (!)
+    log_warn "No changes"
     exit 0
 fi
 
