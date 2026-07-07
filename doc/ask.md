@@ -42,15 +42,15 @@ The behavior of `ask` changes based on the input source and flags:
 |-----------|-------|--------------------------|
 | **Interactive (Terminal)** | No stdin / No flags | `[Prompt]` |
 | **Piped (JSON History)** | `stdin` starts with `PIPELINE_MAGIC_HEADER` | `[Existing History] + [Prompt]` |
-| **Piped (Raw Text)** | `stdin` is raw text + Prompt provided | `[Prompt] + "\n\nCONTEXT:\n" + [stdin]` |
-| **Piped (Raw Text)** | `stdin` is raw text + No prompt | `[stdin]` |
+| **Piped (Raw Text) + Prompt** | `stdin` is raw text + Prompt provided | `[Prompt] + "\n\nCONTEXT:\n" + [stdin]` |
+| **Piped (Raw Text) + No Prompt** | `stdin` is raw text + No prompt | `[stdin]` |
 | **Attachment Mode (`-i`)** | `stdin` provided (Pipe or TTY) | `[Prompt] + "\n\nATTACHMENT:\n" + [stdin]` |
 
 ## Output Modes
 
 | Context | Behavior |
 |---------|----------|
-| **Interactive (Terminal)** | **Auto-answered:** The JSON is automatically passed to `answer`. The user sees text, and the global `LAST_ANSWER` variable is updated. |
+| **Interactive (Terminal)** | **Auto-answered:** The JSON is automatically passed to `answer`. The user sees the answer text. |
 | **Pipeline (Non-Terminal)** | Outputs the `PIPELINE_MAGIC_HEADER` followed by the updated JSON conversation array to `stdout`. |
 | **Observation (`--tee`)** | Prints the human-readable text response to **stderr** and sends the resolved JSON conversation history to **stdout**. |
 
@@ -59,7 +59,7 @@ The behavior of `ask` changes based on the input source and flags:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | _(empty)_ | Bearer token for API authentication. |
-| `VIA_API_CHAT_BASE` | `http://localhost:5000` | The base URL for the OpenAI-compatible API. |
+| `VIA_API_CHAT_BASE` | `http://localhost:5000` | The base URL for the OpenAI-compatible API. Full URL used: `$VIA_API_CHAT_COMPLETIONS_ENDPOINT`. |
 | `SYSTEM_MESSAGE` | _(empty)_ | The text used as the initial `system` role message when `--use-system-message` is used. |
 
 ## Examples

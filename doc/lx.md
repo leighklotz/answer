@@ -1,6 +1,6 @@
-# `lx.sh` Usage Documentation
+# lx.sh Usage Documentation
 
-`lx.sh` is a utility designed to print the contents of files wrapped in Markdown fenced code blocks, making it ideal for preparing code snippets for documentation or LLM prompts.
+`lx.sh` is a utility designed to wrap file contents in Markdown fenced code blocks, making it ideal for preparing snippets for documentation or LLM prompts. It handles language detection automatically and supports custom headers and footers.
 
 ## Syntax
 ```bash
@@ -8,49 +8,65 @@ lx.sh [--before=STR] [--after=STR] [files...]
 ```
 
 ## Description
-The script reads file paths from command-line arguments or from `stdin` (one path per line). It attempts to identify the programming language based on the file extension and wraps the content in appropriate Markdown code fences.
+The script reads file paths from command-line arguments or from `stdin` (one path per line). It identifies the programming language based on the file extension, wraps the content in appropriate Markdown code fences, and injects metadata using customizable headers (`--before`) and footers (`--after`).
 
 ### Features
-* **Automatic Language Detection:** Uses file extensions to determine the language (e.g., `.py` $\rightarrow$ `python`, `.sh` $\rightarrow$ `bash`).
-* **Flexible Input:** Accepts direct file arguments or piped input from `stdin`.
-* **Placeholder Support:** Use placeholders in the `--before` string to dynamically inject metadata.
-* **Robustness:** Skips non-existent files, directories, and unreadable files.
+* **Automatic Language Detection:** Uses common file extensions to determine syntax highlighting tags (e.g., `.py` $\rightarrow$ `python`, `.sh` $\rightarrow$ `bash`).
+* **Flexible Input:** Accepts direct file arguments, a list of files via pipes, or interactive input from `stdin`.
+* **Placeholder Support:** Use special placeholders in `--before` to inject filenames and detected languages.
+* **Escape Sequence Support:** Since the script uses `printf %b`, you can use escape sequences like `\n` in your custom strings to insert newlines.
+* **Robustness:** Gracefully skips directories, non-regular files, unreadable files, or missing files without stopping the entire process.
 
 ## Options
 
 | Option | Description |
 | :--- | :--- |
-| `--before=STR` | Custom string to print before the code block. |
-| `--after=STR` | Custom string to print after the code block. |
+| `--before=STR` | A custom string to print before each code block. Use placeholders `{filename}` and `{language}` for dynamic content. Supports `\n`. |
+| `--after=STR` | A custom string to print after each code block (e.g., closing fences or separators). Supports `\n`. |
 | `--help` | Displays the usage information. |
 
 ### Placeholders (for `--before`)
-* `{filename}`: The path/name of the current file.
-* `{language}`: The detected language name.
+* `{filename}`: The name/path of the current file being processed.
+* `{language}`: The detected programming language name (e.g., `javascript`, `rust`).
 
 ## Default Behavior
-If no options are provided:
-* **Default `--before`:** `# file {filename}` followed by a newline and ` ```{language}`
-* **Default `--after`:** ` ``` ` followed by a newline and `---`
+If no options are provided, the script uses these defaults for every file:
+
+**Default `--before`:**
+```markdown
+# file <filename>
+```{language}
+```
+*(Note: A newline is added after the filename and language tag)*
+
+**Default `--after`:**
+```markdown
+```
+---
 
 ## Examples
 
-**1. Basic usage with files as arguments:**
+**1. Basic usage with multiple files as arguments:**
 ```bash
 ./lx.sh script.py main.js README.md
 ```
 
-**2. Using `stdin` for multiple files:**
+**2. Using `stdin` (e.g., from a find command):**
 ```bash
-find . -name "*.py" | ./lx.sh
+find . -name "*.go" | ./lx.sh
 ```
 
-**3. Customizing the header with placeholders:**
+**3. Customizing the header with placeholders and newlines:**
 ```bash
-./lx.sh --before="### File: {filename} ({language})" script.rb
+./lx.sh --before="### File: {filename}\nLanguage: `{language}`\n--- \n" script.rb
 ```
 
-**4. Customizing both header and footer:**
+**4. Adding a custom footer to separate blocks clearly:**
 ```bash
-./lx.sh --before="START\n\n" --after="\n\nEND" config.yaml
+./lx.sh --after="\n\x60\x60\x60\n---\n" config.yaml
+```
+
+**5. Piping output directly into another command (e.g., an LLM tool):**
+```bash
+cat error.log | ./lx.sh --before="Context: {filename}" | ask "What caused this?"
 ```

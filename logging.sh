@@ -63,7 +63,15 @@ function log_info {
 function log_warn {
     local prog="$(basename "$0")"
     local message="$1"
-    log_with_icon '⚠️' "${COLOR_YELLOW}WARN ${prog}:${NOCOLOR} ${message}" # note there is another space and single quote hidden by the icon
+    log_with_icon '⚠️' "${COLOR_YELLOW}WARN ${prog}:${NOCOLOR} ${message}"
+}
+
+function log_trace {
+    if [ -n "${INFO}" ]; then
+      local prog="$(basename "$0")"
+      local message="$1"
+      log_with_icon '🔍' "${COLOR_BLUE}TRACE ${prog}:${NOCOLOR} ${message}"
+    fi
 }
 
 function log_error {

@@ -1,63 +1,83 @@
-<<<<<<< HEAD
-=======
 # unfence
 
-**unfence** is a utility that extracts the raw content from the first Markdown code block found in an input stream. It is primarily used to strip away Markdown formatting and surrounding conversational text, making LLM-generated output ready for direct execution by shell interpreters.
+**unfence** is an intelligent extraction utility designed to isolate code blocks from Markdown content within a pipeline. It bridges the gap between conversational LLM output (which contains explanations and multiple snippets) and shell execution environments by stripping away non-code text.
 
 ## Synopsis
 
 ```bash
-<text-with-fences> | unfence
+<text-with-fences> | unfence [LANGUAGE]
 ```
+
+The optional `[LANGUAGE]` argument allows you to target a specific block type immediately via the command line.
 
 ## Description
 
-When an LLM generates a response, it typically wraps code within Markdown fences (e.g., ` ```bash `). `unfence` scans the input, identifies the first occurrence of a code block, and isolates the content within those markers. This allows you to bridge the gap between a text-based LLM response and a command-line execution environment.
+When an LLM generates a response, it typically wraps code within Markdown fences (e.g., ` ```bash `). **unfence** scans the input, identifies available fenced blocks, and extracts content for execution or further processing. 
+
+Unlike a simple parser that only finds the first block, **unfence** is context-aware:
+* It can resolve conversation history into plain text if receiving JSON via a pipeline magic header.
+* it supports "Language Sniping" to target specific snippets in multi-block responses.
+* It provides an interactive selection layer when multiple valid code blocks are present.
 
 ## Key Features
 
 | Feature | Behavior |
 |---------|---------|
-| **First-Block Extraction** | If the input contains multiple code blocks, `unfence` only extracts the content of the first one. |
-| **Auto-answer** | If the input begins with the `PIPELINE_MAGIC_HEADER` (indicating a JSON conversation state), `unfence` automatically invokes `answer` to resolve the state into plain text before attempting extraction. |
-| **Pipeline Safety** | When its output is being piped to another command (e.g., `unfence | bash`), `unfence` provides a safety gate that requires explicit user confirmation before allowing the code to flow to `stdout`. |
-| **Error Handling** | If no Markdown code block is detected in the input, the command logs an error and exits with status `1`. |
+| **Adaptive Extraction** | If no language is provided and only one block exists, it extracts it directly (with a safety prompt). If multiple blocks exist, it enters **Selection Mode**. |
+| **Language Sniping** | Providing a language argument (e.g., `unfence python`) filters the available blocks to those matching that specific language tag. |
+| **Auto-answer** | If the input begins with the `PIPELINE_MAGIC_HEADER` (indicating a JSON conversation state), it automatically invokes `answer` to resolve the state into plain text before attempting extraction. |
+| **Pipeline Safety Gate** | To prevent accidental execution of dangerous code, it provides an interactive safety gate whenever its output is being piped or when multiple choices are available. |
+
+## Interactive Modes
+
+### 1. Selection Mode (Multiple Blocks)
+If your input contains several different code blocks and you run `unfence` without a target language, the script will prompt you to choose which one to extract:
+* **By Index:** Enter the number of the block (e.g., `1`, `2`).
+* **By Language:** Enter the name of a language present in the list (e.g., `bash`, `python`) to filter down further.
+
+### 2. Targeted Mode (`unfence <lang>`)
+If you run `unfence python`, the script skips general selection and attempts to find all Python blocks:
+* **One Match:** It identifies that specific block and prompts for confirmation (if piped).
+* **Multiple Matches:** It asks which of the matching indices you wish to extract.
 
 ## Pipeline Safety Gate
 
-To prevent the accidental execution of incorrect or dangerous code in a pipeline, `unfence` provides a safety gate when its `stdout` is redirected or piped:
+To prevent the accidental execution of incorrect or dangerous code in a pipeline, `unfence` provides a safety gate whenever:
+1. Its output is being redirected/piped (`stdout != TTY`).
+2. Multiple blocks are detected, requiring user selection.
 
-1.  **Preview:** The extracted content is displayed to **stderr** via a pager so it does not interfere with the pipe. The pager is selected in the following order of priority:
-    *   `$PIPETEST_PAGER` (if set)
-    *   `batcat`
-    *   `bat`
-    *   `cat` (fallback)
-2.  **Confirmation:** The user is prompted: `🤖 Proceed with this command? (y/N): ` via the actual terminal (`/dev/tty`).
-3.  **Decision:**
-    *   **`y` / `Y`**: The content is sent to `stdout` for the next command in the pipeline.
-    *   **Any other key**: The process prints `🚫 discarded` to `stderr` and exits.
-
-*Note: If running `unfence` directly in a terminal (where stdout is a TTY), the command outputs the code immediately without prompting.*
+**The Workflow:**
+1. **Preview:** The extracted content (or the list of options) is displayed to **stderr** via a pager so it does not interfere with the pipe. Pager priority: `batcat` $\rightarrow$ `bat` $\rightarrow$ `less`/`more` $\rightarrow$ `cat`.
+2. **Confirmation:** You are prompted: `🤖 Proceed with this command? (y/N): `.
+3. **Decision:** 
+    * **`y`**: The content is sent to `stdout` for the next command in the pipeline.
+    * **Any other key**: The process prints `🚫 discarded` to `stderr` and exits safely.
 
 ## Examples
 
-**1. Direct Execution (The "Code-to-Shell" Pattern)**
-Extract a bash script from an LLM response and run it immediately.
+**1. Targeted Extraction (The "Language Sniper")**
+If an LLM provides a Bash script followed by a Python test script, you can pick only the Python part:
+```bash
+# This will prompt you which python block to use if multiple exist
+ask "Write a bash setup and a python validator" | unfence python | python3
+```
+
+**2. Direct Execution (The "Code-to-Shell" Pattern)**
+Extract a shell script from an LLM response and run it immediately:
 ```bash
 ask "Write a script to list all running processes" | unfence | bash
 ```
-*(Note: This will trigger the safety prompt before `bash` executes the code.)*
+*(Note: This will trigger the safety prompt before `bash` executes.)*
 
-**2. Extracting Python Code**
-Clean the output of a conversational response to use in a Python interpreter.
+**3. Handling Multiple Blocks Interactively**
+If you pipe multiple blocks without specifying a language, the tool guides you through selection:
 ```bash
-ask "Write a python function to calculate primes. Put it all in one code fence." | unfence | python
+# The user is prompted to select by number or language name
+ask "Give me three different ways to list files in bash" | unfence | bash
 ```
 
-**3. Direct Pipeline from `ask`**
+**4. Cleaning Output for Tools**
+Use it mid-pipeline to isolate code from a long conversational response before passing it to a compiler:
 ```bash
-ask "Give me a bash one-liner to check disk usage" | unfence | bash
+ask "Write a C++ program that prints Hello World and include the compilation command as text" | answer | unfence cpp > main.cpp && g++ main.cpp -o main && ./main
 ```
-```
-
->>>>>>> newdoc

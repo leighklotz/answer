@@ -18,38 +18,63 @@ if [ -z "${VIA_API_CHAT_BASE+x}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/env.s
     source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 fi
 
+# MIME Headers
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-# Single global list for file cleanup
-CLEANUP_FILES=()
+# Tempfile Registry
+# --- SHARED WORKSPACE SETUP ---
 
-function _register_file_deletion() {
-  CLEANUP_FILES+=("$@")
+function _ensure_workspace() {
+    # Initialize a shared temporary workspace ONLY when a temp file is actually requested.
+    if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
+        export HALLUX_RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hallux_run.XXXXXX")"
+        # Track the process ID that created this directory
+        export HALLUX_RUN_OWNER_PID="$BASHPID"
+        log_trace "Creating $HALLUX_RUN_DIR pid=$HALLUX_RUN_OWNER_PID"
+    fi
+    
+    # Register the cleanup trap only in processes that are actually using temp files.
+    # (Setting this inside the function prevents hijacking interactive shell traps)
+    trap '_cleanup_run_dir' EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
 }
 
 function mktemp_reg() {
-  local tmp
-  if ! tmp=$(mktemp "$@"); then
-    log_and_exit 1 "failed to create temp file"
-  fi
-  log_debug "mktemp $tmp"
-  _register_file_deletion "$tmp"
-  echo "$tmp"
+    local tmp
+    _ensure_workspace
+    
+    # Force the template to be created INSIDE our shared run directory
+    if ! tmp=$(mktemp "$HALLUX_RUN_DIR/$1"); then
+        log_and_exit 1 "failed to create temp file"
+    fi
+    log_debug "mktemp $tmp"
+    MKTEMP_REG="$tmp"
+    return 0
 }
 
-function _delete_registered_files() {
-  local file
-  for file in "${CLEANUP_FILES[@]}"; do
-      if [ -d "$file" ] && [ ! -L "$file" ]; then
-          rmdir -- "$file" || log_warn "Unable to delete directory $file"
-      elif [ -f "$file" ] || [ -L "$file" ]; then
-          rm -f -- "$file"
-      fi
-  done
-  CLEANUP_FILES=()
+function mktemp_reg_lit() {
+    local tmp
+    # For literal paths (like caching alongside the target file), use standard mktemp.
+    # We do not track these in the run dir because they are used for atomic file moves.
+    if ! tmp=$(mktemp "$1"); then
+        log_and_exit 1 "failed to create temp file"
+    fi
+    log_debug "mktemp $tmp"
+    MKTEMP_REG="$tmp"
+    return 0
 }
 
-trap _delete_registered_files EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
+function _cleanup_run_dir() {
+    # If a subshell or a downstream pipeline script exits, it inherits the trap 
+    # but its $BASHPID will not match the original owner.
+    if [[ "$BASHPID" != "$HALLUX_RUN_OWNER_PID" ]]; then
+        return 0
+    fi
+    
+    if [[ -d "$HALLUX_RUN_DIR" ]]; then
+        log_trace "Cleaning up workspace: $HALLUX_RUN_DIR"
+        rm -rf -- "$HALLUX_RUN_DIR"
+    fi
+}
 
 function bx ()
 {
@@ -175,8 +200,10 @@ function _find_cache_dir () {
 
 function _infer () {
   local tmp_json tmp_req last_role
-  tmp_json=$(mktemp_reg 'infer.XXXXXX.json')
-  tmp_req=$(mktemp_reg 'response.XXXXXX.json')
+  log_trace "calling mktemp_reg 'infer.XXXXXX.json'"
+  mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
+  log_trace "calling mktemp_reg 'response.XXXXXX.json'"
+  mktemp_reg 'response.XXXXXX.json' && tmp_req="$MKTEMP_REG"
 
   # Read first line to check for header
   read -r first_line
@@ -225,6 +252,7 @@ function _infer () {
   cache_dir=$(_find_cache_dir)
   cache_file=""
   if [ -n "$cache_dir" ]; then
+      log_trace "Creating cache_dir=$cache_dir"
       mkdir -p "$cache_dir"
       cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
   fi
@@ -240,7 +268,6 @@ function _infer () {
                          -d @"$tmp_req") || {
       return 1
     }
-    # log_warn "response_json=$response_json"
   fi
 
   # Contract: OpenAI-compatible chat completion response with non-empty assistant content.
@@ -259,7 +286,7 @@ function _infer () {
   # Only cache responses that passed validation.
   if [ -n "$cache_file" ] && [ ! -f "$cache_file" ]; then
     local tmp_cache
-    tmp_cache=$(mktemp_reg "${cache_file}.tmp.XXXXXX")
+    mktemp_reg_lit "${cache_file}.tmp.XXXXXX" && tmp_cache="$MKTEMP_REG"
     printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
   fi
 
@@ -283,7 +310,7 @@ function hx() {
         read -r -p "Delete directory? (y/N): " reply < /dev/tty
         if [[ "$reply" =~ ^[Yy]$ ]]; then
             rm -rf -- "$cache_dir"
-            echo "🗑️  Cache  cleaed."
+            echo "🗑️  Cache cleared."
         else
             echo "🚫 Cancelled."
         fi
@@ -313,3 +340,4 @@ function hx() {
 
 alias to_awk='help output the calculation in a code fence as an awk script to be used as stdin to \`awk -f -\`'
 alias to_bash='help output the calculation in a code fence as a bash script to be used as stdin to \`bash\`'
+alias to_python='help output the calculation in a code fence as a python script to be used as stdin to \`python\`'

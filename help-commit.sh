@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash 
 
+set -o pipefail
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
@@ -55,11 +56,23 @@ done
 
 # options are sent bare on the line since there can be multiple options
 # ASK_OPTIONS is an array but GIT_DIFF_OPTIONS is built up word by word
-log_warn "ASK_OPTIONS=${ASK_OPTIONS[@]}"
-log_warn "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
+log_trace "ASK_OPTIONS=${ASK_OPTIONS[@]}"
+log_trace "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 
 (bx pwd; bx git rev-parse --show-toplevel; git diff --stat --no-merges ${GIT_DIFF_OPTIONS}; bx git diff --numstat ${GIT_DIFF_OPTIONS}; bx git diff ${GIT_DIFF_OPTIONS}; bx git diff --cached ${GIT_DIFF_OPTIONS}) \
   | ask -i "${ASK_OPTIONS[@]}" -- "${GIT_COMMIT_PROMPT}" \
   | answer \
   | unfence \
   | bash
+
+# Capture the exit status of the last command in the pipe (thanks to pipefail)
+STATUS=$?
+
+if [ $STATUS -eq 2 ]; then
+    # code 2 means 'unfence' found no blocks, or perhaps bash did (!)
+    log_warn "No changes"
+    exit 0
+fi
+
+# If it was anything else, exit with that status (error or success)
+exit $STATUS

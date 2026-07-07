@@ -1,6 +1,7 @@
 #!/usr/bin/env -S bash
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
@@ -27,7 +28,7 @@ prompt="$*"
 # --- INPUT HANDLING & HISTORY BUILDING ---
 # If stdin is a pipe OR if we are in a TTY and -i was specified
 if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
-  stdin_tmp=$(mktemp_reg 'ask.XXXXXX.txt')
+  mktemp_reg 'ask.XXXXXX.txt' && stdin_tmp="$MKTEMP_REG"
   
   # Prompt if we are in a TTY and -i was specified
   if [[ -t 0 && "$PLAIN_INPUT" == "1" ]]; then
@@ -35,6 +36,7 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
   fi
 
   # Read STDIN
+  log_trace "stdin_temp=$stdin_tmp"
   cat > "$stdin_tmp"
 
   is_history=false
@@ -59,7 +61,8 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
                     '[{role: "user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
   elif [[ "$is_history" == true ]]; then
     # MODE: Conversation History (JSON)
-    clean_stdin_tmp=$(mktemp_reg "ask.XXXXXX.json")
+    mktemp_reg "ask.XXXXXX.json" && clean_stdin_tmp="$MKTEMP_REG"
+
     tail -n +2 "$stdin_tmp" > "$clean_stdin_tmp"
 
     log_info "0. TEE_MODE=$TEE_MODE resolving incoming history"
@@ -97,9 +100,9 @@ fi
 
 # Apply system context if requested
 if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
-    # this fails if $SYSTEM_MESSAGE is large, but that is ok
-    # TODO: assure that stdin is a JSON array
-    # TODO: verify this works
+  # this fails if $SYSTEM_MESSAGE is large, but that is ok
+  # TODO: assure that stdin is a JSON array
+  # TODO: verify this works
   messages=$(jq --arg sys "$SYSTEM_MESSAGE" '[{role: "system", content: $sys}] + .' <<< "$messages")
 fi
 
