@@ -79,5 +79,5 @@ ask "Give me three different ways to list files in bash" | unfence | bash
 **4. Cleaning Output for Tools**
 Use it mid-pipeline to isolate code from a long conversational response before passing it to a compiler:
 ```bash
-ask "Write a C++ program that prints Hello World and include the compilation command as text" | answer | unfence -c++.cpp | g++ main.cpp -o main && ./main
+ask "Write a C++ program that prints Hello World and include the compilation command as text" | answer | unfence cpp > main.cpp && g++ main.cpp -o main && ./main
 ```
