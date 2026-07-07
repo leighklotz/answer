@@ -29,7 +29,6 @@ Unlike a simple parser, `answer` is an active participant in the pipeline. If th
 |-----------|----------|
 | **Piped (JSON History)** | Reads a `PIPELINE_MAGIC_HEADER` and the JSON conversation array from `stdin`. If the last message is from the user, it triggers inference to resolve the turn before extracting text. |
 | **Piped (Raw Text/Context)** | Treats incoming raw text as part of an existing state or context; resolves via `_infer` if necessary, then extracts the resulting assistant response. |
-| **Interactive (Terminal Call)** | When called directly in a terminal via its shell function wrapper and no stdin is detected, it retrieves and prints the content stored in the global `$LAST_ANSWER` variable from the previous operation. |
 
 ## Output Modes
 
