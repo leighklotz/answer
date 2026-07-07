@@ -15,7 +15,7 @@ The `answer` command is a shell function that provides an enhanced interactive i
 In a pipeline, `ask` and `tools` pass heavy JSON arrays to maintain conversation state. The `answer` command acts as a gatekeeper that allows you to transition from "conversation mode" (passing JSON) to "tooling/shell mode" (passing plain text).
 
 ### The Resolution Step
-Unlike a simple parser, `answer` is an active participant in the pipeline. If the incoming JSON history represents an incomplete conversation (i.e., the last message is from the `user`), `answer` executes an inference call to generate the assistant's response. It then strips the JSON metadata and delivers the final response as raw text.
+Unlike a simple parser, `answer` is an active participant in the pipeline. If the incoming JSON history represents an incomplete conversation (i.e., the last message is from the `user`), `answer` executes an inference to generate the assistant's response. It then strips the JSON metadata and delivers the final response as raw text.
 
 ## Options
 
@@ -27,7 +27,7 @@ Unlike a simple parser, `answer` is an active participant in the pipeline. If th
 
 | Condition | Behavior |
 |-----------|----------|
-| **Piped Input** | Reads the mime-header and JSON conversation array from `stdin`. If the array ends with a `user` message, `answer` resolves the turn via `_infer` before extracting the text. |
+| **Piped Input** | Reads the mime-header and JSON conversation array from `stdin`. If the array ends with a `user` message, `answer` infers the answer before extracting the text. |
 | **Piped Input (Raw Text)** | Reads raw text from `stdin`, treats it as a single-turn history, resolves it, and outputs the assistant's response. |
 | **Interactive (Terminal)** | (Provided by shell function) If called directly in a terminal and the global `LAST_ANSWER` variable is set, it retrieves and prints the content of that variable without requiring `stdin`. |
 
@@ -38,8 +38,8 @@ The behavior of `answer` changes depending on how it is used in a pipeline:
 | Mode | Context | stdout | stderr |
 |------|---------|--------|--------|
 | **Observation** (`--tee`) | Used mid-pipeline (e.g., `... | answer --tee | ask ...`) | The full JSON conversation array | The plain text content of the last message |
-| **Extraction** (no flags, piped) | Used as a terminal endpoint for tools (e.g., `... | answer | python`) | The plain text content of the last message | _(nothing)_ |
-| **Terminal** (no flags, direct call) | Used at the end of a command chain in a terminal | The plain text content of the last message | _(nothing)_ |
+| **Extraction** (no flags, piped) | Used as a terminal endpoint for tools (e.g., `... | answer | python`) | The plain text content of the last message | cache icons / newline |
+| **Terminal** (no flags, direct call) | Used at the end of a command chain in a terminal | The plain text content of the last message | cache icons / newline |
 
 ## Examples
 

@@ -29,20 +29,22 @@ The `ask` command includes an **"Auto-answer"** feature: if it detects it is run
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-i` | `--input` | **Attachment Mode:** If used with a pipe or in a terminal, treats `stdin` as raw text to be prepended to the `PROMPT` with an `ATTACHMENT:` label. In interactive mode, this enables multi-line input (terminated with `Ctrl-D`). |
+| `-i` | `--input` | **Attachment Mode:** Forces `stdin` to be treated as a formal attachment. Content is appended to the prompt with an `ATTACHMENT:` label. In a terminal, this enables multi-line input (terminated with `Ctrl-D`). |
 | `-t` | `--tee` | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated, resolved JSON conversation history to **stdout**. |
 | `--use-system-message` | | Prepends the content of the `$SYSTEM_MESSAGE` environment variable as a `system` role message to the conversation. |
 | `--help` | | Print usage information and exit. |
 
 ## Input Modes
 
-The behavior of `ask` changes based on the input source:
+The behavior of `ask` changes based on the input source and flags:
 
-| Condition | Behavior |
-|-----------|----------|
-| **Interactive (Terminal)** | Reads the command-line arguments (starting from the first non-flag) as the user's prompt. |
-| **Piped (JSON History)** | If `stdin` starts with the `PIPELINE_MAGIC_HEADER`, it treats the input as a full JSON conversation history and appends the prompt as a new `user` message. |
-| **Piped (Raw Text)** | If `stdin` is a pipe but does **not** contain the magic header, it treats the incoming text as raw content to be prepended to the prompt (prefixed with `CONTEXT:`). |
+| Condition | Logic | Resulting Message Format |
+|-----------|-------|--------------------------|
+| **Interactive (Terminal)** | No stdin / No flags | `[Prompt]` |
+| **Piped (JSON History)** | `stdin` starts with `PIPELINE_MAGIC_HEADER` | `[Existing History] + [Prompt]` |
+| **Piped (Raw Text)** | `stdin` is raw text + Prompt provided | `[Prompt] + "\n\nCONTEXT:\n" + [stdin]` |
+| **Piped (Raw Text)** | `stdin` is raw text + No prompt | `[stdin]` |
+| **Attachment Mode (`-i`)** | `stdin` provided (Pipe or TTY) | `[Prompt] + "\n\nATTACHMENT:\n" + [stdin]` |
 
 ## Output Modes
 
@@ -70,7 +72,7 @@ The capital of Japan is Tokyo.
 ```
 
 **2. Piped Text as Context**
-Pass the contents of a file to the LLM. The content will be prefixed with `CONTEXT:` in the message.
+Pass the contents of a file to the LLM. Because no `-i` is used, it is treated as general context.
 ```bash
 $ cat logs.txt | ask "Are there any errors in these logs?"
 💭
@@ -78,7 +80,7 @@ Yes, there is an error on line 42 regarding a connection timeout.
 ```
 
 **3. Using Attachment Mode (`-i`)**
-When using `-i`, the content is prefixed with `ATTACHMENT:`. This is useful if you want to explicitly signal to the LLM that the piped content is a formal attachment.
+Use `-i` to explicitly signal to the LLM that the piped content is a formal attachment.
 ```bash
 $ cat logs.txt | ask -i "Analyze this attachment"
 💭
@@ -106,7 +108,7 @@ $ cat code.py | ask "Refactor this" | tools python_tools | answer
 ```
 
 **7. Observation Mode (Mid-Pipeline)**
-Use `-t` to see the human text in the terminal while passing JSON down the pipe.
+Use `-t` to see the text in the terminal while passing JSON down the pipe to maintain state.
 ```bash
 $ ask "Write a bash script" | ask -t "Add error handling" | answer
 ```

@@ -1,6 +1,8 @@
+<<<<<<< HEAD
+=======
 # help-commit
 
-**help-commit** is a specialized utility in the Answer framework that automates the generation and execution of `git commit` commands. It analyzes your current git state—including status, file changes, and staged changes—using an LLM and produces a `git commit` command following the Conventional Commits specification.
+**help-commit** is a specialized utility in the Answer framework that automates the generation and execution of `git commit` commands. It analyzes your current git state—including working directory, repository root, and file changes—using an LLM and produces a `git commit` command following the Conventional Commits specification.
 
 ## Synopsis
 
@@ -12,15 +14,17 @@ help-commit [git diff options] [--] [ask options]
 
 The command performs the following workflow:
 1. **Environment Check:** Verifies that the current working directory is inside a Git repository.
-2. **Context Gathering:** Executes a series of `bx` wrapped git commands to collect state:
-    * `git status`
+2. **Context Gathering:** Executes a series of `bx` wrapped commands to collect state:
+    * `pwd`
+    * `git rev-parse --show-toplevel`
+    * `git diff --stat --no-merges [options]`
     * `git diff --numstat [options]`
     * `git diff [options]`
     * `git diff --cached [options]`
 3. **Inference:** Pipes the structured git context to `ask` with a specialized prompt instructing the LLM to output a `git commit` command.
 4. **Extraction & Execution:** Uses `answer` to extract the text, `unfence` to strip markdown, and `bash` to execute the generated command.
 
-If the LLM determines it lacks sufficient information to write a meaningful commit message, it will instead output a request for further git results.
+If the LLM determines it lacks sufficient information to write a meaningful commit message and needs more data, it will instead output a request for further git results.
 
 ## Options
 
@@ -63,4 +67,4 @@ $ help-commit -q
 
 * **0:** Success (The command was executed or the LLM requested more info).
 * **1:** Failure (Not in a git repository or an error occurred during the pipeline).
-
+>>>>>>> newdoc
