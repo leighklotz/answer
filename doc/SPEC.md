@@ -19,7 +19,7 @@ The core component. Sends a user prompt to a language-model API and returns the 
 ```
 
 When invoked as the shell function `ask` (sourced from `functions.sh` via `enable.sh`):
-1.  **Interactive Mode:** If stdout is a terminal, it calls `ask.sh`, then pipes the result to `answer` to display pretty text and updates the global `LAST_ANSWER` variable.
+1.  **Interactive Mode:** If stdout is a terminal, it calls `ask.sh`, then pipes the result to `answer` to display pretty text.
 2.  **Pipeline Mode:** It detects the `PIPELINE_MAGIC_HEADER` to continue existing conversations or treats incoming piped text as an attachment to the prompt.
 
 When invoked directly as `ask.sh`, only stdout is used.
@@ -84,7 +84,6 @@ Extracts the content of the last message from a JSON conversation array.
 
 | Condition | Source |
 |-----------|--------|
-| stdin is a terminal and `LAST_ANSWER` is set | Reads `LAST_ANSWER` |
 | stdin is a pipe | Reads stdin |
 
 #### Output

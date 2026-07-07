@@ -50,7 +50,7 @@ The behavior of `ask` changes based on the input source and flags:
 
 | Context | Behavior |
 |---------|----------|
-| **Interactive (Terminal)** | **Auto-answered:** The JSON is automatically passed to `answer`. The user sees text, and the global `LAST_ANSWER` variable is updated. |
+| **Interactive (Terminal)** | **Auto-answered:** The JSON is automatically passed to `answer`. The user sees the answer text. |
 | **Pipeline (Non-Terminal)** | Outputs the `PIPELINE_MAGIC_HEADER` followed by the updated JSON conversation array to `stdout`. |
 | **Observation (`--tee`)** | Prints the human-readable text response to **stderr** and sends the resolved JSON conversation history to **stdout**. |
 

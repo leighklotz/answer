@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash -ex
+#!/usr/bin/env -S bash -e
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/env.sh"
@@ -23,7 +23,7 @@ for cmd in answer ask bx help-commit help unfence; do
     [ -n "$src" ] && context+=("$src")
 
     if [ -f $doc_md ]; then
-        prompt="Check and update the usage document for the $cmd command in $src"
+        prompt="Check and update the usage document for the $cmd command in $src. Output the entire file, not delta instructions."
         dest="${doc_md_new}"
     else
         prompt="Create the usage document for the $cmd command for $src"
