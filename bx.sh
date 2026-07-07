@@ -1,7 +1,6 @@
 #!/usr/bin/env -S bash
 
-printf '```bash
-$ %s\n' "${*}"
+printf '```bash\n$ %s\n' "${*}"
 "$@"
 s=$?
 printf '```\n'
