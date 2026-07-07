@@ -36,7 +36,7 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
   fi
 
   # Read STDIN
-  log_warn "stdin_temp=$stdin_tmp"
+  log_trace "stdin_temp=$stdin_tmp"
   cat > "$stdin_tmp"
 
   is_history=false

@@ -25,9 +25,9 @@ PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 # Initialize a shared temporary workspace IF NOT inherited, OR if the inherited dir was deleted.
 if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
     export HALLUX_RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hallux_run.XXXXXX")"
-    
-    # CRITICAL: Track the EXACT process ID that created this directory.
+    # track the process ID that created this directory
     export HALLUX_RUN_OWNER_PID="$BASHPID"
+    echo "Creating $HALLUX_RUN_DIR pid=$HALLUX_RUN_OWNER_PID"
 fi
 
 function mktemp_reg() {
@@ -62,7 +62,7 @@ function _cleanup_run_dir() {
     fi
     
     if [[ -d "$HALLUX_RUN_DIR" ]]; then
-        log_warn "Cleaning up workspace: $HALLUX_RUN_DIR"
+        log_trace "Cleaning up workspace: $HALLUX_RUN_DIR"
         rm -rf -- "$HALLUX_RUN_DIR"
     fi
 }
@@ -193,9 +193,9 @@ function _find_cache_dir () {
 
 function _infer () {
   local tmp_json tmp_req last_role
-  log_warn "calling mktemp_reg 'infer.XXXXXX.json'"
+  log_trace "calling mktemp_reg 'infer.XXXXXX.json'"
   mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
-  log_warn "calling mktemp_reg 'response.XXXXXX.json'"
+  log_trace "calling mktemp_reg 'response.XXXXXX.json'"
   mktemp_reg 'response.XXXXXX.json' && tmp_req="$MKTEMP_REG"
 
   # Read first line to check for header
@@ -245,6 +245,7 @@ function _infer () {
   cache_dir=$(_find_cache_dir)
   cache_file=""
   if [ -n "$cache_dir" ]; then
+      log_trace "Creating cache_dir=$cache_dir"
       mkdir -p "$cache_dir"
       cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
   fi
@@ -260,7 +261,6 @@ function _infer () {
                          -d @"$tmp_req") || {
       return 1
     }
-    # log_warn "response_json=$response_json"
   fi
 
   # Contract: OpenAI-compatible chat completion response with non-empty assistant content.
@@ -303,7 +303,7 @@ function hx() {
         read -r -p "Delete directory? (y/N): " reply < /dev/tty
         if [[ "$reply" =~ ^[Yy]$ ]]; then
             rm -rf -- "$cache_dir"
-            echo "🗑️  Cache  cleaed."
+            echo "🗑️  Cache cleared."
         else
             echo "🚫 Cancelled."
         fi
