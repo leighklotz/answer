@@ -48,8 +48,7 @@ function _delete_registered_files() {
   CLEANUP_FILES=()
 }
 
-trap _delete_registered_files EXIT INT TERM HUP
-
+trap _delete_registered_files EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
 
 function bx ()
 {
