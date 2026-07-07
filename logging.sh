@@ -67,9 +67,11 @@ function log_warn {
 }
 
 function log_trace {
-    local prog="$(basename "$0")"
-    local message="$1"
-    log_with_icon '🔍' "${COLOR_BLUE}TRACE ${prog}:${NOCOLOR} ${message}"
+    if [ -n "${INFO}" ]; then
+      local prog="$(basename "$0")"
+      local message="$1"
+      log_with_icon '🔍' "${COLOR_BLUE}TRACE ${prog}:${NOCOLOR} ${message}"
+    fi
 }
 
 function log_error {
