@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 # help
 
 **help** is a specialized wrapper for the `ask` command, pre-configured with a system prompt optimized for high-precision technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering.
@@ -9,6 +7,8 @@
 ```bash
 help [OPTIONS] [PROMPT...]
 ```
+
+The first non-flag argument begins the prompt.
 
 ## Description
 
@@ -24,7 +24,7 @@ Since `help` is a wrapper for `ask`, it supports all `ask` options:
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-i` | `--input` | **Attachment Mode:** Treats `stdin` as raw text to be prepended to the `PROMPT` (as an "attachment") rather than as a JSON conversation history. |
+| `-i` | `--input` | **Attachment Mode:** Treats `stdin` as raw text to be prepended to the `PROMPT` (as an "attachment") rather than as a JSON conversation history. In a terminal, this enables multi-line input (terminated with `Ctrl-D`). |
 | `-t` | `--tee` | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated, resolved JSON conversation history to **stdout**. |
 | `--help` | | Print usage information and exit. |
 
@@ -67,4 +67,3 @@ Use mid-pipeline observation to see the logic while continuing the conversation.
 ```bash
 $ ls -l | help -t "Explain these permissions" | help "How would I change them for the owner?"
 ```
->>>>>>> newdoc

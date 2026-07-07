@@ -42,8 +42,8 @@ The behavior of `ask` changes based on the input source and flags:
 |-----------|-------|--------------------------|
 | **Interactive (Terminal)** | No stdin / No flags | `[Prompt]` |
 | **Piped (JSON History)** | `stdin` starts with `PIPELINE_MAGIC_HEADER` | `[Existing History] + [Prompt]` |
-| **Piped (Raw Text)** | `stdin` is raw text + Prompt provided | `[Prompt] + "\n\nCONTEXT:\n" + [stdin]` |
-| **Piped (Raw Text)** | `stdin` is raw text + No prompt | `[stdin]` |
+| **Piped (Raw Text) + Prompt** | `stdin` is raw text + Prompt provided | `[Prompt] + "\n\nCONTEXT:\n" + [stdin]` |
+| **Piped (Raw Text) + No Prompt** | `stdin` is raw text + No prompt | `[stdin]` |
 | **Attachment Mode (`-i`)** | `stdin` provided (Pipe or TTY) | `[Prompt] + "\n\nATTACHMENT:\n" + [stdin]` |
 
 ## Output Modes
@@ -59,7 +59,7 @@ The behavior of `ask` changes based on the input source and flags:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | _(empty)_ | Bearer token for API authentication. |
-| `VIA_API_CHAT_BASE` | `http://localhost:5000` | The base URL for the OpenAI-compatible API. |
+| `VIA_API_CHAT_BASE` | `http://localhost:5000` | The base URL for the OpenAI-compatible API. Full URL used: `$VIA_API_CHAT_COMPLETIONS_ENDPOINT`. |
 | `SYSTEM_MESSAGE` | _(empty)_ | The text used as the initial `system` role message when `--use-system-message` is used. |
 
 ## Examples
