@@ -7,7 +7,7 @@ source "${SCRIPT_DIR}/functions.sh"
 
 # 1. Read stdin into tmp_raw immediately
 tmp_raw=$(mktemp_reg 'unfence.XXXXXX.md')
-fenced_file=$(mktemp_reg 'unfenced.XXXXXX')
+fenced_file=$(mktemp_reg 'unfenced.XXXXXX.dat')
 cat > "$tmp_raw"
 
 # 2. Perform Inference
