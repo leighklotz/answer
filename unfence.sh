@@ -122,7 +122,7 @@ elif [ "$num_blocks" -eq 1 ]; then
     target_idx=1
     
     if [ "$NEEDS_CONFIRM" = true ]; then
-        read -r -p "🤖 Found 1 code block. Proceed with this command? (y/N): " reply < /dev/tty
+        read -r -p "🤖 Proceed? (y/N): " reply < /dev/tty
         [[ "${reply,,}" =~ ^y ]] || { printf "🚫 discarded\n" >&2; exit 0; }
     fi
 
@@ -130,10 +130,10 @@ else
     # Path C: Un-targeted, Multiple Blocks
     # Always prompt here because we need a decision.
     while true; do
-        read -r -p "🤖 Found $num_blocks code blocks. Extract which? (e.g., bash, python, 1, 2, q): " reply < /dev/tty
+        read -r -p "🤖 Found $num_blocks code blocks. Extract which? (e.g., bash, python, 1, 2, ..., n, q): " reply < /dev/tty
         reply="${reply,,}"
         
-        if [[ "$reply" == "q" || "$reply" == "quit" ]]; then
+        if [[ "$reply" == "q" || "$reply" == "quit" || "$reply" == "n" ]]; then
             printf "🚫 discarded\n" >&2
             exit 0
         elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "$num_blocks" ]; then
