@@ -37,12 +37,25 @@ function mktemp_reg() {
   echo "$tmp"
 }
 
+function mktemp_reg_lit() {
+  local tmp
+  if ! tmp=$(mktemp "$@"); then
+    log_and_exit 1 "failed to create temp file"
+  fi
+  log_debug "mktemp $tmp"
+  _register_file_deletion "$tmp"
+  echo "$tmp"
+}
+
 function _delete_registered_files() {
   local file
+  log_warn _delete_registered_files
   for file in "${CLEANUP_FILES[@]}"; do
       if [ -d "$file" ] && [ ! -L "$file" ]; then
+          log_warn rmdir "$file"
           rmdir -- "$file" || log_warn "Unable to delete directory $file"
       elif [ -f "$file" ] || [ -L "$file" ]; then
+          log_warn rm "$file"
           rm -f -- "$file"
       fi
   done
@@ -259,7 +272,7 @@ function _infer () {
   # Only cache responses that passed validation.
   if [ -n "$cache_file" ] && [ ! -f "$cache_file" ]; then
     local tmp_cache
-    tmp_cache=$(mktemp_reg "${cache_file}.tmp.XXXXXX")
+    tmp_cache=$(mktemp_reg_lit "${cache_file}.tmp.XXXXXX")
     printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
   fi
 
