@@ -32,6 +32,7 @@ function mktemp_reg() {
   if ! tmp=$(mktemp "$@"); then
     log_and_exit 1 "failed to create temp file"
   fi
+  log_debug "mktemp $tmp"
   _register_file_deletion "$tmp"
   echo "$tmp"
 }
@@ -174,8 +175,8 @@ function _find_cache_dir () {
 
 function _infer () {
   local tmp_json tmp_req last_role
-  tmp_json=$(mktemp_reg)
-  tmp_req=$(mktemp_reg)
+  tmp_json=$(mktemp_reg 'infer.XXXXXX.json')
+  tmp_req=$(mktemp_reg 'response.XXXXXX.json')
 
   # Read first line to check for header
   read -r first_line

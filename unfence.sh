@@ -6,14 +6,14 @@ source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
 # 1. Read stdin into tmp_raw immediately
-tmp_raw=$(mktemp_reg)
-fenced_file=$(mktemp_reg)
+tmp_raw=$(mktemp_reg 'unfence.XXXXXX.md')
+fenced_file=$(mktemp_reg 'unfenced.XXXXXX')
 cat > "$tmp_raw"
 
 # 2. Perform Inference
 if [[ "$(head -c 100 "$tmp_raw")" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
     # Create a specific temp file for the resolved content and register it immediately
-    tmp_resolved=$(mktemp_reg)
+    tmp_resolved=$(mktemp_reg 'unfence.XXXXXX.json')
 
     if ! answer < "$tmp_raw" > "$tmp_resolved"; then
         log_and_exit 1 "Failed to resolve magic header via answer"
