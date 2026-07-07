@@ -2,9 +2,7 @@
 ```markdown
 # answer
 
-**answer** is the "Text Extractor" and pipeline "Cut-Point" in the Answer framework. It bridges the gap between LLM conversation state (JSON) and standard shell execution (Plain Text). It is a **state-resolving** command: if the incoming JSON history ends with a `user` message, `answer` will automatically trigger the inference engine to complete the turn before extracting the assistant text.
-
-The `answer` command is provided as both a core script (`answer.sh`) and an enhanced shell function that enables interactive usage via terminal-aware logic (such as `--tee` observation and `LAST_ANSWER` retrieval).
+**answer** is the text extractor and pipeline cut-point in Answer. It bridges the gap between LLM conversation state (JSON) and standard shell execution (Plain Text). It is a **state-resolving** command: if the incoming JSON history ends with a `user` message, `answer` will automatically trigger the inference engine to complete the turn before extracting the assistant text. You should use `answer` when you need the last response of an inference pipeline to be extracted from the conversation and output to something other than a terminal, such as a pipe or a file.
 
 ## Synopsis
 
@@ -65,4 +63,4 @@ ask "Plan a complex bash script" | answer --tee | ask "Now add logging to that p
 ```
 *In this pattern: The code appears on your screen (via stderr), but the JSON history continues through stdout for the next command.*
 
----
+
