@@ -253,7 +253,7 @@ function _infer () {
   cache_file=""
   if [ -n "$cache_dir" ]; then
       log_trace "Creating cache_dir=$cache_dir"
-      mkdir -p "$cache_dir"
+      mkdir -m 700 -p "$cache_dir"
       cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
   fi
 
