@@ -3,3 +3,4 @@
 hallux/
 .hallux
 env.sh
+.DS_Store

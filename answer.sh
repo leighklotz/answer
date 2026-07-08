@@ -29,9 +29,10 @@ if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ]; then
   log_and_exit 1 "Cannot extract assistant message content."
 fi
 
-# 5. Always output raw text.
+# 5. By default, output assistant text to stdout.
+#    With 
 if [ -t 1 ]; then
-  # EOL 
+
   printf '%s\n' "$assistant_text"
 else
   # Inside a pipeline

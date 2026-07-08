@@ -21,9 +21,7 @@ fi
 # MIME Headers
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-# Tempfile Registry
 # --- SHARED WORKSPACE SETUP ---
-
 function _ensure_workspace() {
     # Initialize a shared temporary workspace ONLY when a temp file is actually requested.
     if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
@@ -38,7 +36,7 @@ function _ensure_workspace() {
     trap '_cleanup_run_dir' EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
 }
 
-function mktemp_reg() {
+function _mktemp_reg() {
     local tmp
     _ensure_workspace
     
@@ -51,7 +49,7 @@ function mktemp_reg() {
     return 0
 }
 
-function mktemp_reg_lit() {
+function _mktemp_reg_lit() {
     local tmp
     # For literal paths (like caching alongside the target file), use standard mktemp.
     # We do not track these in the run dir because they are used for atomic file moves.
@@ -74,102 +72,6 @@ function _cleanup_run_dir() {
         log_trace "Cleaning up workspace: $HALLUX_RUN_DIR"
         rm -rf -- "$HALLUX_RUN_DIR"
     fi
-}
-
-function bx ()
-{
-    local quiet
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -q) quiet=1; shift ;;
-            -*) echo "🦶bx: unknown option $1" >&2; return 1 ;;
-            *) break ;;
-        esac
-    done
-
-    bx.sh "$@"
-    local s=$?
-    if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
-        echo "🦶bx: ERROR: bx.sh failed with exit code $s" >&2
-        return 1
-    fi
-}
-
-function tools ()
-{
-    local s
-
-    # pass through to tools.sh which will error appropriately.
-    tools.sh "$@"
-    s=$?
-
-    if [ $s -ne 0 ]; then
-        echo "🦶ERROR: tools.sh failed with exit code $s" >&2
-        return $s
-    fi
-}
-
-# 2. if input starts with magic header, get answer
-# 2. prompt answer and ask for confirmation
-# 3. cancel oo output answer
-# unfence also has this built in
-function pipetest()
-{
-    # Sanity Check: If running interactively but no prompt provided, warn of potential hang
-    if [ -t 0 ] && [[ "$*" != *"-i"* ]]; then
-        echo "🦶pipetest: No user query detected in arguments; waiting for STDIN..." >&2
-    fi
-
-    local user_query="$*"
-
-    # Capture stdin first
-    local input=$(cat)
-
-    # If stdin is an unresolved conversation, resolve it to assistant text first.
-    if [[ "$input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-      input=$(printf '%s\n' "$input" | answer)
-    fi
-
-
-    # Auto-detect the best available viewing tool
-    local pager
-    if [ -n "${PIPETEST_PAGER}" ]; then
-        pager="${PIPETEST_PAGER}"
-    elif command -v batcat >/dev/null 2>&1; then
-        pager="batcat --style=numbers,grid"
-    elif command -v bat >/dev/null 2>&1; then
-        pager="bat --style=numbers,grid"
-    else
-        pager="cat"
-    fi
-
-    # Render file content directly to stderr
-    printf "%s" "${input}" | ${pager} 1>&2
-
-    # Safe interactive prompt from /dev/tty
-    local reply
-    read -r -p "🤖 ${user_query}: Y or N? " reply < /dev/tty
-
-    printf "\n" 1>&2
-    case "${reply,,}" in
-        y*)
-            printf "%s" "${input}"
-        ;;
-        *)
-            printf "🚫 discarded\n" 1>&2
-        ;;
-    esac
-}
-
-# use `builtin help` if you want native bash help command
-function help ()
-{
-    help.sh "$@"
-}
-
-function ask ()
-{
-    ask.sh "$@"
 }
 
 function _find_cache_dir () {
@@ -200,10 +102,8 @@ function _find_cache_dir () {
 
 function _infer () {
   local tmp_json tmp_req last_role
-  log_trace "calling mktemp_reg 'infer.XXXXXX.json'"
-  mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
-  log_trace "calling mktemp_reg 'response.XXXXXX.json'"
-  mktemp_reg 'response.XXXXXX.json' && tmp_req="$MKTEMP_REG"
+  _mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
+  _mktemp_reg 'response.XXXXXX.json' && tmp_req="$MKTEMP_REG"
 
   # Read first line to check for header
   read -r first_line
@@ -286,7 +186,7 @@ function _infer () {
   # Only cache responses that passed validation.
   if [ -n "$cache_file" ] && [ ! -f "$cache_file" ]; then
     local tmp_cache
-    mktemp_reg_lit "${cache_file}.tmp.XXXXXX" && tmp_cache="$MKTEMP_REG"
+    _mktemp_reg_lit "${cache_file}.tmp.XXXXXX" && tmp_cache="$MKTEMP_REG"
     printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
   fi
 
@@ -299,43 +199,84 @@ function _infer () {
   return $infer_status
 }
 
+### user-level Functions and aliases
+
 function hx() {
-    if [ "$1" == "cache" ] && [ "$2" == "clear" ]; then
-        cache_dir=$(_find_cache_dir)
-        if [ -z "$cache_dir" ]; then
-            echo "no cache is available"
-            return 1;
-        fi
-        echo "⚠️ Are you sure you want to remove $cache_dir? (y/N)" >&2
-        read -r -p "Delete directory? (y/N): " reply < /dev/tty
-        if [[ "$reply" =~ ^[Yy]$ ]]; then
-            rm -rf -- "$cache_dir"
-            echo "🗑️  Cache cleared."
-        else
-            echo "🚫 Cancelled."
-        fi
-        return 0
-    elif [ "$1" == "cache" ] && [ "$2" == "show" ]; then
-        cache_dir=$(_find_cache_dir)
-        echo "$cache_dir"
-        return 0
-    elif [ "$1" == "cache" ] && [ "$2" == "disable" ]; then
-        export NO_CACHE=1
-        echo "⚠️ Cache disabled."
-        return 0
-    elif [ "$1" == "cache" ] && [ "$2" == "enable" ]; then
-        export NO_CACHE=""
-        unset NO_CACHE
-        echo "⚠️ Cache enabled."
-        return 0
+    if [ "$1" == "cache" ] && [[ "$2" =~ ^(clear|show|disable|enable)$ ]]; then
+        case "$2" in
+            clear)
+                cache_dir=$(_find_cache_dir)
+                if [ -z "$cache_dir" ]; then
+                    echo "no cache is available"
+                    return 1;
+                fi
+                echo "⚠️ Are you sure you want to remove $cache_dir? (y/N)" >&2
+                read -r -p "Delete directory? (y/N): " reply < /dev/tty
+                if [[ "$reply" =~ ^[Yy]$ ]]; then
+                    rm -rf -- "$cache_dir"
+                    echo "🗑️ Cache cleared."
+                else
+                    echo "🚫 Cancelled."
+                fi
+                return 0
+            ;;
+            show)
+                cache_dir=$(_find_cache_dir)
+                echo "$cache_dir"
+                return 0
+                ;;
+            disable)
+                export NO_CACHE=1
+                echo "⚠️ Cache disabled."
+                return 0
+                ;;
+            enable)
+                unset NO_CACHE
+                echo "⚠️ Cache enabled."
+                return 0
+                ;;
+        esac
     elif [ "$1" == "disable" ]; then
         source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
-    elif [ "$1" == "answer" ] || [ "$1" == "enable" ]; then
+    elif [ "$1" == "enable" ]; then
         source ~/wip/answer/commands/enable
+    elif [ "$1" == "answer" ]; then
+        cache_dir="$(_find_cache_dir)"
+        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
+        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/commands/answer.sh
+    elif [ "$1" == "why" ]; then
+        cache_dir="$(_find_cache_dir)"
+        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
+        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/commands/why.sh
+    elif [ "$1" == "what" ]; then
+        cache_dir="$(_find_cache_dir)"
+        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
+        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/commands/what.sh
     else
-        echo "usage: hx cache {clear|show|enable}"
+        echo "usage: hx {cache [clear|show|disable|enable]|answer|why|what|disable|enable}" >&2
         return 1
     fi
+}
+
+function tools ()
+{
+    local s
+
+    # pass through to tools.sh which will error appropriately.
+    tools.sh "$@"
+    s=$?
+
+    if [ $s -ne 0 ]; then
+        echo "🦶ERROR: tools.sh failed with exit code $s" >&2
+        return $s
+    fi
+}
+
+
+# use `builtin help` if you want native bash help command
+function help ()
+{
+    help.sh "$@"
 }
 
 alias to_awk='help output the calculation in a code fence as an awk script to be used as stdin to \`awk -f -\`'

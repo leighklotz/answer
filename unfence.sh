@@ -8,12 +8,12 @@ source "${SCRIPT_DIR}/functions.sh"
 TARGET_LANG="${1:-}"
 
 # 1. Read stdin into tmp_raw immediately
-mktemp_reg 'unfence.XXXXXX.md' && tmp_raw="$MKTEMP_REG"
+_mktemp_reg 'unfence.XXXXXX.md' && tmp_raw="$MKTEMP_REG"
 cat > "$tmp_raw"
 
 # 2. Perform Inference if magic header is present
 if [[ "$(head -c 100 "$tmp_raw")" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-    mktemp_reg 'unfence.XXXXXX.json' && tmp_resolved="$MKTEMP_REG"
+    _mktemp_reg 'unfence.XXXXXX.json' && tmp_resolved="$MKTEMP_REG"
     if ! answer < "$tmp_raw" > "$tmp_resolved"; then
         log_and_exit 1 "Failed to resolve magic header via answer"
     fi
@@ -21,7 +21,7 @@ if [[ "$(head -c 100 "$tmp_raw")" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
 fi
 
 # 3. Dry-Run Map: Parse file for code blocks to build an index
-mktemp_reg 'unfence.meta.XXXXXX.txt' && tmp_meta="$MKTEMP_REG"
+_mktemp_reg 'unfence.meta.XXXXXX.txt' && tmp_meta="$MKTEMP_REG"
 
 awk '
   BEGIN { block=0; in_block=0 }

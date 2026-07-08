@@ -8,7 +8,15 @@ source "${SCRIPT_DIR}/functions.sh"
 shopt -s nullglob
 mkdir -p doc
 
-for cmd in answer ask bx help-commit help unfence lx hx; do
+CMDS="answer ask bx help-commit help unfence lx hx"
+
+if [ -n "$1" ]; then
+    CMDS=$@
+fi
+
+echo "CMDS=$CMDS"
+
+for cmd in $CMDS; do
     echo -n "cmd=$cmd "
     doc_md="doc/${cmd}.md"
     doc_md_new="doc/${cmd}.md.new"
@@ -26,10 +34,10 @@ for cmd in answer ask bx help-commit help unfence lx hx; do
         [ -n "$src" ] && context+=("$src")
 
         if [ -f $doc_md ]; then
-            prompt="Check and update the usage document for the $cmd command in $src. Output the entire file, not delta instructions."
+            prompt="Check and update the usage document \`doc/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions."
             dest="${doc_md_new}"
         else
-            prompt="Create the usage document for the $cmd command for $src"
+            prompt="Create the usage document \`doc/${cmd}.md\` for the $cmd command for $src"
             dest="${doc_md}"
         fi
 
