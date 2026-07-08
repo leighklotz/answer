@@ -34,7 +34,7 @@ ask "Write a python script to list files" | unfence python | python
 ### 3. Mid-Pipeline Observation (`ask -t | ask`)
 View what the model is generating without fracturing your conversation chain. The `--tee` (or `-t`) flag routes human-readable text out to `stderr`, while passing the pristine JSON history down `stdout`.
 ```bash
-ask "Plan a bash script" | ask -t "Write the code" | unnce python | python
+ask "Plan a bash script" | ask -t "Write the code" | unfence bash | bash
 ```
 
 ### 4. Interactive Multi-line Input (`ask -i`)
@@ -93,7 +93,7 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 
 ```text
 .hallux/cache/
-└── _home_klotz_wip_models_Qwen3.6-35B...:5d97ec5e...:chatcmpl-iZss...json
+└── Qwen3.6-35B...:5d97ec5e...:chatcmpl-iZss...json
 ```
 
 ---
