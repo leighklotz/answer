@@ -167,11 +167,6 @@ function help ()
     help.sh "$@"
 }
 
-function ask ()
-{
-    ask.sh "$@"
-}
-
 function _find_cache_dir () {
   if [ -n "$NO_CACHE" ]; then
     return 0
@@ -330,12 +325,20 @@ function hx() {
         return 0
     elif [ "$1" == "disable" ]; then
         source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
-    elif [ "$1" == "answer" ] || [ "$1" == "enable" ]; then
+    elif [ "$1" == "enable" ]; then
         source ~/wip/answer/commands/enable
+    elif [ "$1" == "answer" ]; then
+        cache_dir="$(_find_cache_dir)"
+        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
+        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/commands/answer.sh
     elif [ "$1" == "why" ]; then
         cache_dir="$(_find_cache_dir)"
         cache_fn="$(ls -t "$cache_dir"/ | head -1)"
-        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/why.sh
+        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/commands/why.sh
+    elif [ "$1" == "what" ]; then
+        cache_dir="$(_find_cache_dir)"
+        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
+        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/commands/what.sh
     else
         echo "usage: hx cache {clear|show|enable}"
         return 1
