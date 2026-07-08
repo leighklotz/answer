@@ -1,4 +1,4 @@
-# Answer: A Shell-Based Code Generation & Execution Agent Framework
+# Answer: A Shell-Based Code Assistant
 
 For developers who are comfortable at a bash prompt, conventional AI tools often feel heavy-handed, injecting large, opaque abstractions that disrupt the terminal workflow. You don't need a framework that attempts to take over your local workspace or write your software for you; you want a predictable utility that respects standard streams and preserves your control over the data loop.
 
