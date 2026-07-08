@@ -8,7 +8,7 @@ source "${SCRIPT_DIR}/functions.sh"
 shopt -s nullglob
 mkdir -p doc
 
-for cmd in answer ask bx help-commit help unfence lx; do
+for cmd in answer ask bx help-commit help unfence lx hx; do
     echo -n "cmd=$cmd "
     doc_md="doc/${cmd}.md"
     doc_md_new="doc/${cmd}.md.new"
