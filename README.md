@@ -123,17 +123,18 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
    export OPENAI_API_KEY="your-key-here"
    ```
 
-3. **Bootstrap your Shell (Optional):** Add the following to your `.bashrc` or shell profile to enable `hx answer`:
+3. **Bootstrap your Shell (Optional):** Add the following to your `.bashrc` or shell profile to provide `hx enable`:
    ```bash
+   # enable function only; once enabled, answer will override
    function hx() {
        if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
-           echo "🦶ERROR: bash 4+ required." >&2
+           echo "🦶ERROR: bash 4+ required (BASH_VERSION=${BASH_VERSION})." >&2
            return 1 2>/dev/null
        fi
-       if [ "$1" == "answer" ] || [ "$1" == "enable" ]; then
+       if [ "$1" == "enable" ]; then
            source ~/wip/answer/commands/enable
        else
-           echo "usage: hx answer"
+           echo "usage: hx enable"
            return 1
        fi
    }

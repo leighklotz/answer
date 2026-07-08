@@ -109,57 +109,6 @@ function tools ()
     fi
 }
 
-# 2. if input starts with magic header, get answer
-# 2. prompt answer and ask for confirmation
-# 3. cancel oo output answer
-# unfence also has this built in
-function pipetest()
-{
-    # Sanity Check: If running interactively but no prompt provided, warn of potential hang
-    if [ -t 0 ] && [[ "$*" != *"-i"* ]]; then
-        echo "🦶pipetest: No user query detected in arguments; waiting for STDIN..." >&2
-    fi
-
-    local user_query="$*"
-
-    # Capture stdin first
-    local input=$(cat)
-
-    # If stdin is an unresolved conversation, resolve it to assistant text first.
-    if [[ "$input" == "${PIPELINE_MAGIC_HEADER}"* ]]; then
-      input=$(printf '%s\n' "$input" | answer)
-    fi
-
-
-    # Auto-detect the best available viewing tool
-    local pager
-    if [ -n "${PIPETEST_PAGER}" ]; then
-        pager="${PIPETEST_PAGER}"
-    elif command -v batcat >/dev/null 2>&1; then
-        pager="batcat --style=numbers,grid"
-    elif command -v bat >/dev/null 2>&1; then
-        pager="bat --style=numbers,grid"
-    else
-        pager="cat"
-    fi
-
-    # Render file content directly to stderr
-    printf "%s" "${input}" | ${pager} 1>&2
-
-    # Safe interactive prompt from /dev/tty
-    local reply
-    read -r -p "🤖 ${user_query}: Y or N? " reply < /dev/tty
-
-    printf "\n" 1>&2
-    case "${reply,,}" in
-        y*)
-            printf "%s" "${input}"
-        ;;
-        *)
-            printf "🚫 discarded\n" 1>&2
-        ;;
-    esac
-}
 
 # use `builtin help` if you want native bash help command
 function help ()
@@ -295,34 +244,40 @@ function _infer () {
 }
 
 function hx() {
-    if [ "$1" == "cache" ] && [ "$2" == "clear" ]; then
-        cache_dir=$(_find_cache_dir)
-        if [ -z "$cache_dir" ]; then
-            echo "no cache is available"
-            return 1;
-        fi
-        echo "⚠️ Are you sure you want to remove $cache_dir? (y/N)" >&2
-        read -r -p "Delete directory? (y/N): " reply < /dev/tty
-        if [[ "$reply" =~ ^[Yy]$ ]]; then
-            rm -rf -- "$cache_dir"
-            echo "🗑️  Cache cleared."
-        else
-            echo "🚫 Cancelled."
-        fi
-        return 0
-    elif [ "$1" == "cache" ] && [ "$2" == "show" ]; then
-        cache_dir=$(_find_cache_dir)
-        echo "$cache_dir"
-        return 0
-    elif [ "$1" == "cache" ] && [ "$2" == "disable" ]; then
-        export NO_CACHE=1
-        echo "⚠️ Cache disabled."
-        return 0
-    elif [ "$1" == "cache" ] && [ "$2" == "enable" ]; then
-        export NO_CACHE=""
-        unset NO_CACHE
-        echo "⚠️ Cache enabled."
-        return 0
+    if [ "$1" == "cache" ] && [[ "$2" =~ ^(clear|show|disable|enable)$ ]]; then
+        case "$2" in
+            clear)
+                cache_dir=$(_find_cache_dir)
+                if [ -z "$cache_dir" ]; then
+                    echo "no cache is available"
+                    return 1;
+                fi
+                echo "⚠️ Are you sure you want to remove $cache_dir? (y/N)" >&2
+                read -r -p "Delete directory? (y/N): " reply < /dev/tty
+                if [[ "$reply" =~ ^[Yy]$ ]]; then
+                    rm -rf -- "$cache_dir"
+                    echo "🗑️  Cache cleared."
+                else
+                    echo "🚫 Cancelled."
+                fi
+                return 0
+            ;;
+            show)
+                cache_dir=$(_find_cache_dir)
+                echo "$cache_dir"
+                return 0
+                ;;
+            disable)
+                export NO_CACHE=1
+                echo "⚠️ Cache disabled."
+                return 0
+                ;;
+            enable)
+                unset NO_CACHE
+                echo "⚠️ Cache enabled."
+                return 0
+                ;;
+        esac
     elif [ "$1" == "disable" ]; then
         source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
     elif [ "$1" == "enable" ]; then
@@ -340,7 +295,7 @@ function hx() {
         cache_fn="$(ls -t "$cache_dir"/ | head -1)"
         cat "${cache_dir}/${cache_fn}" | ~/wip/answer/commands/what.sh
     else
-        echo "usage: hx cache {clear|show|enable}"
+        echo "usage: hx {cache [clear|show|disable|enable]|answer|why|what|disable|enable}" >&2
         return 1
     fi
 }
