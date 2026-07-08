@@ -21,11 +21,17 @@ fi
 
 # Build --tools flags
 TOOLS_ARGS=()
-for module in "$@"; do
-    TOOLS_ARGS+=("--tools" "$module")
+for arg in "$@"; do
+    if [[ "$arg" == -* ]]; then
+        # It's a flag (like --debug), pass it through directly
+        TOOLS_ARGS+=("$arg")
+    else
+        # It's a module name, wrap it with --tools
+        TOOLS_ARGS+=("--tools" "$arg")
+    fi
 done
 
-# Pass through to toolex in pipe mode:
+exec "${TOOLEX_SH}" "${TOOLS_ARGS[@]}"
+
 # toolex.py --pipe reads JSON conversation from stdin, writes updated JSON to stdout
-#exec "${TOOLEX_SH}" --pipe "${TOOLS_ARGS[@]}"
 exec "${TOOLEX_SH}" "${TOOLS_ARGS[@]}"
