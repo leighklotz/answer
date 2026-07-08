@@ -235,7 +235,7 @@ function hx() {
                 read -r -p "Delete directory? (y/N): " reply < /dev/tty
                 if [[ "$reply" =~ ^[Yy]$ ]]; then
                     rm -rf -- "$cache_dir"
-                    echo "🗑️  Cache cleared."
+                    echo "🗑️ Cache cleared."
                 else
                     echo "🚫 Cancelled."
                 fi
