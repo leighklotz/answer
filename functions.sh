@@ -38,7 +38,7 @@ function _ensure_workspace() {
     trap '_cleanup_run_dir' EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
 }
 
-function mktemp_reg() {
+function _mktemp_reg() {
     local tmp
     _ensure_workspace
     
@@ -51,7 +51,7 @@ function mktemp_reg() {
     return 0
 }
 
-function mktemp_reg_lit() {
+function _mktemp_reg_lit() {
     local tmp
     # For literal paths (like caching alongside the target file), use standard mktemp.
     # We do not track these in the run dir because they are used for atomic file moves.
@@ -73,25 +73,6 @@ function _cleanup_run_dir() {
     if [[ -d "$HALLUX_RUN_DIR" ]]; then
         log_trace "Cleaning up workspace: $HALLUX_RUN_DIR"
         rm -rf -- "$HALLUX_RUN_DIR"
-    fi
-}
-
-function bx ()
-{
-    local quiet
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -q) quiet=1; shift ;;
-            -*) echo "🦶bx: unknown option $1" >&2; return 1 ;;
-            *) break ;;
-        esac
-    done
-
-    bx.sh "$@"
-    local s=$?
-    if [ $s -ne 0 ] && [ -z "${quiet}" ] ; then
-        echo "🦶bx: ERROR: bx.sh failed with exit code $s" >&2
-        return 1
     fi
 }
 
@@ -144,10 +125,8 @@ function _find_cache_dir () {
 
 function _infer () {
   local tmp_json tmp_req last_role
-  log_trace "calling mktemp_reg 'infer.XXXXXX.json'"
-  mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
-  log_trace "calling mktemp_reg 'response.XXXXXX.json'"
-  mktemp_reg 'response.XXXXXX.json' && tmp_req="$MKTEMP_REG"
+  _mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
+  _mktemp_reg 'response.XXXXXX.json' && tmp_req="$MKTEMP_REG"
 
   # Read first line to check for header
   read -r first_line
@@ -230,7 +209,7 @@ function _infer () {
   # Only cache responses that passed validation.
   if [ -n "$cache_file" ] && [ ! -f "$cache_file" ]; then
     local tmp_cache
-    mktemp_reg_lit "${cache_file}.tmp.XXXXXX" && tmp_cache="$MKTEMP_REG"
+    _mktemp_reg_lit "${cache_file}.tmp.XXXXXX" && tmp_cache="$MKTEMP_REG"
     printf "%s" "$response_json" > "$tmp_cache" && mv "$tmp_cache" "$cache_file"
   fi
 

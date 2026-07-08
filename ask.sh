@@ -28,7 +28,7 @@ prompt="$*"
 # --- INPUT HANDLING & HISTORY BUILDING ---
 # If stdin is a pipe OR if we are in a TTY and -i was specified
 if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
-  mktemp_reg 'ask.XXXXXX.txt' && stdin_tmp="$MKTEMP_REG"
+  _mktemp_reg 'ask.XXXXXX.txt' && stdin_tmp="$MKTEMP_REG"
   
   # Prompt if we are in a TTY and -i was specified
   if [[ -t 0 && "$PLAIN_INPUT" == "1" ]]; then
@@ -61,7 +61,7 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
                     '[{role: "user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
   elif [[ "$is_history" == true ]]; then
     # MODE: Conversation History (JSON)
-    mktemp_reg "ask.XXXXXX.json" && clean_stdin_tmp="$MKTEMP_REG"
+    _mktemp_reg "ask.XXXXXX.json" && clean_stdin_tmp="$MKTEMP_REG"
 
     tail -n +2 "$stdin_tmp" > "$clean_stdin_tmp"
 
