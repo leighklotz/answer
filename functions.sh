@@ -332,6 +332,10 @@ function hx() {
         source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
     elif [ "$1" == "answer" ] || [ "$1" == "enable" ]; then
         source ~/wip/answer/commands/enable
+    elif [ "$1" == "why" ]; then
+        cache_dir="$(_find_cache_dir)"
+        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
+        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/why.sh
     else
         echo "usage: hx cache {clear|show|enable}"
         return 1

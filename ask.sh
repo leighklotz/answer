@@ -108,24 +108,29 @@ fi
 
 # --- CORE ROUTING ENGINE ---
 
+# If TEE_MODE, call _infer and print the last assistant reply to stderr, then print
+# the  header+full_convo to stdout.
+# Not in TEE_MODE and at terminal, literally pipe the header+full_convo to answer.
+# Not in TEE_MODE mode and in a pipe, header+full_convo.
+
 if [ -n "$TEE_MODE" ]; then
-  # 1. Resolve the conversation state (idempotent)
+  # Resolve the conversation state (idempotent)
   full_convo=$(printf "%s\n" "$messages" | _infer)
 
-  # 2. Extract the last assistant reply
-  last_reply=$(jq -r '.[-1].content // empty' <<< "$full_convo" 2>/dev/null)
+  # Extract the last assistant reply
+  assistant_reply=$(jq -r '.[-1].content // empty' <<< "$full_convo" 2>/dev/null)
   
-  # 3. Print human-readable text to stderr
-  printf '\n%s\n' "$last_reply" >&2
+  # Print human-readable text to stderr
+  printf '\n%s\n' "$assistant_reply" >&2
   
-  # 4. Forward full JSON history to stdout
+  # Forward full JSON history to stdout
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$full_convo"
 elif [ -t 1 ]; then
   # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
   log_debug "Sending to answer"
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
 else
-  # Contract Rule: Inside a pipe loop, forward the updated full JSON history state
+  # Contract Rule: Inside a pipe, forward the updated full JSON history state
   log_info "3. TEE_MODE=$TEE_MODE forwarding messages"
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
 fi
