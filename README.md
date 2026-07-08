@@ -6,19 +6,12 @@ The **Answer** toolchain treats Large Language Models (LLMs) as composable, stan
 
 ---
 
-## The State-Driven Pipeline Model
+## The Pipeline Model & Auto-Answer Mechanism
 
-To bridge the gap between human interaction and automated shell utilities, the framework decouples data meant for machines from data meant for humans. It operates on a dual-layer logic:
+To bridge the gap between interactive human use and automated shell scripting, `ask` uses an intelligent **"Detect-and-Convert"** mechanism. It automatically detects its execution environment to prevent messy data format-juggling inside your pipes:
 
-* **Machine Layer (`ask`):** Uses structured **JSON** to pass the entire conversation history (system prompts, user questions, and assistant responses) directly through pipes.
-* **Human Layer (`answer`):** Strips away the JSON structure to output **Pristine Plain Text** for terminal view or downstream standard interpreters.
-
-### Auto-Answer Mechanism
-
-To prevent messy data format-juggling inside your pipes, `ask` automatically detects its execution environment:
-
-* **In a Terminal TTY:** `ask` detects the terminal window and automatically forwards its JSON payload to `answer` so you see clean text instantly.
-* **In a Pipe:** `ask` outputs **raw JSON** prefixed with a `PIPELINE_MAGIC_HEADER`. This allows downstream `ask` commands to instantly differentiate between text ingestion (e.g., `cat code.txt | ask`) and a true ongoing multi-turn conversation state.
+* **Interactive Mode (TTY):** When run directly in a terminal window, `ask` assumes you are the end user. To ensure a clean experience, it automatically routes the underlying JSON payload through `answer`, delivering **Pristine Plain Text** stripped of all metadata and structure.
+* **Pipeline/Machine Mode (`STDOUT/STDIN`):** When `ask` detects it is being piped into another command or redirected to a file, it switches to machine-optimized mode. It emits raw **JSON** containing the full conversation history (system prompts, user queries, and assistant responses) prefixed with an appropriate MIME header. This distinction allows downstream `ask` commands to switch between text ingestion and multi-turn conversation.
 
 ---
 
