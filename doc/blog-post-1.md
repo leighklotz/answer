@@ -77,4 +77,4 @@ The `answer` toolchain doesn't try to manage your project or dictate your workfl
 
 ---
 
-Check out answer at [https://www.github.com/leighklotz/answer](https://www.github.com/leighklotz/answer)
+Check out answer at [https://www.github.com/leighklotz/answer](https://www.github.com/leighklotz/answer) and see the [examples](https://github.com/leighklotz/answer/blob/main/doc/examples.md).
