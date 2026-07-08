@@ -21,9 +21,7 @@ fi
 # MIME Headers
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 
-# Tempfile Registry
 # --- SHARED WORKSPACE SETUP ---
-
 function _ensure_workspace() {
     # Initialize a shared temporary workspace ONLY when a temp file is actually requested.
     if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
@@ -74,27 +72,6 @@ function _cleanup_run_dir() {
         log_trace "Cleaning up workspace: $HALLUX_RUN_DIR"
         rm -rf -- "$HALLUX_RUN_DIR"
     fi
-}
-
-function tools ()
-{
-    local s
-
-    # pass through to tools.sh which will error appropriately.
-    tools.sh "$@"
-    s=$?
-
-    if [ $s -ne 0 ]; then
-        echo "🦶ERROR: tools.sh failed with exit code $s" >&2
-        return $s
-    fi
-}
-
-
-# use `builtin help` if you want native bash help command
-function help ()
-{
-    help.sh "$@"
 }
 
 function _find_cache_dir () {
@@ -222,6 +199,8 @@ function _infer () {
   return $infer_status
 }
 
+### user-level Functions and aliases
+
 function hx() {
     if [ "$1" == "cache" ] && [[ "$2" =~ ^(clear|show|disable|enable)$ ]]; then
         case "$2" in
@@ -277,6 +256,27 @@ function hx() {
         echo "usage: hx {cache [clear|show|disable|enable]|answer|why|what|disable|enable}" >&2
         return 1
     fi
+}
+
+function tools ()
+{
+    local s
+
+    # pass through to tools.sh which will error appropriately.
+    tools.sh "$@"
+    s=$?
+
+    if [ $s -ne 0 ]; then
+        echo "🦶ERROR: tools.sh failed with exit code $s" >&2
+        return $s
+    fi
+}
+
+
+# use `builtin help` if you want native bash help command
+function help ()
+{
+    help.sh "$@"
 }
 
 alias to_awk='help output the calculation in a code fence as an awk script to be used as stdin to \`awk -f -\`'
