@@ -26,11 +26,11 @@ Because this state lives strictly within the pipeline, you inherit the full flex
 The system works via a few small, single-purpose scripts:
 
 * **`ask / help`**: Takes your prompt and combines it with any incoming `stdin` (a log file, a Git diff, or a previous pipeline state) to build the payload. ask is generic and help is a thin wrapper focused on python and bash.  
-* **`answer`**: The execution engine. It manages the API calls, handles local caching (so identical queries resolve instantly without hitting the network), and outputs the raw response text.  
-* **`unfence`**: Language models love to wrap code in markdown syntax (such as ```` ```python) ```` and append conversational text. `unfence` acts as an automated parser that strips out the conversational fluff, displays the output for verification, and extracts only the runnable script block. It asks for confirmation, and in the case of ambiguity, selection.  
+* **`answer`**: The execution engine. It manages the API calls, handles local caching (so identical queries resolve instantly without hitting the network), and outputs the conversation or extracted response text. Use only when redirecting ask or help output away from terminal.
+* **`unfence`**: Language models love to wrap code in markdown syntax (such as "\`\`\`python") and append conversational text. `unfence` acts as an automated parser that strips out the conversational fluff, displays the output for verification, and extracts only the runnable script block. It asks for confirmation, and in the case of ambiguity, selection.  
 * **`lx`**: A file-ingestion utility that streams multiple files into the pipeline, automatically formatting into markdown for inference by the downstream `ask`/`help` tools.  
 * **`bx`**: A command-execution wrapper designed to bridge the shell and the model. It executes commands, captures their output, and facilitates passing results directly back into the conversation pipeline. Use it to capture a command and its output for later inference.  
-* `hx`: a management command to let you enable the pipeline, clear cache, etc.
+* **`hx`**: a management command to let you enable the pipeline, clear cache, etc.
 
 ---
 
