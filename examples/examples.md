@@ -108,10 +108,3 @@ $ man xxd | help "I want to print file contents without the address column"
 # Get examples for complex command combinations
 $ du -sh * 2>&1 | help "explain what these results mean and how to sort them by size"
 ```
-
-### Web Summarization (via `summarize`)
-Quickly grasp the essence of a documentation page or article directly from your shell.
-```bash
-# Get a bulleted markdown summary of any URL
-$ summarize https://news.yahoo.com in bullet format markdown
-```
