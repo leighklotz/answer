@@ -2,7 +2,11 @@
 
 If you are comfortable with a bash prompt, you are probably skeptical of tools that try to automate away your environment. Solutions that inject large, opaque abstractions into your setup often introduce more friction than they resolve. You don't need a tool that attempts to write your software for you; you want something that respects your existing workflow, gives you control over the data loop, and behaves like a predictable utility.
 
-The **Answer** toolchain is built for developers who prefer controlling the black box from a standard prompt. It doesn’t replace your local environment or try to act as an all-knowing agent. Instead, it processes Large Language Models (LLMs) as standard command-line filters for Linux and macOS. You pipe text into it, and you pipe code out of it—keeping the model securely bound inside standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`.
+The **Answer** toolchain is built for developers who prefer controlling the black box from a standard prompt. It doesn’t replace your local environment or try to act as an all-knowing agent. Instead, it processes Large Language Models (LLMs) as standard command-line filters for Linux and macOS. You can use a simple command `help` to get quick one-shot answers to your Linux or other programming questions. 
+
+Additionally, you pipe text into it, and you pipe code out of it, keeping the model securely bound inside standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`. 
+
+And crucially, you can pipe between tools in the **Answer* toolchain. Appending to a previously-inferred pipeline will rely on cached results for idempotency.
 
 ---
 
