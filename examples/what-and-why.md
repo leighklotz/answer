@@ -1,3 +1,6 @@
+### `hx what` and ``hx why`
+This example demostrates the `hx what` and `hx why` management commands, which you can use to show the last assistant response, and if availble, the last assistant reasoning response.
+
 ````
 klotz@core:~/wip/answer🦶$ help-commit
 ```bash
