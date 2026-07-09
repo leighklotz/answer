@@ -31,5 +31,17 @@
     *   **Is it better? Yes.** It fixes several typos (`multip;le` $\rightarrow$ `multiple`), corrects grammar ("If there are no changes to commit"), and simplifies a CLI command example (removing redundant `--tools` flags), which makes the documentation cleaner.
     *   **Is it missing stuff? No.** The information regarding what the tools do is actually expanded/clarified (e.g., adding "command execution" to `bash_tools.py`), not removed. 
     *   **Does it have extra LLM crap in it? No.** There are no conversational fillers, AI-generated disclaimers, or unnecessary verbosity added; the changes are strictly editorial and functional improvements to your documentation.
+    klotz@core:~/wip/toolex🦶$ emacs -nw README-new.md
+    klotz@core:~/wip/toolex🦶$ mv README-new.md README.md 
+    klotz@core:~/wip/toolex🦶$ help-commit 
+    💭
+    ─────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       1 │ ```bash
+       2 │ git add README.md && git commit -m "docs: clarify tool descriptions, fix typos, and update usage example in README"
+       3 │ ```
+    ─────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    🤖 Proceed? (y/N): y
+    [cbac 0c230f5] docs: clarify tool descriptions, fix typos, and update usage example in README
+     1 file changed, 7 insertions(+), 10 deletions(-)
     klotz@core:~/wip/toolex🦶$ 
 ````
