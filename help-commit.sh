@@ -19,7 +19,8 @@ git commit -a \
 Rules:
 - Use imperative mood (e.g., "Add feature" not "Added feature").
 - Ensure all strings are properly quoted.
-- No commentary after the code fence.'
+- No commentary after the code fence.
+- Properly escape special characters inside bash quotes.'
 
 
 # GIT_COMMIT_TOOL_PROMPT="Below is the output of a git bash session.  Read the session and then briefly output a code fence containing a corresponding \`git commit\` command, using using one or more bash git commands as appropriate for the change. Use conventional commits. For commits that are not single-focus, give more descriptive messages. If you do not have enough information to write a commit message and need to see more git results, output a brief request concluding with a code fence containing one or more bash git commands to execute to obtain the results. Note working directory before using relative filenames.\n"
