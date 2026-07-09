@@ -37,28 +37,38 @@ function _ensure_workspace() {
 }
 
 function _mktemp_reg() {
+    local template="$1"
+    local literal="$2"
     local tmp
-    _ensure_workspace
-    
-    # Force the template to be created INSIDE our shared run directory
-    if ! tmp=$(mktemp "$HALLUX_RUN_DIR/$1"); then
-        log_and_exit 1 "failed to create temp file"
+    local prefix
+    if [ -z "$literal" ]; then
+        _ensure_workspace
+        prefix="$HALLUX_RUN_DIR/"
+    else
+        prefix=""
     fi
+
+    # macOS mktemp can fail when a path and complex template are passed together.
+    # The "cheapest fix" for cross-platform compatibility is to use -u (unsafe/dry-run) 
+    # with the full pattern, then create it using 'touch'. This avoids mkstemp errors.
+    if ! tmp=$(mktemp "${prefix}${template}" 2>/dev/null); then
+        # Fallback for macOS where mktemp is picky about templates:
+        # Generate a unique path via -u, then touch it to create the file safely.
+        tmp=$(mktemp -u "${prefix}${template%.*}XXXXXX.${1##*.}" 2>/dev/null || \
+               mktemp -u "${prefix}${template}" 2>/dev/null)
+    fi
+
+    if [[ ! -f "$tmp" ]]; then
+        touch "$tmp" 2>/dev/null || log_and_exit 1 "failed to create temp file: $tmp"
+    fi
+
     log_debug "mktemp $tmp"
     MKTEMP_REG="$tmp"
     return 0
 }
 
 function _mktemp_reg_lit() {
-    local tmp
-    # For literal paths (like caching alongside the target file), use standard mktemp.
-    # We do not track these in the run dir because they are used for atomic file moves.
-    if ! tmp=$(mktemp "$1"); then
-        log_and_exit 1 "failed to create temp file"
-    fi
-    log_debug "mktemp $tmp"
-    MKTEMP_REG="$tmp"
-    return 0
+    _mktemp_reg "$1" "1"
 }
 
 function _cleanup_run_dir() {
