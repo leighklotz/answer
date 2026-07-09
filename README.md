@@ -150,7 +150,7 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 
 ## Quickstart
 
-``bash
+```bash
 $ lx README.md | help what can you do`
 📥✨
 Based on the documentation provided, I am part of the **Answer** toolchain—a shell-based code assistant designed to treat LLMs as composable command-line filters for Linux and macOS.
