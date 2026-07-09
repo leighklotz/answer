@@ -6,9 +6,23 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-GIT_COMMIT_PROMPT="Below is the output of a git bash session.  Read the session and then briefly output a code fence containing a corresponding \`git commit\` command, using using one or more bash git commands as appropriate for the change. Use conventional commits. For commits that are not single-focus, give more descriptive messages. Be specific in filenames: avoid 'git add .' and the like. Note working directory before using relative filenames. Use multiple separate commits if changes are truly independent.\n"
+#GIT_COMMIT_PROMPT="Below is the output of a git bash session.  Read the session and then briefly output a code fence containing a corresponding \`git commit\` command, using using one or more bash git commands as appropriate for the change. Use conventional commits. For commits that are not single-focus, give more descriptive messages. Be specific in filenames: avoid 'git add .' and the like. Note working directory before using relative filenames. Use multiple separate commits if changes are truly independent.\n"
 
-GIT_COMMIT_TOOL_PROMPT="Below is the output of a git bash session.  Read the session and then briefly output a code fence containing a corresponding \`git commit\` command, using using one or more bash git commands as appropriate for the change. Use conventional commits. For commits that are not single-focus, give more descriptive messages. If you do not have enough information to write a commit message and need to see more git results, output a brief request concluding with a code fence containing one or more bash git commands to execute to obtain the results. Note working directory before using relative filenames.\n"
+GIT_COMMIT_PROMPT='Below is the output of a git bash session.  Read the session. Generate a bash code fence to commit all staged and unstaged changes (ignore untracked). 
+If no changes exist, output `echo "no changes"`. Otherwise, use one or more commands of this exact format:
+
+git commit -a \
+  -m "<Brief summary of impact>" \
+  -m "- <Imperative description of change 1>" \
+  -m "- <Imperative description of change 2>"
+
+Rules:
+- Use imperative mood (e.g., "Add feature" not "Added feature").
+- Ensure all strings are properly quoted.
+- No commentary after the code fence.'
+
+
+# GIT_COMMIT_TOOL_PROMPT="Below is the output of a git bash session.  Read the session and then briefly output a code fence containing a corresponding \`git commit\` command, using using one or more bash git commands as appropriate for the change. Use conventional commits. For commits that are not single-focus, give more descriptive messages. If you do not have enough information to write a commit message and need to see more git results, output a brief request concluding with a code fence containing one or more bash git commands to execute to obtain the results. Note working directory before using relative filenames.\n"
 
 # TODO pipetest needs to present only the human-readable last conversion but send on the whole convo
 # or should it take only code? or should we skill unfence to prompt instead that?
@@ -56,7 +70,7 @@ done
 
 # options are sent bare on the line since there can be multiple options
 # ASK_OPTIONS is an array but GIT_DIFF_OPTIONS is built up word by word
-log_trace "ASK_OPTIONS=${ASK_OPTIONS[@]}"
+log_trace "ASK_OPTIONS=${ASK_OPTIONS[*]}"
 log_trace "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 
 (bx pwd; bx git rev-parse --show-toplevel; git diff --stat --no-merges ${GIT_DIFF_OPTIONS}; bx git diff --numstat ${GIT_DIFF_OPTIONS}; bx git diff ${GIT_DIFF_OPTIONS}; bx git diff --cached ${GIT_DIFF_OPTIONS}) \
