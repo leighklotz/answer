@@ -105,53 +105,31 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 * **Bash 4+** (Required for framework scripts).
 * **`jq`** (Command-line JSON processor).
 * **Python 3** (For executing generated code).
-* **OpenAI API Key / Local Endpoint.**
+* **LLM API Key or / Local Endpoint.**
 
 ### Initialization Steps
 
 1. **Clone and Enable:**
    ```bash
-   git clone <repository_url>
-   cd answer
-   source commands/enable.sh
+   $ git clone <repository_url>
    ```
 
 2. **Configure Environment:**
    ```bash
-   cp env.sh.sample env.sh
-   export VIA_API_CHAT_BASE="http://localhost:5000"
-   export OPENAI_API_KEY="your-key-here"
+   $ cd answer
+   $ cp bin/commands/env.sh.sample bin/commands/env.sh
+   $ emacs bin/commands/env.sh
+   $ export VIA_API_CHAT_BASE="http://localhost:5000"
+   $ export OPENAI_API_KEY="your-key-here"
+   $ cp bin/commands/hx-bootstrap.sh 
+   $ source ~/.bash.d/hx-bootstrap.sh
    ```
-
-3. **Bootstrap your Shell (Optional):** Add the following to your `.bashrc` or shell profile to provide `hx enable`:
-   ```bash
-   # enable function only; once enabled, answer will override
-   function hx() {
-       if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
-           echo "🦶ERROR: bash 4+ required (BASH_VERSION=${BASH_VERSION})." >&2
-           return 1 2>/dev/null
-       fi
-       if [ "$1" == "enable" ]; then
-           source ~/wip/answer/commands/enable
-       else
-           echo "usage: hx enable"
-           return 1
-       fi
-   }
-   ```
-
 ---
-## Installation
-
-1. Set up your LLM server or API endpoint
-1. Edit bin/env.sh.sample and write in bin/env.sh
-1. Include bin/commands/hx-bootstrap.sh in your .bash.d/ or other init file
-1. `$ hx enable`
-
 ## Quickstart
 
 ```bash
-$ lx README.md | help what can you do`
+$ hx enable
+$ lx README.md | help what can you do
 📥✨
 Based on the documentation provided, I am part of the **Answer** toolchain—a shell-based code assistant designed to treat LLMs as composable command-line filters for Linux and macOS.
 
