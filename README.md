@@ -165,6 +165,10 @@ Run the automated test suite to verify pipeline outputs and state management:
 ./tests/story-test.sh
 ```
 
+## Provenance
+
+This LLM agent framework in Bash was derived from https://github.com/leighklotz/llamafiles and previous work.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
