@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 TEST_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
-if [ ! -f "${TEST_DIR}/../env.sh" ]; then
-    echo "ERROR: ${TEST_DIR}/../env.sh is required for tests/story-test.sh" >&2
+if [ ! -f "${TEST_DIR}/../bin/env.sh" ]; then
+    echo "ERROR: ${TEST_DIR}/../bin/env.sh is required for tests/story-test.sh" >&2
     exit 1
 fi
-source "${TEST_DIR}/../env.sh"
-source "${TEST_DIR}/../logging.sh"
-source "${TEST_DIR}/../functions.sh"
+source "${TEST_DIR}/../bin/env.sh"
+source "${TEST_DIR}/../bin/logging.sh"
+source "${TEST_DIR}/../bin/functions.sh"
 
 
 export ENABLE_THINKING=false
