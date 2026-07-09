@@ -147,11 +147,36 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 1. Edit bin/env.sh.sample and write in bin/env.sh
 1. Include bin/commands/hx-bootstrap.sh in your .bash.d/ or other init file
 1. `$ hx enable`
-1. `$ lx README.md | help what can you do`
+
+## Quickstart
+
+``bash
+$ lx README.md | help what can you do`
+📥✨
+Based on the documentation provided, I am part of the **Answer** toolchain—a shell-based code assistant designed to treat LLMs as composable command-line filters for Linux and macOS.
+
+Here is what this toolchain can do:
+
+    ### Core Functionality
+    *   **Conversational Chaining:** You can pipe commands together (`ask | ask`) to maintain multi-turn conversation history across a pipeline without losing context.
+    *   **Intelligent Mode Switching:** 
+        *   **Interactive Mode (TTY):** Delivers clean, plain text for human reading.
+        *   **Pipeline/Machine Mode:** Emits structured JSON with metadata and MIME headers for downstream automation.
+    *   **Safe Code Execution:** Through `unfence`, you can extract markdown code blocks from LLM responses and pass them through a confirmation gateway to an interpreter (like Python or Bash).
+
+    ### Specialized Tooling
+    *   **`ask`**: The primary interface for building context payloads from prompts, multi-line input (`-i`), or mid-pipeline observation (`--tee`).
+    *   **`answer`**: Extracts raw text tokens from JSON streams.
+    *   **`lx`**: Streams multiple files into a pipeline as clean markdown blocks.
+    *   **`bx`**: Captures the output of shell commands and injects it back into an LLM query via markdown fences.
+    *   **`help`**: A specialized wrapper optimized for Python and Bash development workflows.
+    *   **`tools`**: Facilitates native LLM function calling (tool calls).
+    *   **`unfence | [interpreter]`**: Automates the flow from generating code to executing it in a controlled environment.
 
 
-## Tools setup
-1. Visit [https://github.com/leighklotz/toolex](https://github.com/leighklotz/toolex) and install.
+    ## Tools setup
+    1. Visit [https://github.com/leighklotz/toolex](https://github.com/leighklotz/toolex) and install.
+````
 
 ---
 
