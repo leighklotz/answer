@@ -131,6 +131,7 @@ elif [ -t 1 ]; then
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
 else
   # Contract Rule: Inside a pipe, forward the updated full JSON history state
+  printf "💬" >&2
   log_info "3. TEE_MODE=$TEE_MODE forwarding messages"
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
 fi

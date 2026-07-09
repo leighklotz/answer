@@ -96,4 +96,5 @@ for f in "${files[@]}"; do
   # print after block (default is closing fence + blank line)
   aft="${after:-$default_after}"
   printf '%b' "$aft"
+  printf "📥" >&2
 done

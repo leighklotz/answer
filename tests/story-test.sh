@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
 
 TEST_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
-if [ ! -f "${TEST_DIR}/../env.sh" ]; then
-    echo "ERROR: ${TEST_DIR}/../env.sh is required for tests/story-test.sh" >&2
-    exit 1
-fi
-source "${TEST_DIR}/../env.sh"
-source "${TEST_DIR}/../logging.sh"
-source "${TEST_DIR}/../functions.sh"
 
+cd "${TEST_DIR}"
+source "../bin/logging.sh"
+source "../bin/commands/enable"
 
 export ENABLE_THINKING=false
 
@@ -50,11 +46,11 @@ function run_test() {
 # Run test cases based on the prompt's examples.
 # When a prompt asks for a codefence, strip the fence before comparing or executing.
 
-run_test 'Fibonacci 20 Python Output' "$(ask 'write fib(n:int):int in python and a call to it with 20' | ask just print the output in one codefence | answer | unfence | python)" '6765'
+run_test 'Fibonacci 20 Python Output' "$(ask 'write fib(n:int):int function python and a call to it with 20 in one codefence' | unfence | python)" '6765'
 
-run_test 'Hello World Python Output' "$(ask "write a 'Hello, World!' python script and output just the one codefence" | answer | unfence | python)" 'Hello, World!'
+run_test 'Hello World Python Output' "$(ask "write a 'Hello, World!' python script and output just script in one codefence" | unfence | python)" 'Hello, World!'
 
-run_test 'Complex Tool Chain' "$(ask 'evaluate 2+3 in a bash oneliner in a codefence' | answer | pipetest | unfence | bash)" "5"
+run_test 'Complex Tool Chain' "$(ask 'evaluate 2+3 in a bash oneliner in a codefence' | unfence | bash)" "5"
 
 
 
@@ -64,9 +60,9 @@ run_test 'Double 2+3' "$(ask 2+3= | ask double that and output just the number |
 
 run_test 'Bash math 2+3' "$(ask 2+3= | ask in a bash one-liner | unfence | bash)" '5'
 
-run_test "ask ask" "$(ask 20+30= | ask output a single bash one-liner in a codefence  | ask now change it to octal  | pipetest | ./unfence|bash)" "62"
+run_test "ask ask" "$(ask 20+30= | ask output a single bash one-liner in a codefence  | ask now change it to octal | unfence |bash)" "62"
 
-run_test 'Quicksort Python Output' "$(ask write a python function for quicksort | ask 'output just the python code and call `print(quicksort([3,1,4,2]))`' | answer | unfence | python)" '[1, 2, 3, 4]'
+run_test 'Quicksort Python Output' "$(ask write a python function for quicksort | ask 'output just the python code and call `print(quicksort([3,1,4,2]))`' | unfence | python)" '[1, 2, 3, 4]'
 
 if (( failures > 0 )); then
     echo "$failures test(s) failed."
