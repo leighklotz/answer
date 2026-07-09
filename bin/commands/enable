@@ -1,10 +1,10 @@
 # enable.sh: source this file
 
-[[ ":$PATH:" != *":$HOME/wip/answer:"* ]] && export PATH="$HOME/wip/answer:$PATH"
+[[ ":$PATH:" != *":$HOME/wip/answer/bin:"* ]] && export PATH="$HOME/wip/answer/bin:$PATH"
 
 if [[ "$PS1" != *"🦶"* ]]; then
     export ANSWER_OLD_PS1="$PS1"
     [[ "$PS1" == *'$'* ]] && PS1="${PS1/\\$/🦶\\$}" || PS1="🦶${PS1}"
 fi
 
-source ~/wip/answer/functions.sh
+source $HOME/wip/answer/bin/functions.sh
