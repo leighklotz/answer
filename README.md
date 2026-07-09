@@ -152,10 +152,10 @@ Here is what this toolchain can do:
     *   **`unfence | [interpreter]`**: Automates the flow from generating code to executing it in a controlled environment.
 
 
-    ## Tools setup
-    1. Visit [https://github.com/leighklotz/toolex](https://github.com/leighklotz/toolex) and install.
 ````
 
+## Tools setup (optional, but recommended)
+1. Visit [https://github.com/leighklotz/toolex](https://github.com/leighklotz/toolex) and install.
 ---
 
 ## Testing
