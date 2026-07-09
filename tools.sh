@@ -7,6 +7,11 @@
 # --pipe mode (which resolves tool calls and returns the updated conversation
 # array), and writes the result to stdout.
 
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/logging.sh"
+source "${SCRIPT_DIR}/functions.sh"
+
 TOOLEX_SH=~/wip/toolex/toolex.sh
 
 if [ $# -eq 0 ]; then
@@ -31,7 +36,13 @@ for arg in "$@"; do
     fi
 done
 
-exec "${TOOLEX_SH}" "${TOOLS_ARGS[@]}"
+# toolex.py --pipe reads MIME+JSON conversation from stdin, writes updated MIME+JSON to stdout
 
-# toolex.py --pipe reads JSON conversation from stdin, writes updated JSON to stdout
-exec "${TOOLEX_SH}" "${TOOLS_ARGS[@]}"
+if [ -t 1 ]; then
+  # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
+  "${TOOLEX_SH}" "${TOOLS_ARGS[@]}" | "${SCRIPT_DIR}/answer"
+else
+  # Contract Rule: Inside a pipe, forward the updated full JSON history state
+  "${TOOLEX_SH}" "${TOOLS_ARGS[@]}"
+fi
+
