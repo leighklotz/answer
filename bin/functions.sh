@@ -171,7 +171,7 @@ function _infer () {
     printf "🎯" >&2
     response_json=$(cat "$cache_file")
   else
-    printf "💭" >&2
+    printf "✨" >&2
     response_json=$(curl -fsS -X POST "$endpoint" \
                          -H "Authorization: Bearer $api_key" \
                          -H "Content-Type: application/json" \
@@ -250,10 +250,6 @@ function hx() {
         source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
     elif [ "$1" == "enable" ]; then
         source ~/wip/answer/bin/commands/enable
-    elif [ "$1" == "answer" ]; then
-        cache_dir="$(_find_cache_dir)"
-        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
-        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/bin/commands/answer.sh
     elif [ "$1" == "why" ]; then
         cache_dir="$(_find_cache_dir)"
         cache_fn="$(ls -t "$cache_dir"/ | head -1)"
@@ -263,7 +259,7 @@ function hx() {
         cache_fn="$(ls -t "$cache_dir"/ | head -1)"
         cat "${cache_dir}/${cache_fn}" | ~/wip/answer/bin/commands/what.sh
     else
-        echo "usage: hx {cache [clear|show|disable|enable]|answer|why|what|disable|enable}" >&2
+        echo "usage: hx [cache [clear|show|disable] | [enable|disable|answer|why|what]" >&2
         return 1
     fi
 }
