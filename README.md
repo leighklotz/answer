@@ -141,6 +141,19 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
    ```
 
 ---
+## Installation
+
+1. Set up your LLM server or API endpoint
+1. Edit bin/env.sh.sample and write in bin/env.sh
+1. Include bin/commands/hx-bootstrap.sh in your .bash.d/ or other init file
+1. `$ hx enable`
+1. `$ lx README.md | help what can you do`
+
+
+## Tools setup
+1. Visit [https://github.com/leighklotz/toolex](https://github.com/leighklotz/toolex) and install.
+
+---
 
 ## Testing
 
