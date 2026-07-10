@@ -1,6 +1,6 @@
 # Answer: A Shell-Based Code Assistant
 
-If you are comfortable at a `bash` command-line prompt, most lanaguge model coding tools probably feel heavy-handed, injecting large, opaque abstractions and that make teh shell a second-class citizen, disrupting the terminal workflow. You don't need a harness that attempts to take over your local workspace or write your software for you; you want a predictable utility that fits in with work style and preserves your control.
+If you are comfortable at a `bash` command-line prompt, most lanaguge model coding tools probably feel heavy-handed, injecting large, opaque abstractions and that make the shell a second-class citizen, disrupting the terminal workflow. You don't need a harness that attempts to take over your local workspace or write your software for you; you want a predictable utility that fits in with work style and preserves your control.
 
 The **answer** toolchain treats Large Language Models as composable, standard command-line filters for Linux and macOS. By communicating strictly through standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`, it keeps the model securely bound to the data loop you design.
 
