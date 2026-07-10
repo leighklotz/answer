@@ -13,7 +13,7 @@ To bridge the gap between interactive human use and automated shell scripting, `
 * **Interactive (TTY):** When run directly in a terminal window, `ask` and relate commandsd automatically routes the underlying JSON payload through `answer`, delivering plain text results.
 * **Pipeline (`STDOUT/STDIN`):** When `ask` detects it is being piped into another command or redirected to a file, it switches to machine-optimized mode. It emits raw **JSON** containing the full conversation history (system prompts, user queries, and assistant responses) prefixed with an appropriate MIME header. This distinction allows downstream `ask` commands to switch between text ingestion and multi-turn conversation.
 
-You can compose pipelines on the command line by interactively re-doing, editing, and and appending to the previous commands.
+You can compose pipelines on the command line by interactively re-doing, editing, and and appending to the previous commands. You keep multiple `forks` of a conversation or pipeline in play simply by repeating and updating previous commands. You can use your bash shell history commands and keystrokes such as `history`, `!!`, `Ctrl-R` to work with your chat history and command history together. Or run `bash` inside `Emacs` to obtain full editing ability inside a `shell` buffer.
 
 ---
 
