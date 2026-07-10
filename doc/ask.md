@@ -1,4 +1,3 @@
-```markdown
 # ask
 
 **ask** is the "State Builder" in the Answer framework. It is responsible for sending user prompts to the LLM API, managing the conversational history, and ensuring the conversation state flows correctly through Unix pipes.
@@ -12,22 +11,24 @@ ask [OPTIONS] [PROMPT...]
 The first non-flag argument begins the prompt.
 
 ## Pipeline Model
-The `ask` command always generates **JSON** to preserve the conversation state, but when used to pipe to another **Answer** tool, or when output is direct to a a terminal, `ask` auto-answers and outputs only the last assistant response.
+The `ask` command always generates **JSON** to preserve the conversation state, but when used to pipe to another **Answer** tool, or when output is direct to a terminal, `ask` auto-answers and outputs only the last assistant response.
 
 - **Interactive Mode (Auto-answer):** When running in a terminal where `stdout` is the screen, `ask` automatically pipes the JSON through `answer`. You see human-readable text.
-- **Pipeline Mode:** When `ask` is used in a script or piped into another command, it outputs **raw JSON**. This allows the next command to read the conversation state.
+- **Pipeline Mode:** When `ask` is used in a script or piped into another command, it outputs **raw JSON**. This allows the next command to read the conversation state (the full history including system/user roles and assistant responses).
 - **Manual Mode:** If `ask`'s output is redirected to a file (`> file.json`), auto-answer is disabled, and the file will contain raw JSON.
 
 ## Description
 
-`ask`, and wrappers such as `help`, are designed to be the primary entry point for starting or continuing a conversation. They manages conversation state by passing full conversation between pipeline stages.
+`ask`, and wrappers such as `help`, are designed to be the primary entry point for starting or continuing a conversation. It manages conversation state by passing full conversation arrays between pipeline stages via standard input/output streams. 
+
+The command performs "idempotent" turn resolution: if the incoming history ends with an assistant role, it passes through unchanged; only `user` roles trigger new inference calls.
 
 ## Options
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
 | `-i` | `--input` | **Attachment Mode:** Forces `stdin` to be treated as a formal attachment. Content is appended to the end of the prompt with an `ATTACHMENT:` label. In a terminal, this enables multi-line input (terminated with `Ctrl-D`). |
-| `-t` | `--tee` | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated, resolved JSON conversation history to **stdout**. |
+| `-t` | `--tee` | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated, resolved JSON conversation history to **stdout**. This allows you to monitor progress without breaking pipeline chains. |
 | `--use-system-message` | | Prepends the content of the `$SYSTEM_MESSAGE` environment variable as a `system` role message to the start of the conversation. |
 | `--help` | | Print usage information and exit. |
 
@@ -50,15 +51,20 @@ The behavior of `ask` depends on whether you are using it as a mid-pipeline obse
 | Mode | Context | stdout | stderr |
 |---------|----------|--------|--------|
 | **Observation** (`--tee`) | Used mid-pipeline to see progress without breaking the chain (e.g., `... \| answer --tee \| ask ...`) | The full, updated JSON conversation array | Plain text content of the last message + inference status emojis/icons |
-| **Extraction** (no flags, piped) | Used as a terminal endpoint for tools (e.g., `... \| answer \| python`) | Raw plain text content of the assistant's response | Inference status emojis/icons from `_infer` |
+| **Extraction** (no flags, piped) | Used as a terminal endpoint for tools (e.g., `... \| answer \| python`) | Raw plain text content of the assistant's response | Inference status icons from `_infer` |
 | **Terminal** (via shell function) | End-of-line interaction in an active terminal session | The human-readable message text | Message formatting icons + newline for visual separation |
 
 ## Environment Variables
 
+These variables control how requests are constructed and sent to the LLM API:
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENAI_API_KEY` | _(empty)_ | Bearer token for API authentication. |
-| `VIA_API_CHAT_BASE` | `http://localhost:5000` | The base URL for the OpenAI-compatible API. Full URL used: `$VIA_API_CHAT_COMPLETIONS_ENDPOINT`. |
+| `VIA_API_CHAT_BASE` | `http://localhost:5000` | The base URL of the OpenAI-compatible API. |
+| `VIA_MODEL` | `gpt-3.5-turbo` | Specifies which model to use (e.g., `claude-3-opus`). |
+| `ENABLE_THINKING` | `false` | If set, enables "reasoning/thinking" mode in the request payload for models that support it. |
+| `VIA_MAX_TOKENS` | `24000` | The maximum number of tokens allowed for the completion response. |
 | `SYSTEM_MESSAGE` | _(empty)_ | The text used as the initial `system` role message when `--use-system-message` is used. |
 
 ## Examples
@@ -80,7 +86,7 @@ Yes, there is an error on line 42 regarding a connection timeout.
 ```
 
 **3. Using Attachment Mode (`-i`)**
-Use `-i` to explicitly signal that the piped content is a formal attachment (prefixed with `ATTACHMENT:`).
+Use `-i` to explicitly signal that the piped content is a formal attachment (prefixed with `ATTACHMENT:`). This is ideal for large code blocks or data files you want the model to process as an input file rather than context text.
 ```bash
 $ cat logs.txt | ask -i "Analyze this attachment"
 💭
@@ -103,13 +109,13 @@ $ ask "How do I check disk usage?" --use-system-message
 ```
 
 **6. Complex Pipeline with Tools**
-Send code to be analyzed, resolve the tool call, and extract only the final text for execution.
+Send code to be analyzed, resolve the tool call (if applicable), and extract only the final text for execution.
 ```bash
 $ cat code.py | ask "Refactor this" | tools python_tools | answer
 ```
 
 **7. Observation Mode (Mid-Pipeline)**
-Use `-t` to see what is happening in your terminal without breaking a pipeline of JSON objects.
+Use `-t` to see what is happening in your terminal without breaking a pipeline of JSON objects intended for another command like `unfence`.
 ```bash
 $ ask "Write a bash script" | ask -t "Add error handling and logging" | answer
 ```

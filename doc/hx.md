@@ -1,75 +1,69 @@
 # hx
 
-**`hx`** is a management utility within the Answer framework used for workspace configuration, cache lifecycle management, and rapid interaction with recent AI responses stored in the local cache. 
+**`hx`** is the management utility for the Answer framework, serving as the control plane for workspace configuration, cache lifecycle management, and interaction recovery. 
 
-It serves as the control plane for managing how the toolchain handles data persistence (caching) and allows you to "re-run" or "query" previous LLM interactions without re-prompting the model by targeting the most recent entries in your workspace history.
+It allows you to manage how the toolchain handles data persistence (caching) and provides rapid access to your most recent AI responses by targeting the latest entries in your local workspace history.
 
 ## Synopsis
 
 ```bash
 hx <subcommand> [options]
+# or
+hx cache <cache-subcommand>
 ```
 
 ## Description
 
-`hx` provides several subcommands categorized into **Cache Management**, **Environment Configuration**, and **Interaction Recovery**. 
+The `hx` command is divided into three functional areas: **Cache Management**, **Pipeline Configuration**, and **Interaction Recovery**.
 
 ### Cache Management (`hx cache ...`)
-The Answer framework uses a local cache (located in `.hallux/cache`, `~/.config/hallux/cache`, or the user home directory) to store JSON conversation histories. This allows for instant retrieval of identical queries without hitting the API and provides a history of your interactions.
+To ensure predictable data loops, the framework stores conversation histories in a local cache (found in `.hallux/cache`, `~/.config/hallux/cache`, or your home directory). Use these subcommands to manage that storage:
 
-| Subcommand | Description |
-| :--- | :--- |
-| **`hx cache clear`** | Deletes the entire local cache directory after a manual confirmation prompt (`y/N`). Use this to ensure no previous conversation state is being reused or to reclaim disk space. |
-| **`hx cache show`** | Displays the absolute path of the current active cache directory used by the framework. Useful for debugging where your interaction history is stored. |
-| **`hx cache disable`** | Disables automated caching for the *current shell session* by setting `NO_CACHE=1`. This forces all subsequent queries to perform fresh API calls without storing results. |
-| **`hx cache enable`** | Re-enables the automated caching mechanism for the current session (unsets `NO_CACHE`). |
+| Subcommand | Description | Behavior / Output |
+| :--- | :--- | :--- |
+| **`hx cache clear`** | Deletes the entire local cache. | Prompted for confirmation (`y/N`). If confirmed, deletes the directory and outputs `🗑️ Cache cleared.` |
+| **`hx cache show`** | Displays the current active cache path. | Prints the absolute path to the cache directory. |
+| **`hx cache disable`** | Disables automated caching for your *current shell session*. | Sets `NO_CACHE=1`. Outputs: `⚠️ Cache disabled.` |
+| **`hx cache enable`** | Re-enables automated caching for your current session. | Unsets `NO_CACHE`. Outputs: `⚠️ Cache enabled.` |
 
-### Environment Configuration
-These top-level commands allow you to toggle or source specialized environment configurations and pipeline states via external configuration scripts.
+### Environment & Pipeline Configuration
+These top-level commands allow you to toggle specialized environment settings or pipeline behaviors by sourcing external configuration scripts.
 
-| Command | Description |
-| :--- | :--- |
-| **`hx disable`** | Sources a command/script that disables specific Answer framework behaviors (via `commands/disable`). |
-| **`hx enable`** | Sources the enablement script to restore standard pipeline behavior. |
+| Command | Description | Implementation Detail |
+| :--- | :--- | :--- |
+| **`hx disable`** | Disables specific Answer framework behaviors for the session. | Sources `bin/commands/disable`. |
+| **`hx enable`** | Restores standard pipeline behavior and configurations. | Sources `bin/commands/enable`. |
 
 ### Interaction Recovery ("Last Run" Shortcuts)
-These commands provide rapid access to your most recent AI interaction without needing to re-type prompts or manually find cache files. They identify the latest `.json` entry in the active cache and pipe it into specialized processing tools.
+These commands provide rapid access to your most recent LLM interaction without re-running prompts or manually locating files. They identify the latest `.json` file in your active cache and pipe its content into specialized reasoning tools.
 
-| Subcommand | Description | Pipeline Operation (Logic) |
+| Subcommand | Description | Pipeline Logic |
 | :--- | :--- | :--- |
-| **`hx answer`** | Re-extracts only the plain text content of your most recent LLM response from the cache. Useful if you need to grab a script or message again without re-running the model. | `cat <latest_cache> \| answer.sh` |
-| **`hx why`** | Passes the context and history of your last interaction into a reasoning tool (`why.sh`) to explain the logic behind an LLM's response. | `cat <latest_cache> \| why.sh` |
-| **`hx what`** | Summarizes or expands upon the latest conversation entry in the cache using the `what.sh` utility for deeper analysis of a previous turn. | `cat <latest_cache> \| what.sh` |
+| **`hx why`** | Explains the logic behind your last AI response. | `cat <latest_cache> \| why.sh` |
+| **`hx what`** | Summarizes or expands upon the latest conversation turn. | `cat <latest_cache> \| what.sh` |
 
 ## Examples
 
-**1. Managing Local Storage and Debugging**
+**1. Troubleshooting and Clearing Cache**
+If you encounter issues with stale context, clear your cache:
 ```bash
-# Find out where my AI history is stored
-$ hx cache show
-
-# Force a fresh query by disabling the cache in this session
-$ hx cache disable
-⚠️ Cache disabled.
-
-# Completely wipe all cached LLM responses
 $ hx cache clear
 ⚠️ Are you sure you want to remove /home/user/.config/hallux/cache? (y/N)
 Delete directory? (y/N): y
 🗑️  Cache cleared.
 ```
 
-**2. Re-examining Previous Results**
-If you just ran an `ask` command and want to perform more operations on that specific response without typing it again:
+**2. Disabling Cache for a Single Session**
+To prevent any new queries from being saved or using cached results during a session:
 ```bash
-# Extract the text of the last interaction for easier reading or piping
-$ hx answer
-
-# Use a specialized 'why' tool on your previous conversation context 
-# (e.g., "Why did it suggest this code structure?")
-$ hx why
-
-# Summarize/Expand upon the latest result in the cache
-$ hx what
+$ hx cache disable
+⚠️ Cache disabled.
+# Subsequent 'ask' commands will perform fresh API calls and won't be stored locally.
 ```
 
+**3. Re-examining Previous Interactions**
+If you just ran an `ask` command, you can immediately analyze the response using your "why" tool:
+```bash
+$ ask "Explain this complex bash regex" | why
+# (Processes latest cache entry through why.sh)
+```

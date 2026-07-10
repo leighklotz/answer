@@ -18,7 +18,7 @@ fi
 echo "CMDS=$CMDS"
 
 for cmd in $CMDS; do
-    echo -n "cmd=$cmd "
+    echo -n "cmd=$cmd	"
     doc_md="doc/${cmd}.md"
     doc_md_new="doc/${cmd}.md.new"
     dest=""
