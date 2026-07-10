@@ -72,7 +72,7 @@ Based on your provided scripts, here are the unnecessary debug statements (comme
 
 ````
 
-### 3. Building on the one-shit with conversations (`ask | ask`)
+### 3. Building on the one-shot with conversations (`ask | ask`)
 Because *answer* supports pipeline magic, you can pipe the output of a one-shot command into another inference command, and the pipeline will retain the conversation history.
 
 Each subsequent command automatically reads the pipeline history, appends your new turn, and tracks context seamlessly without losing state.
@@ -169,14 +169,30 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 
 ---
 
+## Management Utility (`hx`)
+
+Once bootstrapped via `source`, the `hx` function provides workspace management and session control.
+
+The `hx enable` command brings the harness into the current bash envirioment. It adds an icon (🦶) to the bash P$1 prom
+
+Once enabled, the following `hx` commands are supported:
+
+* **Environment Integration:** 
+    * `hx enable`: Integrates the harness into your current session, adding an icon (🦶) to the bash `$PS1` prompt.
+    * `hx disable`: Removes command aliases from your current PATH and removes the icon from `$PS1`. Shell functions remain defined.
+* **Cache Management (`hx cache ...`):** 
+    * `hx cache clear`, `hx cache show`: Manage local history storage and automated caching.
+    * `hx cache enable`, `hx cache disable`: Enable or disable automated caching for the session.
+* **Interaction Recovery:** 
+    * `hx why`, `hx what`: Retrieve reasoning (💭) or raw inference output (🧠) from your most recent LLM interaction.
+
 ## Installation & Setup
 
 ### Prerequisites
 
 * **Bash 4+** (Required for harness scripts).
 * **`jq`** (Command-line JSON processor).
-* **Python 3** (For executing generated code).
-* **LLM API Key or / Local Endpoint.**
+* **LLM API Key and endpoint, or self-hosted model endpoint.**
 
 ### Initialization Steps
 
@@ -192,7 +208,7 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
    $ emacs bin/commands/env.sh
    $ export VIA_API_CHAT_BASE="http://localhost:5000"
    $ export OPENAI_API_KEY="your-key-here"
-   $ cp bin/commands/hx-bootstrap.sh 
+   $ cp bin/commands/hx-bootstrap.sh .bash.d/ # or, append to .bashrc, as you wish
    $ source ~/.bash.d/hx-bootstrap.sh
    ```
 ---

@@ -29,18 +29,30 @@ To ensure predictable data loops, the framework stores conversation histories in
 ### Environment & Pipeline Configuration
 These top-level commands allow you to toggle specialized environment settings or pipeline behaviors by sourcing external configuration scripts.
 
-| Command | Description | Implementation Detail |
+| Command | Description |
 | :--- | :--- | :--- |
-| **`hx disable`** | Disables specific Answer framework behaviors for the session. | Sources `bin/commands/disable`. |
-| **`hx enable`** | Restores standard pipeline behavior and configurations. | Sources `bin/commands/enable`. |
+| **`hx enable`** | Adds answer to shell path and defines functions. Adds Hallux icon 🦶 to `$PS1`. |
+| **`hx disable`** | Removes answer from shell PATH. Functions, sadly, remain defined. Removes icon from `$PS1`. |
 
 ### Interaction Recovery ("Last Run" Shortcuts)
 These commands provide rapid access to your most recent LLM interaction without re-running prompts or manually locating files. They identify the latest `.json` file in your active cache and pipe its content into specialized reasoning tools.
 
-| Subcommand | Description | Pipeline Logic |
-| :--- | :--- | :--- |
-| **`hx why`** | Explains the logic behind your last AI response. | `cat <latest_cache> \| why.sh` |
-| **`hx what`** | Summarizes or expands upon the latest conversation turn. | `cat <latest_cache> \| what.sh` |
+| Subcommand | Description |
+| :--- | :--- |
+| **`hx why`** | Outputs the reasoning behind the last inference response, if any. |
+| **`hx what`** | Outputs the last inference response, if any. |
+
+````bash
+    🦶$ hx why
+    💭
+    *The user is asking a simple arithmetic question: "2+3=".
+    * Constraint Check: The system instructions state I can assist with Linux, Bash, Python, programming, etc., and to avoid expounding.
+    * Mathematical operation: 2 + 3 = 5.
+    🦶$ hx what
+    🧠
+    5
+    🦶$ 
+````
 
 ## Examples
 
