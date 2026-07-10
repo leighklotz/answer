@@ -1,17 +1,19 @@
 # Answer: A Shell-Based Code Assistant
 
-For developers who are comfortable at a bash prompt, conventional AI tools often feel heavy-handed, injecting large, opaque abstractions that disrupt the terminal workflow. You don't need a harness that attempts to take over your local workspace or write your software for you; you want a predictable utility that respects standard streams and preserves your control over the data loop.
+If you are comfortable at a `bash` command-line prompt, most lanaguge model coding tools feel heavy-handed, injecting large, opaque abstractions and that make teh shell a second-class citizen, disrupting the terminal workflow. You don't need a harness that attempts to take over your local workspace or write your software for you; you want a predictable utility that fits in with work style and preserves your control.
 
-The **Answer** toolchain treats Large Language Models (LLMs) as composable, standard command-line filters for Linux and macOS. By communicating strictly through standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`, it keeps the model securely bound to the data loop you design.
+The **answer** toolchain treats Large Language Models as composable, standard command-line filters for Linux and macOS. By communicating strictly through standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`, it keeps the model securely bound to the data loop you design.
 
 ---
 
 ## The Pipeline Model & Auto-Answer Mechanism
 
-To bridge the gap between interactive human use and automated shell scripting, `ask` uses an intelligent **"Detect-and-Convert"** mechanism. It automatically detects its execution environment to prevent messy data format-juggling inside your pipes:
+To bridge the gap between interactive human use and automated shell scripting, `ask` uses a *magic pipeline* that keeps the inference session history while presenting you with only the last output:
 
-* **Interactive Mode (TTY):** When run directly in a terminal window, `ask` assumes you are the end user. To ensure a clean experience, it automatically routes the underlying JSON payload through `answer`, delivering **Pristine Plain Text** stripped of all metadata and structure.
-* **Pipeline/Machine Mode (`STDOUT/STDIN`):** When `ask` detects it is being piped into another command or redirected to a file, it switches to machine-optimized mode. It emits raw **JSON** containing the full conversation history (system prompts, user queries, and assistant responses) prefixed with an appropriate MIME header. This distinction allows downstream `ask` commands to switch between text ingestion and multi-turn conversation.
+* **Interactive (TTY):** When run directly in a terminal window, `ask` and relate commandsd automatically routes the underlying JSON payload through `answer`, delivering plain text results.
+* **Pipeline (`STDOUT/STDIN`):** When `ask` detects it is being piped into another command or redirected to a file, it switches to machine-optimized mode. It emits raw **JSON** containing the full conversation history (system prompts, user queries, and assistant responses) prefixed with an appropriate MIME header. This distinction allows downstream `ask` commands to switch between text ingestion and multi-turn conversation.
+
+You can compose pipelines on the command line by interactively re-doing, editing, and and appending to the previous commands.
 
 ---
 
