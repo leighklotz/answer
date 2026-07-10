@@ -37,13 +37,30 @@ You can use the `ask` and `help` commands to ask one-shot questions, right in th
 ````
 
 
-### 2. One-shot with input (`| help`)
+### 2. One-shot with input (`| help`, `| ask`)
+
+You can pass general output into `help` and `ask`, with or without the `bx` wrapper. If the input is self-explanatory, use stdin directly. If the request would benefit from having the command that produced the output documented, use `bx`. If theare are multiple files, use `lx`.
+
 ````bash
     🦶$ sudo dmesg | tail -40 | help what is the up with the WiFi
     ✨
     Based on the log snippet provided, there does not appear to be a connection failure or a hardware error. Here is the breakdown of what the WiFi status shows:
     ...
 
+````
+
+````
+    🦶$ openssl --help 2>&1 | help I want to check the certificate at  https://example.com
+    ✨
+    ```bash
+    openssl s_client -connect example.com:443 -servername example.com </dev/null | openssl x509 -text -noout
+    ```
+    🦶$ 
+````
+
+````bash
+    🦶$ lx bin/*.sh | help look for unnecessary debug statements
+    📥📥📥📥📥📥📥📥📥📥📥📥📥📥✨
 ````
 
 ### 3. Building on the one-shit with conversations (`ask | ask`)
