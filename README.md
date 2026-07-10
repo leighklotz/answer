@@ -1,6 +1,6 @@
 # Answer: A Shell-Based Code Assistant
 
-If you are comfortable at a `bash` command-line prompt, most lanaguge model coding tools probably feel heavy-handed, injecting large, opaque abstractions and that make the shell a second-class citizen, disrupting the terminal workflow. You don't need a harness that attempts to take over your local workspace or write your software for you; you want a predictable utility that fits in with work style and preserves your control.
+If you are comfortable at a `bash` command-line prompt, most language model coding tools probably feel heavy-handed, injecting large, opaque abstractions that make the shell a second-class citizen, disrupting the terminal workflow. You don't need a harness that attempts to take over your local workspace or write your software for you; you want a predictable utility that fits in with your work style and preserves your control.
 
 The **answer** toolchain treats Large Language Models as composable, standard command-line filters for Linux and macOS. By communicating strictly through standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`, it keeps the model securely bound to the data loop you design.
 
@@ -10,10 +10,10 @@ The **answer** toolchain treats Large Language Models as composable, standard co
 
 To bridge the gap between interactive human use and automated shell scripting, `ask` uses a *magic pipeline* that keeps the inference session history while presenting you with only the last output:
 
-* **Interactive (TTY):** When run directly in a terminal window, `ask` and relate commandsd automatically routes the underlying JSON payload through `answer`, delivering plain text results.
-* **Pipeline (`STDOUT/STDIN`):** When `ask` detects it is being piped into another command or redirected to a file, it switches to machine-optimized mode. It emits raw **JSON** containing the full conversation history (system prompts, user queries, and assistant responses) prefixed with an appropriate MIME header. This distinction allows downstream `ask` commands to switch between text ingestion and multi-turn conversation.
+* **Interactive (TTY):** When run directly in a terminal window, `ask` and related commands automatically route the underlying structured payload through `answer`, delivering the assistant's plain-text response.
+* **Pipeline (`STDOUT/STDIN`):** When `ask` detects that its output is being piped into another command or redirected to a file, it switches to machine-oriented mode. It emits **JSON** containing the full conversation history (system prompts, user queries, and assistant responses), prefixed with an appropriate MIME header. A downstream `ask` or `help` command recognizes that header and appends another turn; an ordinary Unix command sees the structured stream unless you terminate the conversation pipeline with `answer`.
 
-You can compose pipelines on the command line by interactively re-doing, editing, and and appending to the previous commands. You keep multiple `forks` of a conversation or pipeline in play simply by repeating and updating previous commands. You can use your bash shell history commands and keystrokes such as `history`, `!!`, `Ctrl-R` to work with your chat history and command history together. Or run `bash` inside `Emacs` to obtain full editing ability inside a `shell` buffer.
+You can compose pipelines on the command line by interactively re-doing, editing, and appending to the previous commands. You keep multiple `forks` of a conversation or pipeline in play simply by repeating and updating previous commands. You can use your bash shell history commands and keystrokes such as `history`, `!!`, `Ctrl-R` to work with your chat history and command history together. Or run `bash` inside `Emacs` to obtain full editing ability inside a `shell` buffer.
 
 ---
 
@@ -22,7 +22,7 @@ You can compose pipelines on the command line by interactively re-doing, editing
 The harness switches seamlessly between interactive workflows and automated text extraction using four primary paradigms:
 
 ### 1. One-shot
-You can use the `ask` and `help` commands to ask one-shot questions, right in the shell. You can direct input to the commmands, and use string interpolation in the prompt.
+You can use the `ask` and `help` commands to ask one-shot questions, right in the shell. You can direct input to the commands, and use string interpolation in the prompt.
 
 ````bash
     $ hx enable
@@ -42,7 +42,7 @@ You can use the `ask` and `help` commands to ask one-shot questions, right in th
 
 ### 2. One-shot with input (`| help`, `| ask`)
 
-You can pass general output into `help` and `ask`, with or without the `bx` wrapper. If the input is self-explanatory, use stdin directly. If the request would benefit from having the command that produced the output documented, use `bx`. If theare are multiple files, use `lx`.
+You can pass general output into `help` and `ask`, with or without the `bx` wrapper. If the input is self-explanatory, use stdin directly. If the request would benefit from having the command that produced the output documented, use `bx`. If there are multiple files, use `lx`.
 
 ````bash
     🦶$ sudo dmesg | tail -40 | help what is the up with the WiFi
@@ -84,7 +84,7 @@ ask "What is 20+30?" | ask "Convert that result to octal"
 
 ### 4. Tool & Extraction Mode (`ask | unfence | interpreter`)
 Target code generated by an LLM, pass it through a confirmation gateway, and stream it straight to an interpreter.
-The `unfence` command handles targeted extraction of code fences and requires user confirmtion before proceeding.
+The `unfence` command handles targeted extraction of code fences and requires user confirmation before proceeding.
 
 ```bash
 help "Write a python script to list files" | unfence python | python
@@ -96,7 +96,7 @@ View what the model is generating without fracturing your conversation chain. Th
 help "Plan a bash script to xyzzy" | help -t "Write the in bash code" | unfence bash | bash
 ```
 
-### 6. Interactive termiinal (`ask -i`)
+### 6. Interactive terminal (`ask -i`)
 Use `-i` (or `--input`) to enable interactive mode for multi-line `stdin`, which is terminated with `Ctrl-D`. This is ideal when you want to paste large chunks of text or code into the prompt manually.
 
 ```bash
@@ -114,8 +114,8 @@ This emoji is a **dumpling** (🥟).
 The harness relies on a suite of single-purpose scripts and a core engine primitive:
 
 * **`ask / help`**: *The State Builders.* They process prompts and `stdin` to construct context payloads. `help` is a specialized wrapper focused on Python and Bash development. 
-* **`answer`**: *The Text Extractor.* The terminal endpoint that delivers raw text tokens to `stdout`. 
-    > **⚠️ Crucial Redirection Note:** When redirecting output to a file (e.g., `ask "code" > script.sh`), you must explicitly call `answer` before the redirection (`ask "code" | answer > script.sh`). If you do not, you will capture the raw JSON conversation history instead of the plain text code.
+* **`answer`**: *The Inference Endpoint and Text Extractor.* It consumes the structured request or conversation history, performs or retrieves the inference, and writes the assistant's plain-text response to `stdout`. You normally do not call it explicitly at an interactive terminal, because `ask` and `help` do that automatically. Add it when you want to terminate the structured conversation pipeline and send plain text to a file or an ordinary Unix command.
+    > **⚠️ Crucial Redirection Note:** When redirecting output to a file (e.g., `ask "code" > script.sh`), explicitly call `answer` before the redirection (`ask "code" | answer > script.sh`). Otherwise, you will capture the JSON conversation history instead of the plain-text response.
 * **`unfence`**: *The Code Sniper.* Extracts markdown code blocks from LLM output and provides an interactive pager/confirmation prompt to ensure you don't execute dangerous code without reviewing it first.
 * **`lx`**: A file-ingestion utility that streams multiple target files into your pipeline, automatically wrapping them in clean markdown syntax blocks for downstream parsing.
 * **`bx`**: A command-execution bridge. It executes shell commands and captures their output inside markdown fences so the results can be injected directly back into an LLM query.
@@ -175,7 +175,7 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 
 Once bootstrapped via `source`, the `hx` function provides workspace management and session control.
 
-The `hx enable` command brings the harness into the current bash envirioment. It adds an icon (🦶) to the bash P$1 prom
+The `hx enable` command brings the harness into the current bash environment. It adds an icon (🦶) to the Bash `$PS1` prompt
 
 Once enabled, the following `hx` commands are supported:
 

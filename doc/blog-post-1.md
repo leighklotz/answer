@@ -6,7 +6,7 @@ The **Answer** toolchain is built for developers who prefer controlling the blac
 
 Additionally, you pipe text into it, and you pipe code out of it, keeping the model securely bound inside standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`. 
 
-And crucially, you can pipe between tools in the **Answer* toolchain. Appending to a previously-inferred pipeline will rely on cached results for idempotency.
+And crucially, you can pipe between tools in the **Answer** toolchain. When you extend and rerun a pipeline, unchanged earlier inference stages can be served from the cache, while a new stage is inferred normally. This makes iterative editing fast and repeatable.
 
 ---
 
@@ -14,7 +14,7 @@ And crucially, you can pipe between tools in the **Answer* toolchain. Appending 
 
 The problem with conventional terminal wrappers is that they often force you into custom REPLs or rigid, isolated interfaces. The `answer` package bypasses this by storing and passing conversation state directly through standard pipes.
 
-When you chain these scripts together, they pass a hidden, structured JSON conversation history down the stream. To you, it is plain text. To the model, it is a perfectly preserved state file.
+When you chain these scripts together, they pass a structured JSON conversation history down the stream. At an interactive terminal, the final command automatically extracts and displays the assistant's plain-text response. Between pipeline stages, however, the structured history remains intact so each subsequent model call receives the prior prompts and responses.
 
 Because this state lives strictly within the pipeline, you inherit the full flexibility of your environment:
 
@@ -30,7 +30,7 @@ Because this state lives strictly within the pipeline, you inherit the full flex
 The system works via a few small, single-purpose scripts:
 
 * **`ask / help`**: Takes your prompt and combines it with any incoming `stdin` (a log file, a Git diff, or a previous pipeline state) to build the payload. ask is generic and help is a thin wrapper focused on python and bash.  
-* **`answer`**: The execution engine. It manages the API calls, handles local caching (so identical queries resolve instantly without hitting the network), and outputs the conversation or extracted response text. Use only when redirecting ask or help output away from terminal.
+* **`answer`**: The inference endpoint and text extractor. It consumes the structured request or conversation history, performs or retrieves the inference, and writes the assistant's plain-text response. You normally do not invoke it explicitly at an interactive terminal. Add it when you want to terminate the structured conversation pipeline and send plain text to a file or an ordinary Unix command.
 * **`unfence`**: Language models love to wrap code in markdown syntax (such as "\`\`\`python") and append conversational text. `unfence` acts as an automated parser that strips out the conversational fluff, displays the output for verification, and extracts only the runnable script block. It asks for confirmation, and in the case of ambiguity, selection.  
 * **`lx`**: A file-ingestion utility that streams multiple files into the pipeline, automatically formatting into markdown for inference by the downstream `ask`/`help` tools.  
 * **`bx`**: A command-execution wrapper designed to bridge the shell and the model. It executes commands, captures their output, and facilitates passing results directly back into the conversation pipeline. Use it to capture a command and its output for later inference.  
