@@ -191,7 +191,7 @@ Once enabled, the following `hx` commands are supported:
 ### Prerequisites
 
 * **Bash 4+** (Required for harness scripts).
-* **`jq`** (Command-line JSON processor).
+* **`jq 1.8+`** (Command-line JSON processor).
 * **LLM API Key and endpoint, or self-hosted model endpoint.**
 
 ### Initialization Steps
