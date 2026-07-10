@@ -94,7 +94,7 @@ View what the model is generating without fracturing your conversation chain. Th
 help "Plan a bash script to xyzzy" | help -t "Write the in bash code" | unfence bash | bash
 ```
 
-### 6. Interactive Multi-line Input (`ask -i`)
+### 6. Interactive termiinal (`ask -i`)
 Use `-i` (or `--input`) to enable interactive mode for multi-line `stdin`, which is terminated with `Ctrl-D`. This is ideal when you want to paste large chunks of text or code into the prompt manually.
 
 ```bash
