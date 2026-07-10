@@ -195,6 +195,15 @@ Once enabled, the following `hx` commands are supported:
 * **LLM API Key and endpoint, or self-hosted model endpoint.**
 
 ### Initialization Steps
+First check your bash version to see if it is above 4.
+```bash
+$ echo $BASH_VERSION
+5.3.15(1)-release
+```
+
+If you are on a Mac, you may wish to use [homebrew](https://brew.sh/) to install a more recent bash. (Or, fork this repo and port it to `zsh` :-)
+
+
 
 1. **Clone and Enable:**
    ```bash
