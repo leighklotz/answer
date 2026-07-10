@@ -69,7 +69,7 @@ If `--use-system-message` is toggled and `$SYSTEM_MESSAGE` is set, `jq` is used 
 
 ### Output
 
-- **Terminal:** If stdout is a terminal, it pipes the JSON to `answer` to provide a pretty-printed response and updates the global `LAST_ANSWER`.
+- **Terminal:** If stdout is a terminal, it pipes the JSON to `answer` to provide a pretty-printed response.
 - **Pipeline:** Outputs the `PIPELINE_MAGIC_HEADER` followed by the updated JSON array to stdout.
 
 ---
@@ -139,14 +139,10 @@ The script executes the command and wraps the output in a Bash code fence. Cruci
 A smart wrapper that provides pipeline intelligence:
 - **Header Detection:** It reads the first line of stdin. If it matches `PIPELINE_MAGIC_HEADER`, it calls `ask.sh` with the existing JSON. If the header is absent but stdin is a pipe, it automatically invokes `ask.sh -i` to treat the input as an attachment.
 - **Error Propagation:** Captures the exit status of `ask.sh` and returns it to the shell.
-- **Terminal Logic:** If stdout is a terminal, it uses a here-string (`<<<`) to pass the result to `answer`, ensuring the `LAST_ANSWER` variable is updated in the current shell context.
+- **Terminal Logic:** If stdout is a terminal, it uses a here-string (`<<<`) to pass the result to `answer`.
 
 #### `answer()`
-- **Direct Call:** If called without stdin in a terminal, it retrieves the content from the global `LAST_ANSWER` variable.
-- **State Management:** If not in `--tee` mode, it exports the result to the `LAST_ANSWER` environment variable to allow subsequent interactive calls to retrieve the result.
-
-#### `pipetest()`
-A safety wrapper that captures stdin to a temporary file, displays a preview of the data to `stderr`, and requires a `Y/N` confirmation from the user via `/dev/tty` before forwarding the data to `stdout`.
+- **State Management:** If not in `--tee` mode.
 
 ---
 

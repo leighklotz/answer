@@ -9,7 +9,7 @@ FUNCTIONS_SH="${SCRIPT_DIR}/functions.sh"
 shopt -s nullglob
 mkdir -p doc
 
-CMDS="answer ask bx help-commit help unfence lx hx"
+CMDS="answer ask bx help-commit help unfence lx hx makedoc tools"
 
 if [ -n "$1" ]; then
     CMDS=$@
@@ -18,7 +18,7 @@ fi
 echo "CMDS=$CMDS"
 
 for cmd in $CMDS; do
-    echo -n "cmd=$cmd "
+    echo -n "cmd=$cmd	"
     doc_md="doc/${cmd}.md"
     doc_md_new="doc/${cmd}.md.new"
     dest=""

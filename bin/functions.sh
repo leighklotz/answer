@@ -264,21 +264,6 @@ function hx() {
     fi
 }
 
-function tools ()
-{
-    local s
-
-    # pass through to tools.sh which will error appropriately.
-    tools.sh "$@"
-    s=$?
-
-    if [ $s -ne 0 ]; then
-        echo "🦶ERROR: tools.sh failed with exit code $s" >&2
-        return $s
-    fi
-}
-
-
 # use `builtin help` if you want native bash help command
 function help ()
 {

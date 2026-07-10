@@ -7,6 +7,11 @@
 # --pipe mode (which resolves tool calls and returns the updated conversation
 # array), and writes the result to stdout.
 
+# Example use case
+# ask what branches are not merged into main | tools git
+# For more info see https://github.com/leighklotz/toolex
+#
+
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
