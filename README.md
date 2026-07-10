@@ -1,6 +1,6 @@
 # Answer: A Shell-Based Code Assistant
 
-For developers who are comfortable at a bash prompt, conventional AI tools often feel heavy-handed, injecting large, opaque abstractions that disrupt the terminal workflow. You don't need a framework that attempts to take over your local workspace or write your software for you; you want a predictable utility that respects standard streams and preserves your control over the data loop.
+For developers who are comfortable at a bash prompt, conventional AI tools often feel heavy-handed, injecting large, opaque abstractions that disrupt the terminal workflow. You don't need a harness that attempts to take over your local workspace or write your software for you; you want a predictable utility that respects standard streams and preserves your control over the data loop.
 
 The **Answer** toolchain treats Large Language Models (LLMs) as composable, standard command-line filters for Linux and macOS. By communicating strictly through standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`, it keeps the model securely bound to the data loop you design.
 
@@ -17,7 +17,7 @@ To bridge the gap between interactive human use and automated shell scripting, `
 
 ## Pipeline Modes & Capabilities
 
-The framework switches seamlessly between interactive workflows and automated text extraction using four primary paradigms:
+The harness switches seamlessly between interactive workflows and automated text extraction using four primary paradigms:
 
 ### 1. One-shot
 You can use the `ask` and `help` commands to ask one-shot questions, right in the shell. You can direct input to the commmands, and use string interpolation in the prompt.
@@ -26,7 +26,8 @@ You can use the `ask` and `help` commands to ask one-shot questions, right in th
     $ hx enable
     🦶$ help briefly, how can i use a bash variable reference to drop the last file extension 
     ✨
-    Use **parameter expansion** with the `%` operator to remove the shortest match of a dot and any characters following it from the end of the string:
+    Use **parameter expansion** with the `%` operator to remove the shortest match of a dot and any characters
+    following it from the end of the string:
 
     ```bash
     FILE="image.tar.gz"
@@ -44,7 +45,8 @@ You can pass general output into `help` and `ask`, with or without the `bx` wrap
 ````bash
     🦶$ sudo dmesg | tail -40 | help what is the up with the WiFi
     ✨
-    Based on the log snippet provided, there does not appear to be a connection failure or a hardware error. Here is the breakdown of what the WiFi status shows:
+    Based on the log snippet provided, there does not appear to be a connection failure or a hardware error. 
+    Here is the breakdown of what the WiFi status shows:
     ...
 
 ````
@@ -100,7 +102,7 @@ This emoji is a **dumpling** (🥟).
 
 ## The Minimalist Toolchain
 
-The framework relies on a suite of single-purpose scripts and a core engine primitive:
+The harness relies on a suite of single-purpose scripts and a core engine primitive:
 
 * **`ask / help`**: *The State Builders.* They process prompts and `stdin` to construct context payloads. `help` is a specialized wrapper focused on Python and Bash development. 
 * **`answer`**: *The Text Extractor.* The terminal endpoint that delivers raw text tokens to `stdout`. 
@@ -110,7 +112,7 @@ The framework relies on a suite of single-purpose scripts and a core engine prim
 * **`bx`**: A command-execution bridge. It executes shell commands and captures their output inside markdown fences so the results can be injected directly back into an LLM query.
 * **`tools`**: A wrapper that routes conversation arrays to `toolex.py` to handle native LLM tool calls (function calling).
 * **`hx`**: Workspace management utility used for enabling pipeline paths, resetting cache structures, and managing settings.
-* **`story.txt`**: A comprehensive reference file containing example usage scenarios, prompts, and expected outputs to help you master the framework.
+* **`story.txt`**: A comprehensive reference file containing example usage scenarios, prompts, and expected outputs to help you master the harness.
 ---
 
 ## Production Patterns & Interactive Examples
@@ -164,7 +166,7 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 
 ### Prerequisites
 
-* **Bash 4+** (Required for framework scripts).
+* **Bash 4+** (Required for harness scripts).
 * **`jq`** (Command-line JSON processor).
 * **Python 3** (For executing generated code).
 * **LLM API Key or / Local Endpoint.**
@@ -232,7 +234,7 @@ Run the automated test suite to verify pipeline outputs and state management:
 
 ## Provenance
 
-This LLM agent framework in Bash was derived from https://github.com/leighklotz/llamafiles and previous work.
+This LLM agent harness in Bash was derived from https://github.com/leighklotz/llamafiles and previous work.
 
 ## License
 
