@@ -63,6 +63,13 @@ You can pass general output into `help` and `ask`, with or without the `bx` wrap
 ````bash
     🦶$ lx bin/*.sh | help look for unnecessary debug statements
     📥📥📥📥📥📥📥📥📥📥📥📥📥📥✨
+Based on your provided scripts, here are the unnecessary debug statements (commented-out code or developer trace logs used for inspecting internal state) that should be removed before production use:
+
+### 1. `bin/answer.sh`
+*   **Line 28:** `# echo "resolved_history=$resolved_history"`  
+    *(A commented-out print statement used to inspect a variable's contents during development.)*
+...
+
 ````
 
 ### 3. Building on the one-shit with conversations (`ask | ask`)
