@@ -4,6 +4,7 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
+FUNCTIONS_SH="${SCRIPT_DIR}/functions.sh"
 
 shopt -s nullglob
 mkdir -p doc
@@ -27,7 +28,7 @@ for cmd in $CMDS; do
         if [ -f "${cmd}.sh" ]; then
             src="${cmd}.sh"
         else
-            src="functions.sh"
+            src="${FUNCTIONS_SH}"
         fi
 
         context=()
