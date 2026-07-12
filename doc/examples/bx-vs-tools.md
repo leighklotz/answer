@@ -9,7 +9,7 @@ Yes, the **README** appears to be up to date with the latest changes described i
 *   **File List**: All scripts mentioned in the file descriptions match the project's current state.
 ````
 
-1```bash
+````bash
 klotz@tensor:~/wip/energy-monitor🦶$ help is README up to date with the last commit changes | tools git bash file
 💬✨🤖 ls -a✨🤖 reading file: README.md
 ✨🤖 git log -1 -p✨
