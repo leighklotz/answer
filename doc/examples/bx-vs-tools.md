@@ -1,5 +1,6 @@
 # Explicit context vs tooling for README update following git commit
 
+## Explicit Context
 ````
 klotz@tensor:~/wip/energy-monitor🦶$ (bx git log -1 ; lx power-avg.py README.md) | help is README up to date with the latest changes
 📥📥✨
@@ -9,6 +10,7 @@ Yes, the **README** appears to be up to date with the latest changes described i
 *   **File List**: All scripts mentioned in the file descriptions match the project's current state.
 ````
 
+## Tool-based Context
 ````bash
 klotz@tensor:~/wip/energy-monitor🦶$ help is README up to date with the last commit changes | tools git bash file
 💬✨🤖 ls -a✨🤖 reading file: README.md
