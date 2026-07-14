@@ -247,7 +247,7 @@ function hx() {
                 ;;
         esac
     elif [ "$1" == "disable" ]; then
-        source "$(dirname "${BASH_SOURCE[0]}")/commands/disable"
+        source ~/wip/answer/bin/commands/disable
     elif [ "$1" == "enable" ]; then
         source ~/wip/answer/bin/commands/enable
     elif [ "$1" == "why" ]; then
