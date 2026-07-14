@@ -1,8 +1,8 @@
 # disable.sh: source this file
 
-export PATH=$(echo "$PATH" | sed -e "s|:$HOME/wip/answer:|:|g" \
-                                 -e "s|^$HOME/wip/answer:||" \
-                                 -e "s|:$HOME/wip/answer$||" \
+export PATH=$(echo "$PATH" | sed -e "s|:$HOME/wip/answer/bin:|:|g" \
+                                 -e "s|^$HOME/wip/answer/bin:||" \
+                                 -e "s|:$HOME/wip/answer/bin$||" \
                                  -e 's|::|:|g')
 
 if [ -n "${ANSWER_OLD_PS1}" ]; then
