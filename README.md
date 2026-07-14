@@ -1,8 +1,15 @@
 # Answer: A Shell-Based Code Assistant
 
+The **answer** toolchain is a shell-based code assistant designed for Linux and macOS that treats Large Language Models (LLMs) as composable command-line filters.
+
 If you are comfortable at a `bash` command-line prompt, most language model coding tools probably feel heavy-handed, injecting large, opaque abstractions that make the shell a second-class citizen, disrupting the terminal workflow. You don't need a harness that attempts to take over your local workspace or write your software for you; you want a predictable utility that fits in with your work style and preserves your control.
 
 The **answer** toolchain treats Large Language Models as composable, standard command-line filters for Linux and macOS. By communicating strictly through standard inputs and outputs alongside tools like `grep`, `awk`, and `sed`, it keeps the model securely bound to the data loop you design.
+
+It allows users to integrate AI directly into their terminal workflows by:
+* **Chaining Conversations:** pipe inferences together to maintain inference history.
+* **Execute Code Safely:** Explicit commands provide control and confirmation of script execution.
+* **Extending Shell Capabilities:** Includes utilities such as `lx` (file ingestion), `bx` (command execution injection), and `help` (specialized for poxix/bash/python workflows) to make your LLM a predictable part of the Unix pipeline alongside tools such as `grep`, `awk`, and `sed`.
 
 ---
 
@@ -133,7 +140,7 @@ $ help write fib in bash | help call it with 20 | to_python | unfence python | p
 ```
 
 ### Example 2: Auditing Your Debugging History
-Use standard shell mechanics like `fc` or `history` to capture your terminal trail and feed it into the model for analysis.
+Use standard shell mechanics such as `fc` or `history` to capture your terminal trail and feed it into the model for analysis.
 ```bash
 $ history | tail -n 30 | help "Summarize my recent actions as a concise markdown guide, skipping failed attempts."
 ```
@@ -166,7 +173,7 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 
 ```text
 .hallux/cache/
-└── Qwen3.6-35B...:5d97ec5e...:chatcmpl-iZss...json
+└── Gemma-4-27B...:5d97ec5e...:chatcmpl-iZss...json
 ```
 
 ---
@@ -241,7 +248,7 @@ Here is what this toolchain can do:
     *   **Intelligent Mode Switching:** 
         *   **Interactive Mode (TTY):** Delivers clean, plain text for human reading.
         *   **Pipeline/Machine Mode:** Emits structured JSON with metadata and MIME headers for downstream automation.
-    *   **Safe Code Execution:** Through `unfence`, you can extract markdown code blocks from LLM responses and pass them through a confirmation gateway to an interpreter (like Python or Bash).
+    *   **Safe Code Execution:** Through `unfence`, you can extract markdown code blocks from LLM responses and pass them through a confirmation gateway to an interpreter (such as Python or Bash).
 
     ### Specialized Tooling
     *   **`ask`**: The primary interface for building context payloads from prompts, multi-line input (`-i`), or mid-pipeline observation (`--tee`).
