@@ -172,6 +172,7 @@ function _infer () {
     printf "🎯" >&2
     response_json=$(cat "$cache_file")
   else
+    log_trace "$(cat "$tmp_req")"
     printf "✨" >&2
     response_json=$(curl -fsS -X POST "$endpoint" \
                          -H "Authorization: Bearer $api_key" \
