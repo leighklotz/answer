@@ -73,16 +73,21 @@ function _mktemp_reg_lit() {
 }
 
 function _cleanup_run_dir() {
-    # If a subshell or a downstream pipeline script exits, it inherits the trap 
-    # but its $BASHPID will not match the original owner.
-    if [[ "$BASHPID" != "$HALLUX_RUN_OWNER_PID" ]]; then
-        return 0
-    fi
+    # 1. Ensure we are in the owner process to prevent subshell interference
+    [[ "$BASHPID" != "$HALLUX_RUN_OWNER_PID" ]] && return 0
     
-    if [[ -d "$HALLUX_RUN_DIR" ]]; then
-        log_trace "Cleaning up workspace: $HALLUX_RUN_DIR"
-        rm -rf -- "$HALLUX_RUN_DIR"
+    # 2. Use a local variable for the dir to avoid issues if HALLUX_RUN_DIR is unset mid-flight
+    local target="$HALLUX_RUN_DIR"
+
+    if [[ -n "$target" && -d "$target" ]]; then
+        log_trace "Cleaning up workspace: $target"
+        # 3. Use -- to prevent filenames starting with '-' from being treated as flags
+        # and suppress errors in case another process beat us to it (the 'rm' race)
+        rm -rf -- "$target" 2>/dev/null || true
     fi
+
+    # 4. Unset the variable so subsequent calls don't try to re-clean or find a non-existent dir
+    unset HALLUX_RUN_DIR
 }
 
 function _find_cache_dir () {
