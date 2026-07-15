@@ -148,6 +148,7 @@ function _infer () {
       model: $model,
       messages: .,
       max_tokens: $max_tokens,
+      enable_thinking: $thinking,
       thinking: $thinking,
       thinking_budget_tokens: 5000
     }' < "$tmp_json" > "$tmp_req"
@@ -178,9 +179,11 @@ function _infer () {
                          -d @"$tmp_req") || {
       return 1
     }
+    if jq -e '.choices[0]?.message?.reasoning_content != null' <<< "$response_json" >/dev/null 2>&1; then
+        printf "🧠 ENABLE_THINKING=$ENABLE_THINKING" >&2
+    fi
   fi
 
-  # Contract: OpenAI-compatible chat completion response with non-empty assistant content.
   local assistant_content
   assistant_content=$(
     printf "%s" "$response_json" | jq -er '
