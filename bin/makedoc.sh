@@ -19,8 +19,8 @@ echo "CMDS=$CMDS"
 
 for cmd in $CMDS; do
     echo -n "cmd=$cmd	"
-    doc_md="doc/${cmd}.md"
-    doc_md_new="doc/${cmd}.md.new"
+    doc_md="doc/commands/${cmd}.md"
+    doc_md_new="doc/commands/${cmd}.md.new"
     dest=""
     if [ -f "$doc_md_new" ]; then
       echo "Skipping $doc_md becasuse $doc_md_new exists"
@@ -35,14 +35,14 @@ for cmd in $CMDS; do
         [ -n "$src" ] && context+=("$src")
 
         if [ -f $doc_md ]; then
-            prompt="Check and update the usage document \`doc/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions."
+            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions."
             dest="${doc_md_new}"
         else
-            prompt="Create the usage document \`doc/${cmd}.md\` for the $cmd command for $src"
+            prompt="Create the usage document \`doc/commands/${cmd}.md\` for the $cmd command for $src"
             dest="${doc_md}"
         fi
 
-        context+=(README.md tests/story-test.sh doc/*.md)
+        context+=(README.md tests/story-test.sh doc/commands/*.md)
         lx "${context[@]}" | help "$prompt" | answer > "$dest"
         echo >&2
         if [ ! -s "$dest" ]; then
