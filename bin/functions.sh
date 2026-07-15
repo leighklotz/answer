@@ -220,45 +220,102 @@ function _infer () {
 }
 
 ### user-level Functions and aliases
-
 function hx() {
+    # Helper function inside hx to safely get newest file without parsing 'ls'
+    _get_newest_cache_file() {
+        local dir="$1"
+        [[ -d "$dir" ]] || return 1
+        # Find files, print time and path, sort numerically descending, take top one, strip the timestamp
+        find "$dir" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-
+    }
+
+    # 1. Handle Cache Subcommand
     if [[ "$1" == "cache" ]]; then
         case "$2" in
             clear)
-                local cache_dir=$(_find_cache_dir)
-                [[ -z "$cache_dir" ]] && { echo "no cache available"; return 1; }
-                echo "⚠️ Are you sure you want to remove $cache_dir? (y/N)" >&2
+                local cache_dir
+                cache_dir=$(_find_cache_dir)
+                
+                if [[ -z "$cache_dir" || ! -d "$cache_dir" ]]; then 
+                    echo "❌ No valid cache directory found." >&2
+                    return 1
+                fi
+
+                # Safety check: prevent accidental deletion of root or home if _find_cache_dir fails catastrophically
+                if [[ "$cache_dir" == "/" || "$cache_dir" == "$HOME" ]]; then
+                    echo "❌ Error: Cache directory is a protected system path." >&2
+                    return 1
+                fi
+
+                printf "⚠️  Are you sure you want to remove %s?\n" "$cache_dir" >&2
                 read -r -p "Delete directory? (y/N): " reply < /dev/tty
                 if [[ "$reply" =~ ^[Yy]$ ]]; then
-                    rm -rf -- "$cache_dir" && echo "🗑️ Cache cleared."
+                    rm -rf -- "$cache_dir" && echo "🗑️  Cache cleared." || echo "❌ Deletion failed." >&2
                 else
                     echo "🚫 Cancelled."
                 fi
+                return $?
+                ;;
+
+            show)
+                printf "%s\n" "$(_find_cache_dir)"
                 return 0
                 ;;
-            show)    printf "%s\n" "$(_find_cache_dir)"; return 0 ;;
-            disable) export NO_CACHE=1; echo "⚠️ Cache disabled."; return 0 ;;
-            enable)  unset NO_CACHE; echo "⚠️ Cache enabled."; return 0 ;;
-            *)       echo "Unknown cache option: $2" ;;
+
+            disable|enable)
+                # Standardized behavior: Decide if you want to export a variable OR source a script.
+                # I have kept your logic but made it consistent within this block.
+                if [[ "$2" == "disable" ]]; then
+                    export NO_CACHE=1
+                    echo "⚠️  Cache disabled (session-wide)."
+                else
+                    unset NO_CACHE
+                    echo "⚠️  Cache enabled (session-wide)."
+                fi
+                return 0
+                ;;
+
+            *)
+                echo "Unknown cache option: $2" >&2
+                return 1
+                ;;
         esac
-        return 0 # Exit hx after handling cache logic
     fi
 
-    # Handle all other primary commands via case
+    # 2. Handle Main Commands
     case "$1" in
-        enable|disable) source ~/wip/answer/bin/commands/${1} ;;
-        why) 
+        enable | disable)
+            local cmd_file="$HOME/wip/answer/bin/commands/${1}"
+            if [[ -f "$cmd_file" ]]; then
+                source "$cmd_file"
+            else
+                echo "Error: Command script $cmd_file not found." >&2
+                return 1
+            fi
+        ;;
+
+        why | what)
             local c_dir="$(_find_cache_dir)"
-            local c_fn="$(ls -t "$c_dir"/ | head -1 2>/dev/null)"
-            [[ -n "$c_fn" ]] && cat "${c_dir}/${c_fn}" | ~/wip/answer/bin/commands/"${1}.sh" || echo "No cache file found."
-            ;;
-        what)   
-            local c_dir="$(_find_cache_dir)"
-            local c_fn="$(ls -t "$c_dir"/ | head -1 2>/dev/null)"
-            [[ -n "$c_fn" ]] && cat "${c_dir}/${c_fn}" | ~/wip/answer/bin/commands/what.sh || echo "No cache file found."
-            ;;
-        model)  _get_model_name ;;
-        *)      echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|model]" >&2; return 1 ;;
+            local latest_f
+            latest_f=$(_get_newest_cache_file "$c_dir")
+
+            if [[ -n "$latest_f" && -f "$latest_f" ]]; then
+                # Use a pipe to the specific command script
+                cat "$latest_f" | ~/wip/answer/bin/commands/"${1}.sh"
+            else
+                echo "No cache file found for '$1'." >&2
+                return 1
+            fi
+        ;;
+
+        model)
+            _get_model_name
+        ;;
+
+        *)
+            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|model]" >&2
+            return 1
+        ;;
     esac
 }
 
