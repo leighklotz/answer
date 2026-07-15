@@ -25,7 +25,8 @@ PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
 function _ensure_workspace() {
     # Initialize a shared temporary workspace ONLY when a temp file is actually requested.
     if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
-        export HALLUX_RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hallux_run.XXXXXX")"
+        export HALLUX_RUN_DIR
+        HALLUX_RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hallux_run.XXXXXX")"
         # Track the process ID that created this directory
         export HALLUX_RUN_OWNER_PID="$BASHPID"
         log_trace "Creating $HALLUX_RUN_DIR pid=$HALLUX_RUN_OWNER_PID"
@@ -174,14 +175,19 @@ function _infer () {
   else
     log_trace "$(cat "$tmp_req")"
     printf "✨" >&2
+    local auth_flags
+    if [ -n "$api_key" ]; then
+        printf -v auth_flags '-H "Authorization: Bearer %s"' "${api_key}"
+    fi
+    # shellcheck disable=SC2086
     response_json=$(curl -fsS -X POST "$endpoint" \
-                         -H "Authorization: Bearer $api_key" \
+                         $auth_flags \
                          -H "Content-Type: application/json" \
                          -d @"$tmp_req") || {
       return 1
     }
     if jq -e '.choices[0]?.message?.reasoning_content != null' <<< "$response_json" >/dev/null 2>&1; then
-        printf "🧠 ENABLE_THINKING=$ENABLE_THINKING" >&2
+        printf "🧠 ENABLE_THINKING=%s" "${ENABLE_THINKING}" >&2
     fi
   fi
 
@@ -216,56 +222,59 @@ function _infer () {
 ### user-level Functions and aliases
 
 function hx() {
-    if [ "$1" == "cache" ] && [[ "$2" =~ ^(clear|show|disable|enable)$ ]]; then
+    if [[ "$1" == "cache" ]]; then
         case "$2" in
             clear)
-                cache_dir=$(_find_cache_dir)
-                if [ -z "$cache_dir" ]; then
-                    echo "no cache is available"
-                    return 1;
-                fi
+                local cache_dir=$(_find_cache_dir)
+                [[ -z "$cache_dir" ]] && { echo "no cache available"; return 1; }
                 echo "⚠️ Are you sure you want to remove $cache_dir? (y/N)" >&2
                 read -r -p "Delete directory? (y/N): " reply < /dev/tty
                 if [[ "$reply" =~ ^[Yy]$ ]]; then
-                    rm -rf -- "$cache_dir"
-                    echo "🗑️ Cache cleared."
+                    rm -rf -- "$cache_dir" && echo "🗑️ Cache cleared."
                 else
                     echo "🚫 Cancelled."
                 fi
                 return 0
-            ;;
-            show)
-                cache_dir=$(_find_cache_dir)
-                echo "$cache_dir"
-                return 0
                 ;;
-            disable)
-                export NO_CACHE=1
-                echo "⚠️ Cache disabled."
-                return 0
-                ;;
-            enable)
-                unset NO_CACHE
-                echo "⚠️ Cache enabled."
-                return 0
-                ;;
+            show)    printf "%s\n" "$(_find_cache_dir)"; return 0 ;;
+            disable) export NO_CACHE=1; echo "⚠️ Cache disabled."; return 0 ;;
+            enable)  unset NO_CACHE; echo "⚠️ Cache enabled."; return 0 ;;
+            *)       echo "Unknown cache option: $2" ;;
         esac
-    elif [ "$1" == "disable" ]; then
-        source ~/wip/answer/bin/commands/disable
-    elif [ "$1" == "enable" ]; then
-        source ~/wip/answer/bin/commands/enable
-    elif [ "$1" == "why" ]; then
-        cache_dir="$(_find_cache_dir)"
-        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
-        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/bin/commands/why.sh
-    elif [ "$1" == "what" ]; then
-        cache_dir="$(_find_cache_dir)"
-        cache_fn="$(ls -t "$cache_dir"/ | head -1)"
-        cat "${cache_dir}/${cache_fn}" | ~/wip/answer/bin/commands/what.sh
-    else
-        echo "usage: hx [cache [clear|show|disable] | [enable|disable|answer|why|what]" >&2
-        return 1
+        return 0 # Exit hx after handling cache logic
     fi
+
+    # Handle all other primary commands via case
+    case "$1" in
+        enable|disable) source ~/wip/answer/bin/commands/${1} ;;
+        why) 
+            local c_dir="$(_find_cache_dir)"
+            local c_fn="$(ls -t "$c_dir"/ | head -1 2>/dev/null)"
+            [[ -n "$c_fn" ]] && cat "${c_dir}/${c_fn}" | ~/wip/answer/bin/commands/"${1}.sh" || echo "No cache file found."
+            ;;
+        what)   
+            local c_dir="$(_find_cache_dir)"
+            local c_fn="$(ls -t "$c_dir"/ | head -1 2>/dev/null)"
+            [[ -n "$c_fn" ]] && cat "${c_dir}/${c_fn}" | ~/wip/answer/bin/commands/what.sh || echo "No cache file found."
+            ;;
+        model)  _get_model_name ;;
+        *)      echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|model]" >&2; return 1 ;;
+    esac
+}
+
+function _get_model_name() {
+    local endpoint="${VIA_API_CHAT_BASE}/props"
+    local model_name
+    model_name="$(curl -s "${endpoint}" "${AUTHORIZATION_PARAMS[@]}" | jq -e -r .model_alias 2> /dev/null)"
+    if [ -z "$model_name" ]; then
+        model_name=$(curl -s "${VIA_API_MODEL_INFO_ENDPOINT}" "${AUTHORIZATION_PARAMS[@]}" | jq -e -r .model_name 2> /dev/null)
+    fi
+    if [ "${model_name}" == "null" ]; then
+        model_name="${MODEL_NAME_OVERRIDE:-None}"
+    fi
+    model_name="$(printf "%s" "${model_name}"| sed -e 's/-/_/g' | sed -e 's/\.gguf//')"
+    printf "%s\n" "${model_name}" 
+    return 0
 }
 
 # use `builtin help` if you want native bash help command
