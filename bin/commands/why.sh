@@ -16,5 +16,5 @@ input_data=$(cat)
 # Extract strictly the text string of the reasoning_content of the final assistant response.
 assistant_reasoning=$(jq -r '.choices[0].message.reasoning_content | select (. != null)' <<< "$input_data")
 
-printf "💭\n"
+printf "🧠\n"
 printf "%s\n" "$assistant_reasoning" | sed 's/^/    /'
