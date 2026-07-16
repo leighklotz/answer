@@ -191,8 +191,9 @@ function _infer () {
                          -d @"$tmp_req") || {
       return 1
     }
+    log_trace "response_json=$response_json"
     if jq -e '.choices[0]?.message?.reasoning_content != null' <<< "$response_json" >/dev/null 2>&1; then
-        printf "🧠 ENABLE_THINKING=%s" "${ENABLE_THINKING}" >&2
+        printf "🧠" >&2
     fi
   fi
 
