@@ -71,8 +71,8 @@ done
 
 # options are sent bare on the line since there can be multiple options
 # ASK_OPTIONS is an array but GIT_DIFF_OPTIONS is built up word by word
-log_trace "ASK_OPTIONS=${ASK_OPTIONS[*]}"
-log_trace "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
+log_info "ASK_OPTIONS=${ASK_OPTIONS[*]}"
+log_info "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 
 (bx pwd;
  bx git rev-parse --show-toplevel;
