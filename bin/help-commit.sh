@@ -8,10 +8,11 @@ source "${SCRIPT_DIR}/functions.sh"
 
 #GIT_COMMIT_PROMPT="Below is the output of a git bash session.  Read the session and then briefly output a code fence containing a corresponding \`git commit\` command, using using one or more bash git commands as appropriate for the change. Use conventional commits. For commits that are not single-focus, give more descriptive messages. Be specific in filenames: avoid 'git add .' and the like. Note working directory before using relative filenames. Use multiple separate commits if changes are truly independent.\n"
 
-GIT_COMMIT_PROMPT='Below is the output of a git bash session.  Read the session. Generate a bash code fence to commit all staged and unstaged changes (ignore untracked). 
+GIT_COMMIT_PROMPT='Below is the output of a git bash session.  Read the session. Generate a bash code fence to add unstaged changes and commit all staged, ignoring untracked.
 If no changes exist, output `echo "no changes"`. Otherwise, use one or more commands of this exact format:
 
-git commit -a \
+git add file1 file2 file3
+git commit \
   -m "<Brief summary of impact>" \
   -m "- <Imperative description of change 1>" \
   -m "- <Imperative description of change 2>"
