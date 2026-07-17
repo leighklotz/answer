@@ -17,6 +17,8 @@ In a pipeline, commands like `ask` and `tools` pass heavy JSON arrays to maintai
 ### The Resolution Step
 Unlike a simple parser, `answer` is an active participant in the pipeline. If the incoming JSON history represents an incomplete conversation—meaning the last message is from the `user`—`answer` executes a call to the internal inference engine to generate and append the assistant's response. Once resolved, it strips all metadata (headers/JSON structure) and delivers only the final text content of the assistant's reply.
 
+If the input provided does not contain a conversation history but is treated as raw text, `answer` wraps that text into a message array and performs an inference call to resolve the turn.
+
 ## Options
 
 | Flag | Long form | Description |
@@ -44,13 +46,14 @@ The behavior and feedback on `stderr` depend on how you use the command:
 
 ### 2. Visual Feedback (`stderr`)
 When performing inference, `answer` provides immediate visual feedback via emojis on `stderr`:
-*   🎯 **Cache Hit:** The response was retrieved instantly from your local cache.
-*   ✨ **Fresh Request:** A new request was sent to the LLM API.
+* 🎯 **Cache Hit:** The response was retrieved instantly from your local cache.
+* ✨ **Fresh Request:** A new request was sent to the LLM API.
+* 🧠 **Thinking/Reasoning:** Detected that the model provided a reasoning or "thinking" block (e.g., `reasoning_content`).
 
 ## Examples
 
 **1. Direct Extraction (Terminal Mode)**
-Retrieve the plain text of a previous conversation turn directly in your terminal.
+Retrieve the text of an assistant response from a conversation history in your terminal.
 ```bash
 $ ask "What is 2+2?" | answer
 4
