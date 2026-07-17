@@ -13,6 +13,10 @@ if ! command -v ask.sh &> /dev/null; then
     echo "🦶$0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
+if [[  "$(command -v ask.sh)" != *answer* ]]; then
+    echo "🦶$0: WARN: Wrong ask.sh is on the PATH.  Please use 'hx disable' followed by 'hx enable'." >&2
+fi
+
 # Source env.sh if variables are not already defined
 if [ -z "${VIA_API_CHAT_BASE+x}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/env.sh" ]; then
     source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
