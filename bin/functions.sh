@@ -246,6 +246,7 @@ function hx() {
     # Handle provenance Subcommand
     if [[ "$1" == "provenance" ]]; then
         _hx_provenance $2
+        return 0
     # Handle Cache Subcommand
     elif [[ "$1" == "cache" ]]; then
         case "$2" in
@@ -327,6 +328,7 @@ function hx() {
 
         model)
             _get_model_name
+            return 0
         ;;
 
         *)
