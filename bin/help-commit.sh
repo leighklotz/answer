@@ -6,29 +6,29 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-#GIT_COMMIT_PROMPT="Below is the output of a git bash session.  Read the session and then briefly output a code fence containing a corresponding \`git commit\` command, using using one or more bash git commands as appropriate for the change. Use conventional commits. For commits that are not single-focus, give more descriptive messages. Be specific in filenames: avoid 'git add .' and the like. Note working directory before using relative filenames. Use multiple separate commits if changes are truly independent.\n"
+# We use a Heredoc with 'EOF' (quoted) to load the prompt into a variable.
+# This prevents "Quote Collapse"—the shell will treat this entire block 
+# as literal text, meaning we don't have to escape every single quote or 
+# backslash inside your instructions for the LLM.
+read -r -d '' GIT_COMMIT_PROMPT << 'EOF'
+Below is the output of a git bash session. Read the logs carefully. Your goal is to generate a single bash code fence containing commands to add unstaged changes and commit all currently staged files, while respecting user scope.
 
-GIT_COMMIT_PROMPT='Below is the output of a git bash session.  Read the session. Generate a bash code fence to commit all staged and unstaged changes (ignore untracked). 
-If no changes exist, output `echo "no changes"`. Otherwise, use one or more commands of this exact format:
+If no changes exist (all diffs are empty), output exactly: echo "no changes"
+Otherwise, use one or more commands of this exact format:
 
-git commit -a \
-  -m "<Brief summary of impact>" \
-  -m "- <Imperative description of change 1>" \
-  -m "- <Imperative description of change 2>"
+git add <path> file1 file2 ...  # Only include if there are modified/new tracked files that aren't staged yet
+git commit <path> \
+  -m "<Brief summary>" \
+  -m "- <Description 1>"
 
-Rules:
-- Use imperative mood (e.g., "Add feature" not "Added feature").
-- Ensure all strings are properly quoted.
-- No commentary after the code fence.
-- Properly escape special characters inside bash quotes.'
-
-
-# GIT_COMMIT_TOOL_PROMPT="Below is the output of a git bash session.  Read the session and then briefly output a code fence containing a corresponding \`git commit\` command, using using one or more bash git commands as appropriate for the change. Use conventional commits. For commits that are not single-focus, give more descriptive messages. If you do not have enough information to write a commit message and need to see more git results, output a brief request concluding with a code fence containing one or more bash git commands to execute to obtain the results. Note working directory before using relative filenames.\n"
-
-# TODO pipetest needs to present only the human-readable last conversion but send on the whole convo
-# or should it take only code? or should we skill unfence to prompt instead that?
-# `pipetest | answer` or `answer | pipetest` or `unfence --ask`
-# much confusion about whether each these should accept/produce json or text
+RULES FOR SCOPE & TARGETING (CRITICAL):
+1. DIRECTORY PATHS (e.g., ".", "src/", "tests/"): If the user provided a directory path in their command, use that exact same path as an argument for both `git add` and `git commit`. This ensures we only act on changes within that specific scope.
+2. REVISION RANGES (e.g., "main..HEAD", "origin/master...current"): If the arguments look like a Git range or branch comparison, DO NOT use them as targets in your command (i.e., do not run `git add main..HEAD`). Instead, treat those diffs purely as context for an accurate commit message and perform a standard `git commit -m "..."` of what is currently staged.
+3. UNTRACKED FILES: Ignore any untracked files that are not part of the provided scope or revision range.
+4. IMPERATIVE MOOD: Use imperative mood (e.g., "Add feature" not "Added feature").
+5. FORMATTING: Ensure all strings are properly quoted and there is no commentary after the code fence.
+6. ESCAPING: Properly escape special characters inside bash quotes so the command works when executed by a shell.
+EOF
 
 if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     echo "🦶$(basename "$0"): PWD=$PWD is not in a git repository"
@@ -40,13 +40,15 @@ function usage() {
     echo "$p: [--help] | [--quiet] [git diff options] [--] [ask options]"
     echo $'- --quiet: suppress introductory message'
     echo $'- any next arguments until `--` are given to `git diff`'
-    echo $'- all after a `--` is given as parameters to `ask`'
+    echo $'- all after a `--` is given as parameters for the LLM context (e.g., main..HEAD)'
 }
 
-
 GIT_DIFF_OPTIONS=""
+ASK_OPTIONS=()
 
-# help-commit [git diff options] -- [help options]
+# Parse command line arguments: 
+# Everything before '--' goes to git diff options.
+# Everything after '--' goes into an array for the LLM conversation/context.
 while [[ $# -gt 0 ]]; do
     case $1 in
         --help)
@@ -69,18 +71,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# options are sent bare on the line since there can be multiple options
-# ASK_OPTIONS is an array but GIT_DIFF_OPTIONS is built up word by word
 log_info "ASK_OPTIONS=${ASK_OPTIONS[*]}"
 log_info "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 
+# The pipeline: 
+# We feed the LLM the current working directory, repo root, and several layers of diffs.
 (bx pwd;
  bx git rev-parse --show-toplevel;
  git diff --stat --no-merges ${GIT_DIFF_OPTIONS};
  bx git diff --numstat ${GIT_DIFF_OPTIONS};
  bx git diff ${GIT_DIFF_OPTIONS};
  bx git diff --cached ${GIT_DIFF_OPTIONS}) |
-  ask -i "${ASK_OPTIONS[@]}" -- "${GIT_COMMIT_PROMPT}" |
+  ask -i "${ASK_OPTIONS[@]}" -- "$GIT_COMMIT_PROMPT" |
   answer |
   unfence |
   bash
@@ -89,10 +91,9 @@ log_info "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 STATUS=$?
 
 if [ $STATUS -eq 2 ]; then
-    # code 2 means 'unfence' found no blocks, or perhaps bash did (!)
-    log_warn "No changes"
+    log_warn "No changes detected."
     exit 0
 fi
 
-# If it was anything else, exit with that status (error or success)
+# Exit with the actual return code from the pipeline/execution
 exit $STATUS
