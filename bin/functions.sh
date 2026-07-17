@@ -243,8 +243,12 @@ function hx() {
         fi
     }
 
-    # 1. Handle Cache Subcommand
-    if [[ "$1" == "cache" ]]; then
+    # Handle provenance Subcommand
+    if [[ "$1" == "provenance" ]]; then
+        _hx_provenance $2
+        return 0
+    # Handle Cache Subcommand
+    elif [[ "$1" == "cache" ]]; then
         case "$2" in
             clear)
                 local cache_dir
@@ -296,7 +300,7 @@ function hx() {
         esac
     fi
 
-    # 2. Handle Main Commands
+    # Handle Main Commands
     case "$1" in
         enable | disable)
             local cmd_file="$HOME/wip/answer/bin/commands/${1}"
@@ -308,7 +312,7 @@ function hx() {
             fi
         ;;
 
-        why | what)
+        why | what | cat)
             local c_dir="$(_find_cache_dir)"
             local latest_f
             latest_f=$(_get_newest_cache_file "$c_dir")
@@ -324,12 +328,71 @@ function hx() {
 
         model)
             _get_model_name
+            return 0
         ;;
 
         *)
-            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|model]" >&2
+            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|model]" >&2
             return 1
         ;;
+    esac
+}
+
+function _hx_provenance() {
+    case "$1" in
+        add)
+            local last_cmd prompt_str
+            last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
+            prompt_str="${PS1@P}"
+            
+            echo '💾 git notes --ref=provenance/hallux append' >&2
+            
+            local hx_out
+            hx_out=$(hx what 2>/dev/null || echo "[hx what failed or missing]")
+            
+            printf "%s%s\n%s\n%s\n\n" \
+                "$prompt_str" \
+                "$last_cmd" \
+                "${PIPELINE_MAGIC_HEADER}" \
+                "$hx_out" \
+                | git notes --ref=provenance/hallux append -F -
+            return 0
+            ;;
+            
+        show)
+            # Instantly prints out your clean chronological append log for HEAD or a specific hash
+            git notes --ref=provenance/hallux show "$2"
+            return 0
+            ;;
+            
+        refs)
+            # Scans the repo and lists hashes that have your tool's data attached
+            git notes --ref=provenance/hallux list
+            return 0
+            ;;
+            
+        list)
+            # Decorated list that slices the first and last 20 characters of the first note line
+            git notes --ref=provenance/hallux list | while read -r note_hash commit_hash; do
+                local log_line note_first_line preview
+                log_line=$(git log -1 --oneline "$commit_hash")
+                note_first_line=$(git notes --ref=provenance/hallux show "$commit_hash" 2>/dev/null | head -n 1)
+                
+                if (( ${#note_first_line} <= 43 )); then
+                    preview="$note_first_line"
+                else
+                    preview="${note_first_line:0:20}...${note_first_line: -20}"
+                fi
+                
+                printf "%s \x1b[36m%s\x1b[0m\n" "$log_line" "$preview"
+            done
+            return 0
+            ;;
+            
+        *)
+            echo "usage: hx provenance [add show refs list]" >&2
+            return 1
+            ;;
     esac
 }
 
