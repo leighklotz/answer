@@ -231,8 +231,16 @@ function hx() {
     _get_newest_cache_file() {
         local dir="$1"
         [[ -d "$dir" ]] || return 1
-        # Find files, print time and path, sort numerically descending, take top one, strip the timestamp
-        find "$dir" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-
+        
+        # Check if we are on macOS (BSD) or Linux (GNU) via the stat command
+        if stat --version >/dev/null 2>&1; then
+            # GNU find / Linux version
+            find "$dir" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-
+        else
+            # macOS / BSD version using stat
+            # -f "%m %N": Print modification time and name
+            find "$dir" -maxdepth 1 -type f -exec stat -f "%m %N" {} + | sort -rn | head -n 1 | cut -d' ' -f2-
+        fi
     }
 
     # 1. Handle Cache Subcommand
