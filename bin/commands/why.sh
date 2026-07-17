@@ -17,4 +17,4 @@ input_data=$(cat)
 assistant_reasoning=$(jq -r '.choices[0].message.reasoning_content | select (. != null)' <<< "$input_data")
 
 printf "🧠\n" >&2
-printf "%s\n" "$assistant_reasoning" | sed 's/^/    /'
+printf "%s\n" "$assistant_reasoning"
