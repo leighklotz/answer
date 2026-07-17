@@ -21,8 +21,10 @@ TOOLEX_SH=~/wip/toolex/toolex.sh
 
 if [ $# -eq 0 ]; then
     echo "Usage: tools <module> [<module...>] [--args]" >&2
+    echo "Note: Modules must come BEFORE flags (e.g., tools git --keep-reasoning)" >&2
     exit 1
 fi
+
 
 if [ -t 0 ]; then
     echo "🦶tools: expected JSON conversation array on stdin" >&2
