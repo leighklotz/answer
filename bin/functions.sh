@@ -235,7 +235,32 @@ function hx() {
         find "$dir" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-
     }
 
-    # 1. Handle Cache Subcommand
+    # Handle provenance Subcommand
+    if [[ "$1" == "provenance" ]]; then
+        case "$2" in
+            add)
+                local last_cmd prompt_str
+
+                # Grab the clean command line from fc
+                last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
+
+                # Render the live prompt layout
+                prompt_str="${PS1@P}"
+
+                # Concatenate and pass directly to git note
+                echo '💾 git notes --ref=provenance/hallux append'
+                printf "%s%s\n%s\n%s\n\n" "$prompt_str" "$last_cmd" "${PIPELINE_MAGIC_HEADER}" "$(hx what)" |
+                    git notes --ref=provenance/hallux append -F -
+                return 0
+                ;;
+            *)
+                echo "Unknown provenance option [add,list,show]: $2" >&2
+                return 1
+                ;;
+        esac
+    fi
+
+    # Handle Cache Subcommand
     if [[ "$1" == "cache" ]]; then
         case "$2" in
             clear)
@@ -288,7 +313,7 @@ function hx() {
         esac
     fi
 
-    # 2. Handle Main Commands
+    # Handle Main Commands
     case "$1" in
         enable | disable)
             local cmd_file="$HOME/wip/answer/bin/commands/${1}"
@@ -300,7 +325,7 @@ function hx() {
             fi
         ;;
 
-        why | what)
+        why | what | cat)
             local c_dir="$(_find_cache_dir)"
             local latest_f
             latest_f=$(_get_newest_cache_file "$c_dir")
@@ -319,7 +344,7 @@ function hx() {
         ;;
 
         *)
-            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|model]" >&2
+            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|model]" >&2
             return 1
         ;;
     esac

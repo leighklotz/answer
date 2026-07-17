@@ -10,11 +10,6 @@ if [ -t 0 ]; then
     log_and_exit 1 "No stdin detected. Requires inference response."
 fi
 
-# Capture the input into a variable to allow multiple passes
-input_data=$(cat)
-
-# Extract strictly the text string of the reasoning_content of the final assistant response.
-assistant_reasoning=$(jq -r '.choices[0].message.reasoning_content | select (. != null)' <<< "$input_data")
-
 printf "🧠\n" >&2
-printf "%s\n" "$assistant_reasoning" | sed 's/^/    /'
+cat
+
