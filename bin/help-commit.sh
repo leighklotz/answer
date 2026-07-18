@@ -78,6 +78,8 @@ log_info "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 # We feed the LLM the current working directory, repo root, and several layers of diffs.
 (bx pwd;
  bx git rev-parse --show-toplevel;
+ bx git branch --show-current;
+ bx git rev-parse --show-toplevel;
  git diff --stat --no-merges ${GIT_DIFF_OPTIONS};
  bx git diff --numstat ${GIT_DIFF_OPTIONS};
  bx git diff ${GIT_DIFF_OPTIONS};
