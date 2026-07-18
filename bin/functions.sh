@@ -150,12 +150,14 @@ function _infer () {
   local api_key="${OPENAI_API_KEY:-}"
   local endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
 
+  local server_model=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq ' . | .data[] | select(.status.value == "loaded") | .id')
+    
   jq \
-    --arg model "${VIA_MODEL:-gpt-3.5-turbo}" \
+    --argjson server_model "$server_model" \
     --argjson thinking "${ENABLE_THINKING:-false}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     '{
-      model: $model,
+      model: $server_model,
       messages: .,
       max_tokens: $max_tokens,
       enable_thinking: $thinking,
@@ -163,9 +165,7 @@ function _infer () {
       thinking_budget_tokens: 5000
     }' < "$tmp_json" > "$tmp_req"
 
-  local server_model fingerprint request_hash cache_dir cache_file response_json
-  server_model=$(curl -fsS "${VIA_API_CHAT_BASE}/v1/models" |
-    jq -r '.data[0].id // .id // "local_model"' 2>/dev/null || printf "local_model")
+  local fingerprint request_hash cache_dir cache_file response_json
 
   fingerprint=$(printf "%s" "$server_model" | tr '/:' '__')
   request_hash=$(openssl dgst -sha256 < "$tmp_req" | awk '{print $2}')
@@ -188,6 +188,7 @@ function _infer () {
     if [ -n "$api_key" ]; then
         printf -v auth_flags '-H "Authorization: Bearer %s"' "${api_key}"
     fi
+    log_trace "endpoint=$endpoint"
     # shellcheck disable=SC2086
     response_json=$(curl -fsS -X POST "$endpoint" \
                          $auth_flags \
@@ -269,10 +270,10 @@ function hx() {
                     return 1
                 fi
 
-                printf "⚠️  Are you sure you want to remove %s?\n" "$cache_dir" >&2
+                printf "⚠️ Are you sure you want to remove %s?\n" "$cache_dir" >&2
                 read -r -p "Delete directory? (y/N): " reply < /dev/tty
                 if [[ "$reply" =~ ^[Yy]$ ]]; then
-                    rm -rf -- "$cache_dir" && echo "🗑️  Cache cleared." || echo "❌ Deletion failed." >&2
+                    rm -rf -- "$cache_dir" && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
                 else
                     echo "🚫 Cancelled."
                 fi
