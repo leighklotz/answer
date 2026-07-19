@@ -408,9 +408,8 @@ function _hx_provenance() {
 }
 
 function _get_model_name() {
-    local endpoint="${VIA_API_CHAT_BASE}/props"
     local model_name
-    model_name="$(curl -s "${endpoint}" "${AUTHORIZATION_PARAMS[@]}" | jq -e -r .model_alias 2> /dev/null)"
+    model_name="$(curl -fsS "${VIA_API_CHAT_BASE}/models" "${AUTHORIZATION_PARAMS[@]}" | jq ' . | .data[] | select(.status.value == "loaded") | .id')"
     if [ -z "$model_name" ] || [ "$model_name" == 'llama-server' ]; then
         model_name=$(curl -s "${VIA_API_MODEL_INFO_ENDPOINT}" "${AUTHORIZATION_PARAMS[@]}" | jq -e -r .model_name 2> /dev/null)
     fi
