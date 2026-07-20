@@ -149,17 +149,17 @@ function _infer () {
 
   local api_key="${OPENAI_API_KEY:-}"
   local endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
-
-  local server_model=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq ' . | .data[] | select(.status.value == "loaded") | .id')
+  local server_model=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -r ' . | .data[] | select(.status.value == "loaded") | .id')
 
   if [ -z "$server_model" ]; then
-      log_and_exit 1 "$VIA_API_CHAT_BASE has no default model loaded"
+      log_warn "$VIA_API_CHAT_BASE has no default model loaded: using 'default'"
+      server_model='default'
   fi
     
-  log_info "model=$server_model"
+  log_warn "model=$server_model"
 
   jq \
-    --argjson server_model "$server_model" \
+    --arg server_model $server_model \
     --argjson thinking "${ENABLE_THINKING:-false}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     '{
