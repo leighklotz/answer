@@ -22,7 +22,7 @@ git commit <path> \
   -m "- <Description 1>"
 
 RULES FOR SCOPE & TARGETING (CRITICAL):
-1. DIRECTORY PATHS (e.g., ".", "src/", "tests/"): If the user provided a directory path in their command, use that exact same path as an argument for both `git add` and `git commit`. This ensures we only act on changes within that specific scope.
+1. PWD and git toplevel: PWD is the current directory. git rev-parse --show-toplevel is the git repo toplevell. Adjust git command paths accordingly.
 2. REVISION RANGES (e.g., "main..HEAD", "origin/master...current"): If the arguments look like a Git range or branch comparison, DO NOT use them as targets in your command (i.e., do not run `git add main..HEAD`). Instead, treat those diffs purely as context for an accurate commit message and perform a standard `git commit -m "..."` of what is currently staged.
 3. UNTRACKED FILES: Ignore any untracked files that are not part of the provided scope or revision range.
 4. IMPERATIVE MOOD: Use imperative mood (e.g., "Add feature" not "Added feature").
