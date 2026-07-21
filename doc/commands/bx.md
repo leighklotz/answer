@@ -1,6 +1,6 @@
 # bx
 
-**bx** is a context-wrapping utility that executes a shell command and wraps its output within a Markdown bash code fence. It is primarily used to prepare command-line output (including error messages) for consumption by LLMs, ensuring that an agent can clearly distinguish between the intended command and the data or errors produced by that command.
+**`bx`** is a command-execution bridge that executes shell commands and wraps their output within Markdown code fences. It is designed as an "injection" utility, transforming raw terminal output into structured, LLM-ready context that can be seamlessly consumed by the Answer toolchain (specifically through `unfence`).
 
 ## Synopsis
 
@@ -8,29 +8,48 @@
 bx <command> [args...]
 ```
 
+The command and its arguments are executed in your current shell environment.
+
 ## Description
 
-When a command is executed via `bx`, it transforms the raw console output into a structured Markdown block. This "LLM-ready" format prevents the model from confusing the command's intent with its resulting data or error messages.
+When a command is executed via `bx`, it creates a self-contained Markdown block containing both the intent and the result. This ensures that when this output is fed into an LLM, the model can distinguish between the instruction given to the system (the command) and the data or error messages returned by it.
 
 ### Execution Sequence
 1.  **Fence Opening:** A Markdown code fence starting with ` ```bash ` is printed to `stdout`.
 2.  **Command Echo:** The exact command and arguments passed to `bx` are printed on a new line, prefixed with a shell prompt (`$ `).
-3.  **Execution:** The specified command is executed in the current environment.
-4.  **Output Capture (including stderr):** Both standard output (**stdout**) and standard error (**stderr**) of the wrapped command are captured and streamed into the code fence. This ensures that LLMs can see both successful results and diagnostic error messages.
-5.  **Fence Closing:** The Markdown code fence is closed with ` ``` `.
+3.  **Execution & Capture:** The specified command is executed. Both standard output (**stdout**) and standard error (**stderr**) of the wrapped command are captured and redirected into the code fence using subshell redirection (e.g., `{ cmd 2>&1 }`). This ensures that diagnostic errors are visible to the LLM for debugging purposes.
+4.  **Fence Closing:** The Markdown code fence is closed with ` ``` `.
 
-## Pipeline Role
+## Pipeline Role: Context Injection
 
-In the Answer framework, `bx` serves as a **Context Provider**. While `ask` manages the conversation state, `bx` provides the ground-truth system state from your terminal. 
+In a pipeline, `bx` acts as a **Context Provider**. While commands like `ask` or `help` manage conversational state and user prompts, `bx` provides the "ground-truth" system state from your terminal.
 
-**Typical Pattern:**
-`bx <system-command> | ask "Analyze this"`
+**The standard automation pattern is:**
+```bash
+# 1. Execute command to get context -> 2. Inject into LLM prompt -> 3. Extract/Execute result
+bx <system_command> | ask "Analyze this output for errors." | unfence python | python
+```
 
-This pattern allows the LLM to see exactly what command was run and how it responded (including errors), which is critical for automated debugging, log analysis, or verifying hardware status within a pipeline.
+This pattern allows an AI agent or a user in a pipeline to see exactly what was run and how the system responded, making it essential for automated debugging or verifying hardware status within an LLM-driven workflow.
+
+## Input Modes
+
+| Condition | Behavior | Resulting Message Format |
+|-----------|----------|------------------------|
+| **Positional Arguments** | The provided arguments are treated as a single shell command to be executed and wrapped. | ` ```bash\n$ <cmd>\n<output>\n``` ` |
+
+## Output Modes
+
+`bx` is primarily intended for use in pipelines, but its behavior changes based on your terminal environment:
+
+| Mode | Context | stdout (Data stream) | stderr |
+|------|---------|-------------------|--------|
+| **Standard** | Used as a command in an interactive shell. | A formatted Markdown block containing the prompt (`$ `), execution results, and errors. | Standard error from the wrapped command is redirected to `stdout` within the fence. |
+| **Piped/Automation** | Piped into another tool like `unfence`. | The same structured Markdown block (ideal for regex or parsing by specialized tools). | N/A |
 
 ## Exit Code
 
-`bx` is transparent regarding execution success. It captures the exit status of the wrapped command and returns it as its own exit code. This ensures that error propagation remains intact when `bx` is used within larger shell pipelines or scripts (e.g., `bx command || handle_error`).
+`bx` is transparent regarding execution success and preserves error propagation: It captures the exit status of the wrapped command and returns it as its own exit code. This ensures that if a command fails, any subsequent logic in your shell script (e.g., `bx cmd || handle_error`) will correctly receive the failure signal.
 
 ## Examples
 
@@ -47,8 +66,8 @@ drwxr-xr-x  3 user user 4096 Oct 25 10:00 .
 drwxr-xr-x  2 user user 4096 Oct 25 09:00 ..
 ```
 
-**2. Capturing Errors for LLM Analysis**
-If a command fails, the error message is captured within the fence so an LLM can diagnose it in a pipeline:
+**2. Capturing Errors for LLM Analysis (via stderr redirection)**
+If a command fails, the error message is captured inside the fence so an LLM can diagnose it in a pipeline:
 ```bash
 $ bx non_existent_command
 ```
@@ -58,9 +77,9 @@ $ non_existent_command
 /bin/bash: line 1: non_existent_command: command not found
 ```
 
-**3. Preparing Input for an LLM Pipeline**
-Using `bx` to provide structured system context to a subsequent `ask` query:
+**3. The "Injection" Pattern (Automation)**
+Provide structured system context to a subsequent `ask` query via the pipeline:
 ```bash
-# The output is injected into the pipeline as part of the prompt's context
-bx dmesg | ask "Are there any critical hardware errors in these logs?" | answer
+# Use bx to capture dmesg, then ask an LLM to interpret it
+bx sudo dmesg | tail -n 20 | help "Are there any hardware disconnect events?" | answer
 ```

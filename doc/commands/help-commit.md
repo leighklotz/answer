@@ -1,3 +1,4 @@
+```markdown
 # help-commit
 
 **help-commit** is a specialized utility in the Answer framework that automates the generation and execution of `git commit` commands by analyzing your current Git state. It uses an LLM to interpret staged changes, unstaged modifications, and provided context (via pipes or arguments) to produce descriptive messages following the Conventional Commits specification.
@@ -25,7 +26,7 @@ The command performs a high-precision workflow:
 ### Positional Arguments
 
 *   **[git diff options]**: Any flags provided *before* the `--` separator are appended as arguments to the internal `git diff` commands (e.g., targeting specific file paths).
-*   **[ask arguments/options]**: Any text following the `--` is passed directly into the context for the LLM via `ask`. Use this to refine style, tone, or detail level.
+*   **[ask arguments/options]**: Any text following the `--` is passed directly into the context for the LLM via `ask`. Use this to refine style, tone, or detail level. Note that if you wish to pass flags intended for `ask` (such as `-t` for Observation Mode), they must be placed after the `--` separator.
 
 ## Examples
 
@@ -47,8 +48,8 @@ Use the separator to pass instructions that refine how the model structures or w
 # Instructs the LLM via additional prompt parameters to use a specific tone
 $ help-commit -- "-i Use a very descriptive, professional tone and follow Conventional Commits"
 
-# Provide flags for 'ask' directly after the separator (e.g., Observation Mode)
-$ help-commit -t "Should I include a summary of technical changes in the body?"
+# Pass flags for 'ask' after the separator (e.g., using Observation Mode with -t)
+$ help-commit -- -t "Should I include a summary of technical changes in the body?"
 ```
 
 **4. Contextualized Commit (Piped Input)**
@@ -73,3 +74,4 @@ $ help-commit --quiet
 | :--- | :--- |
 | **0** | Success (The command was generated, presented for confirmation, and/or executed). |
 | **1** | Failure (Not in a Git repository, an error occurred during execution, or arguments were invalid). |
+```

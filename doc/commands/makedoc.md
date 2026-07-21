@@ -20,7 +20,7 @@ The first non-flag argument specifies the target files or directory containing s
 The utility scans source files for **Doc Blocks**—commented sections delimited by specific markers. It specifically looks for:
 *   **Metadata:** `@name`, `@description`.
 *   **Structure:** `@synopsis`, `@options`, `@examples`, and `@notes`.
-*   **Data Tables:** Uses structured key-value pairs within the comment block to automatically construct Markdown tables (e.g., Flag, Long Form, Description).
+* **Data Tables:** Uses structured key-value pairs within the comment block to automatically construct Markdown tables (e.g., Flag, Long Form, Description).
 
 ### Documentation Lifecycle
 1.  **Discovery:** The tool identifies all relevant `.sh` or `.md` files in the provided path.
@@ -31,7 +31,7 @@ The utility scans source files for **Doc Blocks**—commented sections delimited
 ## Options
 
 | Flag | Long form | Description |
-|------|-----------|-------------|
+|------|-----------|------------------------------------------------------------------------------------------------|
 | `-s` | `--source` | Specify a specific directory to scan for source scripts (Default: current project root). |
 | `-o` | `--output`  | The destination directory where generated documentation will be saved. Defaults to `doc/`. |
 | `-t` | `--template` | Specifies which template style to use (e.g., `standard`, `command-reference`, or `manual`). |

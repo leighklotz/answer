@@ -1,6 +1,6 @@
 # lx
 
-**lx** is a file-ingestion utility within the Answer framework that streams target files into your pipeline, automatically wrapping them in clean Markdown code blocks for downstream parsing by tools like `ask` or `help`. It is designed to provide well-formatted context from multiple files simultaneously.
+**`lx`** is the **Context Ingestor** of the Answer framework. It streams target files into a pipeline, automatically wrapping their content in Markdown code fences with appropriate language tags and metadata headers. This ensures that when multiple files are piped into an `ask`, `help`, or `bx` command, they arrive as structured, machine-readable context rather than raw text blocks, allowing the LLM to distinguish between different file contents easily.
 
 ## Synopsis
 
@@ -8,41 +8,41 @@
 lx [OPTIONS] [files...]
 ```
 
-The command accepts file paths as positional arguments or reads a list of paths via standard input (`stdin`).
+The command accepts file paths as positional arguments or reads a list of paths via standard input (`stdin`). It uses the 📥 icon in terminal output and pipeline headers to signify ingestion.
 
 ## Description
 
-**lx** automates the process of preparing code snippets and documentation for LLM consumption. It identifies programming languages based on file extensions, wraps content in appropriate Markdown syntax fences, and injects metadata using customizable headers and footers. This ensures that when files are piped into an `ask` or `help` command, the model receives structured context rather than raw text blocks.
+**`lx`** automates the preparation of source code, configuration files, and documentation for LLM consumption. By converting raw files into structured Markdown blocks, it solves the problem of "context collision," where an LLM might otherwise confuse multiple input files or fail to identify which programming language is being provided in a large stream.
 
-### Features
-* **Automatic Language Detection:** Uses common file extensions to determine syntax highlighting tags (e.g., `.py` $\rightarrow$ `python`, `.sh` $\rightarrow$ `bash`).
-* **Flexible Input:** Accepts direct file arguments, a list of files via pipes, or interactive input from `stdin`.
-* **Placeholder Support:** Use special placeholders in `--before` to inject filenames and detected languages dynamically.
-* **Escape Sequence Support:** Supports escape sequences (like `\n`) within custom headers/footers using `printf %b` logic.
-* **Robustness:** Gracefully skips directories, non-regular files, unreadable files, or missing files without interrupting the stream.
+### Key Features
+* **Automatic Language Detection:** Leverages file extensions to determine syntax highlighting tags (e.g., `.py` $\rightarrow$ `python`, `.sh` $\rightarrow$ `bash`).
+* **Flexible Input Streams:** Supports direct command-line arguments, piping from other commands (`find | lx`), or reading filenames via `stdin`.
+* **Dynamic Placeholders:** Uses `{filename}` and `{language}` placeholders in custom headers to inject real-time metadata into the stream.
+* **Markdown Orchestration:** Automatically handles fence opening/closing and provides customizable delimiters using `--before` and `--after` options.
+* **Resilient Processing:** Gracefully skips directories, special files (like devices), or unreadable files without breaking the pipeline execution.
 
 ## Options
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `--before=STR` | | A custom string to print before each code block. Use placeholders `{filename}` and `{language}` for dynamic content (e.g., `### File: {filename}`). Supports `\n`. |
-| `--after=STR` | | A custom string to print after each code block. Useful for adding separators or closing fences manually. |
-| `--help` | | Displays the usage information and exits. |
+| `--before=STR` | | A custom string to print before each code block. Supports placeholders `{filename}` and `{language}`, and escape sequences (e.g., `\n`). Example: `### File: {filename} \n ```{language}` |
+| `--after=STR`  | | A custom string to print after each code block. Useful for adding separators or manual closing fences if needed. Defaults to a standard Markdown close and separator. |
+| `--help`        | | Displays the usage information and exits. |
 
 ### Placeholders (for `--before`)
-* `{filename}`: The name/path of the current file being processed.
-* `{language}`: The detected programming language tag (e.g., `python`, `javascript`).
+* `{filename}`: The relative path/name of the file being processed.
+* `{language}`: The detected programming language tag used for syntax highlighting.
 
 ## Default Behavior
 
-If no options are provided, **lx** uses these defaults for every file in the stream:
+If no options are provided, **`lx`** wraps every file in a standard Markdown block to ensure clean parsing by downstream tools like `unfence`:
 
 **Default `--before`:**
 ```markdown
 # file <filename>
 ```{language}
 ```
-*(Note: A newline is added after the filename and language tag)*
+*(A newline is automatically added after the filename and language tag)*
 
 **Default `--after`:**
 ```markdown
@@ -50,34 +50,36 @@ If no options are provided, **lx** uses these defaults for every file in the str
 ---
 ```
 
+## Input Modes
+
+| Condition | Behavior |
+|-----------|----------|
+| **Arguments** | `lx file1.py file2.sh` treats each as a unique source to be wrapped. |
+| **Piped (`stdin`)** | Reads filenames from the pipe (e.g., `find . -name "*.js" | lx`). Each line is treated as a file path to process. |
+
 ## Examples
 
-**1. Basic usage with multiple files as arguments:**
-Stream several source files into an LLM query to ask for a refactor.
+**1. Multi-File Context Ingestion**
+Stream multiple files into an LLM query to perform cross-file analysis or refactoring.
 ```bash
-$ lx script.py main.js README.md | help "Refactor these modules"
+$ lx config.yaml database.py logic.sh | help "Explain how these three files interact"
 ```
 
-**2. Using `stdin` (e.g., from a file list):**
-Pipe a list of specific log files into the utility.
+**2. Custom Header Injection (Highly Structured)**
+Use placeholders to create a professional, highly readable context format for complex code reviews.
 ```bash
-find ./logs -name "*.log" | lx
+$ lx --before="📂 **Source:** `{filename}`\n**Language:** `{language}`\n---\n```{language}" script.py main.js | help "Identify potential bugs"
 ```
 
-**3. Customizing headers with placeholders:**
-Generate highly structured documentation blocks by injecting filenames and language tags dynamically.
+**3. Piping from Shell Utilities**
+Use `find` or `grep` to selectively ingest specific files into a pipeline.
 ```bash
-$ lx --before="### File: {filename}\nLanguage: `{language}`\n--- \n" script.rb
+$ find ./src -name "*.go" | lx | ask "Summarize the architecture of this package."
 ```
 
-**4. Adding a custom footer to separate content blocks:**
-Use `--after` to ensure every code block is clearly demarcated in the resulting stream.
+**4. Adding Delimiters for Visual Separation**
+Ensure that long outputs from multiple tools are clearly demarcated in the resulting conversation history using `--after`.
 ```bash
-$ lx --after="\n\`\`\`\n---\n" config.yaml
-```
-
-**5. Preparing context for an LLM pipeline:**
-Combine `lx` with a question to provide immediate, well-formatted assistance.
-```bash
-$ cat error.log | lx --before="Log Context:" | ask "Explain these errors."
+# Use --after to add a clear visual separator between files and subsequent output
+$ lx script.js utils.py | help "Refactor these" --after="\n\`\`\`\n--- \n"
 ```

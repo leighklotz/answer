@@ -1,11 +1,11 @@
 # unfence
 
-**unfence** is an intelligent extraction utility designed to isolate code blocks from Markdown content within a pipeline. It bridges the gap between conversational LLM output (which contains explanations and multiple snippets) and shell execution environments by stripping away non-code text.
+**unfence** is an intelligent extraction utility designed to isolate code blocks from Markdown content within a pipeline. It bridges the gap between conversational LLM output (which contains explanations, multiple snippets, and metadata) and shell execution environments by stripping away non-code text.
 
 ## Synopsis
 
 ```bash
-<text-with-fences> | unfence [LANGUAGE]
+<text|stdin> | unfence [LANGUAGE]
 ```
 
 The optional `[LANGUAGE]` argument allows you to target a specific block type immediately via the command line.
@@ -18,7 +18,16 @@ Unlike a simple parser that only finds the first block, **unfence** is context-a
 * **Adaptive Extraction:** If no language is provided and only one block exists, it extracts it directly (with a safety prompt). If multiple blocks exist, it enters **Selection Mode**.
 * **Language Sniping:** Providing a language argument (e.g., `unfence python`) filters the available blocks to those matching that specific language tag.
 * **Auto-answer & Cache Integration:** If the input begins with the pipeline magic header (`Content-Type: application/x-llm-history+json`), it automatically invokes the `answer` command to resolve the conversation state into plain text before attempting extraction. Because this uses the Answer caching mechanism, subsequent extractions of identical prompts are instantaneous and do not require new API calls.
-* **Pipeline Safety Gate:** To prevent accidental execution of dangerous code, it provides an interactive safety gate whenever its output is being piped or when multiple choices are available.
+* **Pipeline Safety Gate:** To prevent accidental execution of dangerous code in a pipeline, it provides an interactive safety gate whenever its output is being piped or when multiple choices are available.
+
+## Input Modes
+
+The behavior of `unfence` changes based on the type of input received:
+
+| Condition | Logic | Resulting Content |
+|-----------|-------|-------------------|
+| **Piped (JSON History)** | Reads a `PIPELINE_MAGIC_HEADER`. Invokes `answer` to resolve the turn, then parses resulting text. | A stream of plain-text Markdown blocks extracted from the assistant's message. |
+| **Piped (Plain Text)** | Scans raw incoming text for Markdown code fences. | The content contained within those identified fences. |
 
 ## Interactive Modes
 
@@ -40,10 +49,16 @@ To prevent the accidental execution of incorrect or dangerous code in a pipeline
 
 **The Workflow:**
 * **Preview:** The extracted content (or the list of options) is displayed to **stderr** via a pager so that it does not interfere with the pipe. Pager priority: `batcat` $\rightarrow$ `bat` $\rightarrow$ `less`/`more` $\rightarrow$ `cat`. 
-* **Confirmation:** You are prompted in your terminal: `🤖 Proceed with this command? (y/N): `.
+* **Confirmation:** You are prompted in your terminal (reading from `/dev/tty`) : `🤖 Proceed with this command? (y/N): `.
 * **Decision:** 
     * **`y`**: The content is sent to `stdout` for the next command in the pipeline.
     * **Any other key**: The process prints `🚫 discarded` to `stderr` and exits safely.
+
+## Options
+
+| Flag | Long form | Description |
+|------|-----------|-------------|
+| `--help` | | Print usage information and exit. |
 
 ## Examples
 

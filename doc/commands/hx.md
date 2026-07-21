@@ -1,81 +1,87 @@
 # hx
 
-**`hx`** is the management utility for the Answer framework, serving as the control plane for workspace configuration, cache lifecycle management, and interaction recovery. 
+**`hx`** is the management utility for the Answer framework, serving as the control plane for workspace configuration, cache lifecycle management, interaction recovery (via Git provenance), and environment integration. 
 
-It allows you to manage how the toolchain handles data persistence (caching) and provides rapid access to your most recent AI responses by targeting the latest entries in your local workspace history.
+It allows you to manage how the toolchain handles data persistence (caching) and provides rapid access to your most recent AI responses by targeting the latest entries in your local workspace history or via structured Git notes.
 
 ## Synopsis
 
 ```bash
-hx <subcommand> [options]
-# or
-hx cache <cache-subcommand>
+hx [provenance | cache] <subcommand> | hx model | hx why | hx what | hx cat | hx enable | hx disable
 ```
 
 ## Description
 
-The `hx` command is divided into three functional areas: **Cache Management**, **Pipeline Configuration**, and **Interaction Recovery**.
+The `hx` command is divided into four functional areas: **Provenance**, **Cache Management**, **Interaction Recovery**, and **Environment Configuration**.
 
-### Cache Management (`hx cache ...`)
-To ensure predictable data loops, the framework stores conversation histories in a local cache (found in `.hallux/cache`, `~/.config/hallux/cache`, or your home directory). Use these subcommands to manage that storage:
+### Provenance (`hx provenance ...`)
+Leveraging Git notes, the `provenance` subcommand allows you to "bookmark" your terminal interactions. It captures your last shell command and current prompt context, attaching them as a structured note to your repository history via `git notes`. This creates an immutable audit trail of how specific commands or conversations relate to your commit/log state.
 
 | Subcommand | Description | Behavior / Output |
 | :--- | :--- | :--- |
-| **`hx cache clear`** | Deletes the entire local cache. | Prompted for confirmation (`y/N`). If confirmed, deletes the directory and outputs `🗑️ Cache cleared.` |
-| **`hx cache show`** | Displays the current active cache path. | Prints the absolute path to the cache directory. |
-| **`hx cache disable`** | Disables automated caching for your *current shell session*. | Sets `NO_CACHE=1`. Outputs: `⚠️ Cache disabled.` |
-| **`hx cache enable`** | Re-enables automated caching for your current session. | Unsets `NO_CACHE`. Outputs: `⚠️ Cache enabled.` |
+| **`add`** | Captures context and saves it. | Grabs the last command from shell history (`fc`) and current prompt, then appends an LLM response as a `git note` under the `provenance/hallux` ref. |
+| **`show [hash]`** | View specific notes. | Displays the content of a single provenance note (optionally by hash). |
+| **`refs`** | List all references. | Lists hashes associated with the tool's provenance reference. |
+| **`list`** | Decorated log view. | Provides a colorized, human-readable list showing Git logs, commit messages, and a preview of the note content (the prompt/response) for every stored interaction. |
 
-### Environment & Pipeline Configuration
-These top-level commands allow you to toggle specialized environment settings or pipeline behaviors by sourcing external configuration scripts.
+### Cache Management (`hx cache ...`)
+The framework stores conversation histories in a local directory (e.g., `.hallux/cache` or `~/.config/hallux/cache`). Use these subcommands to manage that storage:
 
-| Command | Description |
+| Subcommand | Description | Behavior / Output |
 | :--- | :--- | :--- |
-| **`hx enable`** | Adds answer to shell path and defines functions. Adds Hallux icon 🦶 to `$PS1`. |
-| **`hx disable`** | Removes answer from shell PATH. Functions, sadly, remain defined. Removes icon from `$PS1`. |
+| **`clear`** | Deletes the local cache. | Prompted for confirmation (`y/N`). If confirmed, deletes the directory and outputs `🗑️ Cache cleared.` (includes safety checks to prevent deleting `$HOME` or `/`). |
+| **`show`** | Displays active path. | Prints the absolute path of the currently used cache directory. |
+| **`disable`** | Session-wide bypass. | Sets `NO_CACHE=1`, preventing new queries from being saved in your current shell session. Outputs: `⚠️ Cache disabled.` |
+| **`enable`** | Restore caching. | Unsets `NO_CACHE`. Outputs: `⚠️ Cache enabled.` |
 
 ### Interaction Recovery ("Last Run" Shortcuts)
-These commands provide rapid access to your most recent LLM interaction without re-running prompts or manually locating files. They identify the latest `.json` file in your active cache and pipe its content into specialized reasoning tools.
+These commands identify the most recent entry in your local cache and pipe it through specialized processing scripts (`why.sh`, `what.sh`, etc.) to interpret or format the last interaction.
 
-| Subcommand | Description |
-| :--- | :--- |
-| **`hx why`** | Outputs the reasoning behind the last inference response, if any. |
-| **`hx what`** | Outputs the last inference response, if any. |
+| Command | Description | Behavior / Output |
+| :--- | :--- | :--- |
+| **`hx why`** | Analyze reasoning. | Pipes the latest cache entry into a script designed to extract and display "thinking"/reasoning blocks (🧠). |
+| **`hx what`** | Retrieve response. | Pipes the latest cache entry into a script that extracts and displays only the assistant's final content text. |
+| **`hx cat`** | Raw data dump. | Passes the raw, unprocessed JSON of the last interaction through a formatting/extraction script for inspection. |
 
-````bash
-    🦶$ hx why
-    💭
-    *The user is asking a simple arithmetic question: "2+3=".
-    * Constraint Check: The system instructions state I can assist with Linux, Bash, Python, programming, etc., and to avoid expounding.
-    * Mathematical operation: 2 + 3 = 5.
-    🦶$ hx what
-    🧠
-    5
-    🦶$ 
-````
+### Environment & Model Configuration
+Top-level commands to manage your active environment or interact with model settings.
+
+| Command | Description | Behavior / Output |
+| :--- | :--- | :--- |
+| **`hx enable`** | Activate framework. | Sources the necessary configuration scripts for the current session and adds the Hallux icon (🦶) to your `$PS1`. |
+| **`hx disable`** | Deactivate framework. | Removes command aliases from the path; shell functions remain defined in the environment but are effectively dormant. |
+| **`hx model`** | Model management. | Executes a specialized script (`model.sh`) for managing available LLM models and endpoints. |
 
 ## Examples
 
-**1. Troubleshooting and Clearing Cache**
-If you encounter issues with stale context, clear your cache:
+**1. Creating a Provenance Bookmark**
+Capture exactly what you just ran in your terminal to review later:
+```bash
+$ hx provenance add
+# This captures your last command, the current prompt context, 
+# and an AI analysis into a Git note.
+```
+
+**2. Inspecting Recent Work (The "List" View)**
+See a beautiful timeline of everything you've asked or executed via `hx`:
+```bash
+$ hx provenance list
+```
+
+**3. Checking the Last Response Without Re-running**
+If an LLM provided a complex explanation, instantly retrieve just the text:
+```bash
+🦶$ ask "Write me a bash script to find large files" ✨
+... (response) ...
+🦶$ hx what
+5  (The assistant's response content from your last call)
+```
+
+**4. Clearing Cache with Safety Check**
+If you suspect the cache is corrupted or want to start fresh:
 ```bash
 $ hx cache clear
 ⚠️ Are you sure you want to remove /home/user/.config/hallux/cache? (y/N)
 Delete directory? (y/N): y
-🗑️  Cache cleared.
-```
-
-**2. Disabling Cache for a Single Session**
-To prevent any new queries from being saved or using cached results during a session:
-```bash
-$ hx cache disable
-⚠️ Cache disabled.
-# Subsequent 'ask' commands will perform fresh API calls and won't be stored locally.
-```
-
-**3. Re-examining Previous Interactions**
-If you just ran an `ask` command, you can immediately analyze the response using your "why" tool:
-```bash
-$ ask "Explain this complex bash regex" | why
-# (Processes latest cache entry through why.sh)
+🗑️ Cache cleared.
 ```

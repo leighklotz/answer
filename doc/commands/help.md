@@ -1,6 +1,8 @@
 # help
 
-**help** is a specialized wrapper for the `ask` command, pre-configured with a system prompt optimized for high-precision technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering.
+**`help`** is a specialized wrapper for the `ask` command, pre-configured with a system prompt optimized for high-precision technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering. 
+
+*Note: This function shadows the standard Bash built-in `help` command. If you need to use the native shell help in your current session, use `builtin help`.*
 
 ## Synopsis
 
@@ -14,7 +16,7 @@ The first non-flag argument begins the prompt.
 
 `help` is a convenience command that automatically injects a specialized `SYSTEM_MESSAGE` into the LLM context to ensure highly technical, concise, and executable responses. While `ask` is a general-purpose state builder for any conversation type, `help` is tuned for efficiency: it is configured to provide direct answers and actionable code while **avoiding unnecessary exposition** (minimizing conversational "fluff").
 
-Because of how `help` is implemented in the shell environment, it always operates as if the `--use-system-message` flag were passed. This ensures that every query benefits from a "Technical Assistant" persona by default.
+Because of how `help` is implemented in the shell environment, all arguments passed to it are forwarded directly to the underlying engine. This ensures that every query benefits from a "Technical Assistant" persona by default.
 
 When used in a pipeline, `help` behaves exactly like `ask`, managing conversational history and allowing for complex, stateful technical workflows through JSON objects.
 
@@ -39,30 +41,27 @@ As a wrapper of `ask`, it supports multiple input streams:
 
 ## Usage Patterns & Aliases
 
-The power of `help` is most evident when used in combination with other utilities or through common productivity aliases:
+The power of `help` is most evident when used in combination with other utilities or through the pre-defined productivity aliases provided by the toolchain:
 
 ### 1. The "Code Transformation" Pattern
-You can quickly pipe the output of a technical question into an interpreter using these standard aliases:
+Once enabled via `hx enable`, you can use these standard aliases to instantly pipe technical answers into an interpreter for execution or data processing.
 
-* **To Python:** Transform a calculation or logic block into a runnable script.
+* **To Python (`to_python`)**: Transform a calculation, logic block, or algorithm into a runnable script and pass it directly to the `python` interpreter.
   ```bash
-  $ alias to_python='help output the calculation in a code fence as a python script to be used as stdin to `python`'
-  $ help "calculate the 10th fibonacci number" | to_python
-  65
-  ```
+    $ help "calculate the 10th fibonacci number" | to_python
+    65
+    ```
 
-* **To Bash:** Generate and execute shell commands immediately.
+* **To Bash (`to_bash`)**: Generate shell commands and pipe them straight into a new bash process for immediate execution.
   ```bash
-  $ alias to_bash='help output the calculation in a code fence as a bash script to be used as stdin to `bash`'
-  $ help "list all files larger than 1G" | to_bash
-  ```
+    $ help "list all files larger than 1G in /tmp" | to_bash
+    ```
 
-* **To AWK:** Generate an awk filter for data processing.
+* **To AWK (`to_awk`)**: Convert data processing logic into an `awk` script used as stdin to the `awk -f -` command.
   ```bash
-  $ alias to_awk='help output the calculation in a code fence as an awk script to be used as stdin to \`awk -f -\`'
-  $ echo "1 2" | help "add them together and print result" | to_awk
-  3
-  ```
+    $ echo "1 2" | help "add them together and print result in awk syntax" | to_awk
+    3
+    ```
 
 ### 2. Debugging & Diagnostics
 Pipe system logs or command outputs directly into `help` for instant, noise-free diagnosis:
