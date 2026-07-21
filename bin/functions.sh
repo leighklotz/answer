@@ -156,7 +156,7 @@ function _infer () {
       server_model='default'
   fi
     
-  log_warn "model=$server_model"
+  log_info "model=$server_model"
 
   jq \
     --arg server_model $server_model \
