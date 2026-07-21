@@ -16,6 +16,7 @@ while [[ $# -gt 0 ]]; do
     -i | --input) PLAIN_INPUT="1"; shift ;;
     --use-system-message) USE_SYSTEM_MSG=true; shift ;;
     --tee | -t) TEE_MODE="1"; shift ;;
+    --answer) ANSWER_MODE="1"; shift ;;
     --) break ;;
     --help) echo "Usage: ask [-i|--input] [--use-system-message] [--tee|-t] [prompt]" >&2; exit 0;;
     --*|-*) echo "unrecognized option $1"; exit 0 ;;
@@ -125,7 +126,7 @@ if [ -n "$TEE_MODE" ]; then
   
   # Forward full JSON history to stdout
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$full_convo"
-elif [ -t 1 ]; then
+elif [ -t 1 ] || [ -n "$ANSWER_MODE" ]; then
   # Contract Rule: If at EOL terminal, hand over to answer to print pristine markdown
   log_debug "Sending to answer"
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"

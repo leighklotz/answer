@@ -338,8 +338,7 @@ function hx() {
         ;;
 
         model)
-            _get_model_name
-            return 0
+            ~/wip/answer/bin/commands/model.sh
         ;;
 
         *)
