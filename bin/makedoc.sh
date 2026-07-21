@@ -9,7 +9,7 @@ FUNCTIONS_SH="${SCRIPT_DIR}/functions.sh"
 shopt -s nullglob
 mkdir -p doc
 
-CMDS="answer ask bx help-commit help unfence lx hx makedoc tools"
+CMDS="answer ask bx help-commit help hx lx makedoc systype tools unfence"
 
 if [ -n "$1" ]; then
     CMDS=$@
