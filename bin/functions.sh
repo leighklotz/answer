@@ -18,7 +18,7 @@ if [[  "$(command -v ask.sh)" != *answer* ]]; then
 fi
 
 # Source env.sh if variables are not already defined
-if [ -z "${VIA_API_CHAT_BASE+x}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/env.sh" ]; then
+if [ -z "${VIA_API_CHAT_BASE}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/env.sh" ]; then
     source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 fi
 
