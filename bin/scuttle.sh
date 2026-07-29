@@ -97,11 +97,13 @@ function replace_smart_quotes() {
 }
 
 SCUTTLE_PROMPT='# Instructions
-Read the web page article from ${LINK} and ignore website header at the start and look for the main article.
+Summarize the article in one brief paragraph followed by a a blank line and then few terse bullet points which add interesting or important information not already included in the paragraph. If there is an ident8fied author, begin the summary with "<author name> writes".
+
+- Diction: "utilize" means to make use of something for other than its intended purpose
+- Reserve "AI" for research beyond LLMs.
+
+YAML output format:
 - If the page loaded normally, respond with only a YAML file with these 4 fields: \`link\`, \`title\`, \`description\`, and \`keywords\` array.
-- For description, write an article summary in markdown with plain bold-free / header-free style, best for a feed sidebar or "Latest Posts" list.
-- Include a list of main topics or points if it is a salient addition to the description, but avoid duplication.
-- Diction: "utilize" means to make use of something for other than its intended purpose; reserve AI for research beyond LLMs.
 - For the \`description\` field, use the YAML literal block scalar format (starting with the \`|\` symbol).
 - Put quotes around the `title`.
 - Do NOT put quotes around the block scalar content.
@@ -121,11 +123,6 @@ In failure case, output in exact this YAML format:
 link: ...
 error: ...
 '
-   
-
-
-# shorten this description a Technical/Developer-Focused article summary on my feed. include a list of topics covered. Minimalist (Best for a sidebar or "Latest Posts" list). separately output a list of keywords. Write your response in Yaml.
-
 
 (
     printf "# Text of link %s\n\n---\n\n%s\n" "${LINK}" "${SCUTTLE_PROMPT}";
