@@ -97,7 +97,7 @@ function replace_smart_quotes() {
 }
 
 SCUTTLE_PROMPT='# Instructions
-Summarize the article in one brief paragraph followed by a a blank line and then few terse bullet points which add interesting or important information not already included in the paragraph. If there is an ident8fied author, begin the summary with "<author name> writes".
+Summarize the article in one brief paragraph followed by a a blank line and then a few terse bullet points marked with `-` that add interesting or important information not already included in the paragraph. If there is an identified author, begin the summary with "<author name> writes".
 
 - Diction: "utilize" means to make use of something for other than its intended purpose
 - Reserve "AI" for research beyond LLMs.
