@@ -188,7 +188,7 @@ function _infer () {
     printf "🎯" >&2
     response_json=$(cat "$cache_file")
   else
-    log_trace "$(cat "$tmp_req")"
+    [ -n "$LOG_QUERIES" ] && log_trace "request=$(cat "$tmp_req")"
     printf "✨" >&2
     local auth_flags
     if [ -n "$api_key" ]; then
@@ -202,7 +202,7 @@ function _infer () {
                          -d @"$tmp_req") || {
       return 1
     }
-    log_trace "response_json=$response_json"
+    [ -n "$LOG_QUERIES" ] && log_trace "response_json=$response_json"
     if jq -e '.choices[0]?.message?.reasoning_content != null' <<< "$response_json" >/dev/null 2>&1; then
         printf "🧠" >&2
     fi
