@@ -279,7 +279,7 @@ function hx() {
                 printf "⚠️ Are you sure you want to remove %s?\n" "$cache_dir" >&2
                 read -r -p "Delete directory? (y/N): " reply < /dev/tty
                 if [[ "$reply" =~ ^[Yy]$ ]]; then
-                    rm -- "$cache_dir/*.json" && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
+                    rm -- "$cache_dir"/*.json && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
                 else
                     echo "🚫 Cancelled."
                 fi
