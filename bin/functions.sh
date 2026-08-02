@@ -279,7 +279,7 @@ function hx() {
                 printf "⚠️ Are you sure you want to remove %s?\n" "$cache_dir" >&2
                 read -r -p "Delete directory? (y/N): " reply < /dev/tty
                 if [[ "$reply" =~ ^[Yy]$ ]]; then
-                    rm -rf -- "$cache_dir" && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
+                    rm -- "$cache_dir/*.json" && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
                 else
                     echo "🚫 Cancelled."
                 fi
@@ -304,8 +304,35 @@ function hx() {
                 return 0
                 ;;
 
+            drop)
+                local c_dir=$(_find_cache_dir)
+                [[ -z "$c_dir" || ! -d "$c_dir" ]] && { echo "❌ No cache directory found."; return 1; }
+
+                # Get the path of the newest file using your internal helper
+                local latest
+                latest="$(_get_newest_cache_file "$c_dir")"
+
+                if [[ -n "$latest" && -f "$latest" ]]; then
+                    preview="$(~/wip/answer/bin/commands/what.sh < "$latest" | head -2)\n"
+
+                    printf "⚠️ Are you sure you want to delete this cache entry?\n" >&2
+                    printf "File: %s\n" "$latest" >&2
+                    printf ">%b...\n" "$preview" | awk '{print "    "$0}' >&2 
+                    read -r -p "Deletion cache entry? (y/N): " reply < /dev/tty
+
+                    if [[ "$reply" =~ ^[Yy]$ ]]; then
+                        rm -- "$latest" && echo "🗑️  Entry dropped." || echo "❌ Deletion failed."
+                    else
+                        echo "🚫 Cancelled."
+                    fi
+                else
+                    echo "❓ No recent cache file found to drop."
+                fi
+                return 0
+                ;;
+
             *)
-                echo "Unknown cache option: $2" >&2
+                echo "Unknown cache option '$2': (clear|show|enable|disable|drop)" >&2
                 return 1
                 ;;
         esac
@@ -330,6 +357,7 @@ function hx() {
 
             if [[ -n "$latest_f" && -f "$latest_f" ]]; then
                 # Use a pipe to the specific command script
+                # TODO: path
                 cat "$latest_f" | ~/wip/answer/bin/commands/"${1}.sh"
             else
                 echo "No cache file found for '$1'." >&2
@@ -338,6 +366,9 @@ function hx() {
         ;;
 
         model)
+            # TODO: path
+            # it is difficult to determine the installation dir
+            # from a bash function sourced in an interactive shell
             ~/wip/answer/bin/commands/model.sh
         ;;
 
