@@ -25,9 +25,10 @@ RULES FOR SCOPE & TARGETING (CRITICAL):
 1. PWD and git toplevel: PWD is the current directory. git rev-parse --show-toplevel is the git repo toplevell. Adjust git add file paths accordingly, starting from PWD.
 2. REVISION RANGES (e.g., "main..HEAD", "origin/master...current"): If the arguments look like a Git range or branch comparison, DO NOT use them as targets in your command (i.e., do not run `git add main..HEAD`). Instead, treat those diffs purely as context for an accurate commit message and perform a standard `git commit -m "..."` of what is currently staged.
 3. UNTRACKED FILES: Ignore any untracked files that are not part of the provided scope or revision range.
-4. IMPERATIVE MOOD: Use imperative mood (e.g., "Add feature" not "Added feature").
-5. FORMATTING: Ensure all strings are properly quoted and there is no commentary after the code fence.
-6. ESCAPING: Properly escape special characters inside bash quotes so the command works when executed by a shell.
+4. FILE MODE: Always report when there are file mode changes and list or summarize the changes.
+5. IMPERATIVE MOOD: Use imperative mood (e.g., "Add feature" not "Added feature").
+6. FORMATTING: Ensure all strings are properly quoted and there is no commentary after the code fence.
+7. ESCAPING: Properly escape special characters inside bash quotes so the command works when executed by a shell.
 EOF
 
 if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
