@@ -101,7 +101,7 @@ function _find_cache_dir () {
   local current_dir
   current_dir="$(pwd)"
 
-  # 1. Traverse upward looking strictly for a .hallux workspace directory anchor.
+  # Traverse upward looking strictly for a .hallux workspace directory anchor.
   while [ "$current_dir" != "/" ]; do
     if [ -d "${current_dir}/.hallux" ]; then
       printf "%s/.hallux/cache" "$current_dir"
@@ -110,13 +110,7 @@ function _find_cache_dir () {
     current_dir="$(dirname "$current_dir")"
   done
 
-  # 2. Fall back to the user home baseline path if the folder anchor exists.
-  if [ -d "${HOME}/.hallux" ]; then
-    printf "%s/.hallux/cache" "${HOME}"
-    return 0
-  fi
-
-  # 3. Ultimate system-standard fallback location.
+  # Ultimate system-standard fallback location.
   printf "%s/.config/hallux/cache" "${HOME}"
 }
 
