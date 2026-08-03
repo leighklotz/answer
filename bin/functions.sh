@@ -95,7 +95,7 @@ function _cleanup_run_dir() {
 }
 
 function _find_cache_dir () {
-  if [ -n "$NO_CACHE" ]; then
+  if [ -n "$HX_NO_CACHE" ]; then
     return 0
   fi
   local current_dir
@@ -289,11 +289,11 @@ function hx() {
                 # Standardized behavior: Decide if you want to export a variable OR source a script.
                 # I have kept your logic but made it consistent within this block.
                 if [[ "$2" == "disable" ]]; then
-                    export NO_CACHE=1
-                    echo "⚠️  Cache disabled (session-wide)."
+                    export HX_NO_CACHE=1
+                    echo "⚠️  ache disabled (session-wide)."
                 else
-                    unset NO_CACHE
-                    echo "⚠️  Cache enabled (session-wide)."
+                    unset HX_NO_CACHE
+                    echo "⚠️  ache enabled (session-wide)."
                 fi
                 return 0
                 ;;

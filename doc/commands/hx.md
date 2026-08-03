@@ -53,8 +53,8 @@ The framework uses local JSON files for caching to ensure speed and reduce API c
 | :--- | :--- | :--- |
 | **`clear`** | **Wipe Cache:** Deletes all `.json` files in the local cache directory (e.g., `~/.config/hallux/cache`). Includes an interactive confirmation prompt (`y/N`). | Interactive deletion of history. |
 | **`show`** | **Locate Directory:** Prints the absolute filesystem path to your active cache folder. | Path string via `_find_cache_dir`. |
-| **`disable`** | **Toggle Caching (OFF):** Sets `NO_CACHE=1`, preventing new queries from being saved for this session. | Session-wide variable update. |
-| **`enable`** | **Toggle Caching (ON):** Unsets `NO_CACHE`, restoring automated caching functionality. | Session-wide variable update. |
+| **`disable`** | **Toggle Caching (OFF):** Sets `HX_NO_CACHE=1`, preventing new queries from being saved for this session. | Session-wide variable update. |
+| **`enable`** | **Toggle Caching (ON):** Unsets `HX_NO_CACHE`, restoring automated caching functionality. | Session-wide variable update. |
 | **`drop`** | **Remove Latest:** Identifies only the single most recent cache entry, shows a text preview of its content for safety, and asks to delete it. | Interactive single-entry removal with preview. |
 
 ---
