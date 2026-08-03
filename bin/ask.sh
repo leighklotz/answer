@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash -x
+#!/usr/bin/env -S bash
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
@@ -66,7 +66,7 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
 
     tail -n +2 "$stdin_tmp" > "$clean_stdin_tmp"
 
-    log_info "0. TEE_MODE=$TEE_MODE resolving incoming history"
+    log_debug "TEE_MODE=$TEE_MODE resolving incoming history"
     if ! clean_stdin=$(_infer < "$clean_stdin_tmp"); then
       log_and_exit 1 "Inference failed while resolving prior conversation state."
     fi
@@ -86,18 +86,20 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
       messages="$clean_stdin"
     fi
   elif [[ -n "$prompt" ]]; then
-    # MODE: Prompt + Piped Content
+    log_debug "MODE: Prompt + Piped Content"
     messages=$(jq -n --arg p "$prompt" --rawfile c "$stdin_tmp" '[{role:"user", content: ($p + "\n\nCONTEXT:\n" + $c)}]')
   else
-    # MODE: Only Piped Content
+    log_debug "MODE: Only Piped Content"
     messages=$(jq -n --rawfile c "$stdin_tmp" '[{role:"user", content: $c}]')
   fi
 elif [[ -n "$prompt" ]]; then
-  # MODE: Interactive Command Line Argument (No stdin, no -i)
+  log_debug "MODE: Interactive Command Line Argument (No stdin, no -i)"
+
   messages=$(jq -n --arg p "$prompt" '[{"role":"user","content":$p}]')
 else
   exit 1
 fi
+
 
 # Apply system context if requested
 if [ "$USE_SYSTEM_MSG" = true ] && [ -n "$SYSTEM_MESSAGE" ]; then
