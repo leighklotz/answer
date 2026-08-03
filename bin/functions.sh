@@ -143,7 +143,7 @@ function _infer () {
 
   local api_key="${OPENAI_API_KEY:-}"
   local endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
-  local server_model=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -r ' . | .data[] | select(.status.value == "loaded") | .id')
+  local server_model="$(_get_model_name)"
 
   if [ -z "$server_model" ]; then
       log_warn "$VIA_API_CHAT_BASE has no default model loaded: using 'default'"
@@ -153,7 +153,7 @@ function _infer () {
   log_info "model=$server_model"
 
   jq \
-    --arg server_model $server_model \
+    --arg server_model "$server_model" \
     --argjson thinking "${ENABLE_THINKING:-false}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     '{
@@ -431,6 +431,9 @@ function _hx_provenance() {
     esac
 }
 
+
+# TODO: Find a better way to pick a model of multiple models are loaded
+# TODO: `hx models` or `hx model` might take filtering arguments (words to require in model name)
 function _get_model_name() {
     local model_name
     model_name="$(curl -fsS "${VIA_API_CHAT_BASE}/models" "${AUTHORIZATION_PARAMS[@]}" | jq -r ' . | .data[] | select(.status.value == "loaded") | .id')"
@@ -440,8 +443,7 @@ function _get_model_name() {
     if [ -z "$model_name" ] || [ "$model_name" == 'llama-server' ]; then
         model_name="${MODEL_NAME_OVERRIDE:-gpt-3.5}"
     fi
-    # model_name="$(printf "%s" "${model_name}"| sed -e 's/-/_/g' | sed -e 's/\.gguf//')"
-    printf "%s\n" "${model_name}" 
+    printf "%s\n" "${model_name}" | head -1
     return 0
 }
 
