@@ -19,7 +19,7 @@ source "${SCRIPT_DIR}/functions.sh"
 
 TOOLEX_SH=~/wip/toolex/toolex.sh
 
-if [ $# -eq 0 ]; then
+if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "Usage: tools <module> [<module...>] [--keep-reasoning]" >&2
     exit 1
 fi

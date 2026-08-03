@@ -1,10 +1,13 @@
-#!/bin/bash
+#!/bin/bash -e
 
 cd ~/wip/answer/doc/commands/
 
 for file in *.md.new
 do
-  echo "$file"
-  lx "${file}" | ask 'briefly look for llm-dreck (whole file wrapped in backquotes, LLM intro/outro) and output wither CLEAN or DRECK'
+  old="${file%.new}"
+  echo "=== Analysis of $old -> $file ==="
+  lx "$old" "${file}" | dreck | answer
+  echo "== End Analysis $old -> $file ==="
+  echo "----"
   echo ""
 done

@@ -2,86 +2,92 @@
 
 **`hx`** is the management utility for the Answer framework, serving as the control plane for workspace configuration, cache lifecycle management, interaction recovery (via Git provenance), and environment integration. 
 
-It allows you to manage how the toolchain handles data persistence (caching) and provides rapid access to your most recent AI responses by targeting the latest entries in your local workspace history or via structured Git notes.
+It allows you to manage how the toolchain handles data persistence (caching) and provides rapid access to your most recent AI responses by targeting the latest entries in your local workspace history or via structured Git notes attached as metadata.
 
 ## Synopsis
 
 ```bash
-hx [provenance | cache] <subcommand> | hx model | hx why | hx what | hx cat | hx enable | hx disable
+hx [enable | disable | why | what | cat | model] 
+    [provenance {add | show [hash] | refs | list}] 
+    [cache {clear | show | enable | disable | drop}]
 ```
 
 ## Description
 
-The `hx` command is divided into four functional areas: **Provenance**, **Cache Management**, **Interaction Recovery**, and **Environment Configuration**.
+The `hx` command is organized into three distinct functional layers: **Environment/Interaction Recovery**, **Provenance (Git-backed Bookmarks)**, and **Cache Management**.
 
-### Provenance (`hx provenance ...`)
-Leveraging Git notes, the `provenance` subcommand allows you to "bookmark" your terminal interactions. It captures your last shell command and current prompt context, attaching them as a structured note to your repository history via `git notes`. This creates an immutable audit trail of how specific commands or conversations relate to your commit/log state.
-
-| Subcommand | Description | Behavior / Output |
-| :--- | :--- | :--- |
-| **`add`** | Captures context and saves it. | Grabs the last command from shell history (`fc`) and current prompt, then appends an LLM response as a `git note` under the `provenance/hallux` ref. |
-| **`show [hash]`** | View specific notes. | Displays the content of a single provenance note (optionally by hash). |
-| **`refs`** | List all references. | Lists hashes associated with the tool's provenance reference. |
-| **`list`** | Decorated log view. | Provides a colorized, human-readable list showing Git logs, commit messages, and a preview of the note content (the prompt/response) for every stored interaction. |
-
-### Cache Management (`hx cache ...`)
-The framework stores conversation histories in a local directory (e.g., `.hallux/cache` or `~/.config/hallux/cache`). Use these subcommands to manage that storage:
-
-| Subcommand | Description | Behavior / Output |
-| :--- | :--- | :--- |
-| **`clear`** | Deletes the local cache. | Prompted for confirmation (`y/N`). If confirmed, deletes the directory and outputs `🗑️ Cache cleared.` (includes safety checks to prevent deleting `$HOME` or `/`). |
-| **`show`** | Displays active path. | Prints the absolute path of the currently used cache directory. |
-| **`disable`** | Session-wide bypass. | Sets `NO_CACHE=1`, preventing new queries from being saved in your current shell session. Outputs: `⚠️ Cache disabled.` |
-| **`enable`** | Restore caching. | Unsets `NO_CACHE`. Outputs: `⚠️ Cache enabled.` |
-
-### Interaction Recovery ("Last Run" Shortcuts)
-These commands identify the most recent entry in your local cache and pipe it through specialized processing scripts (`why.sh`, `what.sh`, etc.) to interpret or format the last interaction.
+### 1. Environment & Interaction Recovery
+These top-level commands manage your active shell session or provide instant access to the most recent LLM outputs without re-running prompts.
 
 | Command | Description | Behavior / Output |
 | :--- | :--- | :--- |
+| **`hx enable`** | Activate framework. | Sources configuration scripts for the current session and adds the Hallux icon (🦶) to your `$PS1`. |
+| **`hx disable`** | Deactivate framework. | Removes command aliases from your path; shell functions remain defined in the environment but are effectively dormant. |
+| **`hx model`** | Model management. | Executes a specialized script for managing available LLM models and endpoints. |
 | **`hx why`** | Analyze reasoning. | Pipes the latest cache entry into a script designed to extract and display "thinking"/reasoning blocks (🧠). |
-| **`hx what`** | Retrieve response. | Pipes the latest cache entry into a script that extracts and displays only the assistant's final content text. |
-| **`hx cat`** | Raw data dump. | Passes the raw, unprocessed JSON of the last interaction through a formatting/extraction script for inspection. |
+| **`hx what`** | Retrieve response. | Passes the latest cache entry through `what.sh` to extract only the assistant's final content text. |
+| **`hx cat`** | Raw data dump. | Passes the raw, unprocessed JSON of the last interaction to a formatting script for inspection. |
 
-### Environment & Model Configuration
-Top-level commands to manage your active environment or interact with model settings.
+### 2. Provenance (`hx provenance ...`)
+Leveraging Git notes (specifically the `provenance/hallux` ref), this subcommand allows you to "bookmark" your terminal interactions. It captures your shell history and prompt context, attaching them as structured metadata so they can be audited or reviewed alongside your repository's timeline.
 
-| Command | Description | Behavior / Output |
+| Subcommand | Description | Behavior / Output |
 | :--- | :--- | :--- |
-| **`hx enable`** | Activate framework. | Sources the necessary configuration scripts for the current session and adds the Hallux icon (🦶) to your `$PS1`. |
-| **`hx disable`** | Deactivate framework. | Removes command aliases from the path; shell functions remain defined in the environment but are effectively dormant. |
-| **`hx model`** | Model management. | Executes a specialized script (`model.sh`) for managing available LLM models and endpoints. |
+| **`add`** | Bookmark current state. | Captures the last executed command (`fc`) and prompt context, then appends the resulting AI response as a `git note`. |
+| **`show [hash]`** | View specific note. | Displays the content of a single provenance note (optionally by its Git hash). |
+| **`refs`** | List hashes. | Lists all available hashes associated with your local provenance references. |
+| **`list`** | Decorated history view. | Provides a colorized, human-readable timeline showing Git log lines paired with short previews of the stored AI responses. |
+
+### 3. Cache Management (`hx cache ...`)
+The framework stores conversation histories in a local directory (up-path to `.hallux/cache`, then to `$HOME/.config/hallux`). Use these subcommands to manage that storage and control session behavior.
+
+N.B.: Tool output is not cached, however subsequent pipeline element outputs are, though cache hits are not guaranteed.
+
+| Subcommand | Description | Behavior / Output |
+| :--- | :--- | :--- |
+| **`clear`** | Wipe cache contents. | Prompted for confirmation (`y/N`). Deletes all `.json` files within the cache directory. |
+| **`show`** | Display active path. | Prints the absolute filesystem path of your current cache directory. |
+| **`disable`** | Session-wide bypass. | Sets `NO_CACHE=1`, preventing new queries from being saved for the duration of this shell session. |
+| **`enable`** | Restore caching. | Unsets `NO_CACHE`. Automated caching is restored for the current session. |
+| **`drop`** | Delete latest entry. | Identifies the most recent cache file, previews its content using `hx what`, and asks for confirmation before deleting only that specific file. |
 
 ## Examples
 
-**1. Creating a Provenance Bookmark**
-Capture exactly what you just ran in your terminal to review later:
+**1. Enabling Environment Setup**
+Set up your shell with all necessary aliases and prompt decorations:
 ```bash
-$ hx provenance add
-# This captures your last command, the current prompt context, 
-# and an AI analysis into a Git note.
+$ hx enable
+🦶$ 
 ```
 
-**2. Inspecting Recent Work (The "List" View)**
-See a beautiful timeline of everything you've asked or executed via `hx`:
+**2. Quickly Reviewing the Last AI Response**
+If you just ran a long `ask` command, instantly see what the assistant said without re-running it:
+```bash
+🦶$ hx what
+The model's response text...
+```
+
+**3. Creating an Audit Trail (Provenance)**
+After running a complex series of commands to refactor code, bookmark your progress:
+```bash
+# This captures your last command and the AI output into Git notes
+$ hx provenance add
+```
+
+**4. Inspecting Your History Timeline**
+See a beautiful chronological list of everything you've asked or executed via `hx`:
 ```bash
 $ hx provenance list
+[git log line] [Preview of prompt/response...]
 ```
 
-**3. Checking the Last Response Without Re-running**
-If an LLM provided a complex explanation, instantly retrieve just the text:
+**5. Safely Deleting the Last Interaction**
+If an LLM provides a wrong answer and you want to remove it from your cache:
 ```bash
-🦶$ ask "Write me a bash script to find large files" ✨
-... (response) ...
-🦶$ hx what
-5  (The assistant's response content from your last call)
-```
-
-**4. Clearing Cache with Safety Check**
-If you suspect the cache is corrupted or want to start fresh:
-```bash
-$ hx cache clear
-⚠️ Are you sure you want to remove /home/user/.config/hallux/cache? (y/N)
-Delete directory? (y/N): y
-🗑️ Cache cleared.
+$ hx cache drop
+⚠️ Are you sure you want to delete this cache entry?
+File: /path/to/.hallux/cache/file_name.json
+>Preview of content...
+Deletion cache entry? (y/N): y
+🗑️ Entry dropped.
 ```

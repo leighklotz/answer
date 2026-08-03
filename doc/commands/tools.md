@@ -32,6 +32,12 @@ The `tools` command acts as the bridge for these requests within an Answer pipel
 *   `toolex.py` must be installed and available on your `$PATH`.
 *   The modules you intend to use (e.g., `git`, `linux_tools`) must be compatible with `toolex.py`.
 
+## Visual Feedback (`stderr`)
+
+When running in a terminal or using `--tee`, `tools` provides feedback via emojis and prompts on **stderr** so that it does not interfere with the JSON data stream:
+* 🤖 **Confirmation Prompt:** Indicates an execution is being requested (often accompanied by confirmation requirements).
+* ✨ / 🎯 / 🧠 : Standard inference status icons indicating fresh request, cache hit, or reasoning content.
+
 ## Examples
 
 ### 1. Basic Git Integration

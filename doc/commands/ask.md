@@ -10,25 +10,18 @@ ask [OPTIONS] [PROMPT...]
 
 The first non-flag argument begins the prompt.
 
-## Pipeline Model
-The `ask` command always generates **JSON** to preserve the conversation state, but when used to pipe to another **Answer** tool (like `answer`), or when output is direct to a terminal via a shell function, it provides only the last assistant response for human consumption while maintaining structured data in the background.
-
-- **Interactive Mode (Auto-answer):** When running in a terminal where `stdout` is your screen, `ask` automatically pipes the JSON through `answer`. You see clean, human-readable text.
-- **Pipeline Mode:** When `ask` is used in a script or piped into another command (e.g., `... | ask`), it outputs **raw JSON** containing the full conversation history. This allows subsequent tools to read and extend the context seamlessly.
-- **Manual/File Mode:** If `ask`'s output is redirected directly to a file (`> chat_history.json`), auto-answer is disabled, and the file will contain raw JSON structured with the appropriate MIME headers.
-
 ## Description
 
 `ask`, along with its optimized wrappers like `help`, serves as the primary entry point for starting or continuing an AI conversation. It manages state by passing full conversation arrays between pipeline stages via standard input/output streams using a magic header (`Content-Type: application/x-llm-history+json`). 
 
-The command performs "idempotent" turn resolution: it checks if the incoming history already ends with an `assistant` role. If it does, the message is passed through unchanged to prevent redundant API calls; new inference is only triggered when the last message in the sequence is from a `user`.
+The command performs "idempotent" turn resolution: it checks if the incoming history already ends with an `assistant` role. If it does, the message is passed through unchanged to prevent redundant API calls; new inference is only triggered when the last message in the sequence is from a `user`. It also automatically detects and acknowledges reasoning/thinking blocks provided by models (like OpenAI's `reasoning_content`).
 
 ## Options
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
 | `-i` | `--input` | **Attachment Mode:** Forces `stdin` to be treated as a formal attachment. Content is appended to the end of the prompt with an `ATTACHMENT:` label. In interactive terminals, this enables multi-line input (terminated with `Ctrl-D`). |
-| `-t` | `--tee` | **Observation Mode:** Prints a human-readable preview of the assistant's response to **stderr** while passing the updated JSON conversation history through **stdout**. This allows you to monitor progress without breaking pipeline chains. |
+| `-t` | `--tee`   | **Observation Mode:** Prints a human-readable preview of the assistant's response to **stderr** while passing the updated JSON conversation history through **stdout**. This allows you to monitor progress without breaking pipeline chains. |
 | `--use-system-message` | | Prepends the content of the `$SYSTEM_MESSAGE` environment variable as a `system` role message at the start of the session. |
 | `--help` | | Print usage information and exit. |
 
@@ -48,11 +41,17 @@ The behavior of `ask` changes based on whether it is extending an existing conve
 
 The output behavior depends on how you are using it as part of a pipeline:
 
+### 1. Data Stream (stdout)
 | Mode | Context | stdout (Data stream) | stderr (Terminal Feedback) |
 |---------|----------|-------------------|----------------------------|
-| **Observation** (`--tee`) | Mid-pipeline inspection (e.g., `... \| ask --tee \| next_cmd`) | The full, updated JSON conversation array. | A human-readable preview of the response + inference status emojis (✨/🎯/🧠). |
 | **Extraction Endpoint** | Used as a terminal endpoint for tools (e.g., `... \| answer \| python`) | Raw plain text content of only the assistant's latest message. | Inference status icons and errors. |
-| **Terminal Interaction** | Standard use in an active bash session via shell functions | The human-readable response from the LLM. | Message formatting/status indicators + newline for visual separation. |
+| **Observation Mode (`--tee`)** | Mid-pipeline inspection (e.g., `... \| ask --tee \| next_cmd`) | The full, updated JSON conversation array. | A human-readable preview + inference status emojis. |
+
+### 2. Visual Feedback (stderr)
+During interactive terminal use or observation mode, `ask` provides real-time feedback on the state of your request via **stderr**:
+* ✨ **Fresh Request:** A new call was made to the LLM API.
+* 🎯 **Cache Hit:** The response was retrieved instantly from your local cache.
+* 🧠 **Reasoning/Thinking:** The model provided a reasoning or "thinking" block (e.g., `reasoning_content`).
 
 ## Environment Variables
 
@@ -65,8 +64,6 @@ These variables control how requests are constructed and sent to your API endpoi
 | `ENABLE_THINKING` | `false` | When set to `true`, includes specialized reasoning parameters (`thinking`/`enable_thinking`) in the request payload for supported models. |
 | `VIA_MAX_TOKENS` | `24000` | The maximum number of tokens allowed for the completion response. |
 | `SYSTEM_MESSAGE`| _(empty)_ | Text used as the initial `system` role message when `--use-system-message` is active. |
-
-*Note: If multiple models are available at your API endpoint, `ask` will automatically attempt to select a model that has its status set to `"loaded"` via `${VIA_API_CHAT_BASE}/models`.*
 
 ## Examples
 
@@ -82,7 +79,7 @@ The capital of Japan is Tokyo.
 Pass a file's content into the LLM to use as context for your question.
 ```bash
 $ cat logs.txt | ask "Are there any errors in these logs?"
-💭
+✨
 Yes, there is an error on line 42 regarding a connection timeout.
 ```
 
@@ -90,7 +87,7 @@ Yes, there is an error on line 42 regarding a connection timeout.
 Explicitly signal that the piped content should be treated as a formal file attachment for more precise reasoning.
 ```bash
 $ cat script.py | ask -i "Refactor this code"
-💭
+🧠✨
 I have reviewed the attached script and suggest...
 ```
 
