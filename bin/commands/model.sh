@@ -5,7 +5,7 @@ source "${SCRIPT_DIR}/../env.sh"
 source "${SCRIPT_DIR}/../logging.sh"
 source "${SCRIPT_DIR}/../functions.sh"
 
-# 1. Fetch all loaded models into a variable (each model is one line of JSON)
+# Fetch all loaded models into a variable (each model is one line of JSON)
 MODEL_DATA=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -c ".data[] | select(.status.value == \"loaded\")")
 
 if [[ -n "$MODEL_DATA" ]]; then
@@ -14,7 +14,7 @@ if [[ -n "$MODEL_DATA" ]]; then
         # Print the Header Row first (using tabs)
         printf "Name\tSize(GB)\tReasoning\n"
 
-        # 2. Loop through each model object line by line
+        # Loop through each model object line by line
         while read -r row; do
             [ -z "$row" ] && continue
 

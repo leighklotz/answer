@@ -415,8 +415,8 @@ function _get_model_name() {
     if [ -z "$model_name" ] || [ "$model_name" == 'llama-server' ]; then
         model_name="${MODEL_NAME_OVERRIDE:-gpt-3.5}"
     fi
-    # model_name="$(printf "%s" "${model_name}"| sed -e 's/-/_/g' | sed -e 's/\.gguf//')"
-    printf "%s\n" "${model_name}" 
+    # TODO: Find a better way to pick a model of multiple models are loaded
+    printf "%s\n" "${model_name}" | head -1
     return 0
 }
 
