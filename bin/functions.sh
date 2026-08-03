@@ -350,8 +350,6 @@ function hx() {
             latest_f=$(_get_newest_cache_file "$c_dir")
 
             if [[ -n "$latest_f" && -f "$latest_f" ]]; then
-                # Use a pipe to the specific command script
-                # TODO: path
                 cat "$latest_f" | ~/wip/answer/bin/commands/"${1}.sh"
             else
                 echo "No cache file found for '$1'." >&2
@@ -360,17 +358,23 @@ function hx() {
         ;;
 
         model)
-            # TODO: path
-            # it is difficult to determine the installation dir
-            # from a bash function sourced in an interactive shell
-            ~/wip/answer/bin/commands/model.sh
+            shift
+            ~/wip/answer/bin/commands/model.sh "$@"
         ;;
+
+        set-model)
+            shift
+            export HX_MODEL=$(~/wip/answer/bin/commands/model.sh "$@")
+            echo "🦶export HX_MODEL=$HX_MODEL" >&2
+        ;;
+
         models)
-            ~/wip/answer/bin/commands/models.sh
+            shift
+            ~/wip/answer/bin/commands/models.sh "$@"
         ;;
 
         *)
-            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|model|models]" >&2
+            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|model|models|set-model]" >&2
             return 1
         ;;
     esac
@@ -438,7 +442,7 @@ function _hx_provenance() {
 # TODO: Find a better way to pick a model of multiple models are loaded
 # TODO: `hx models` or `hx model` might take filtering arguments (words to require in model name)
 function _get_model_name() {
-    local models_name
+    local model_names
     if [ -z "$model_names" ]; then
         model_names="$HX_MODEL"
     fi
