@@ -364,8 +364,10 @@ function hx() {
 
         set-model)
             shift
-            export HX_MODEL=$(~/wip/answer/bin/commands/model.sh "$@")
-            echo "🦶export HX_MODEL=$HX_MODEL" >&2
+            HX_MODEL=$(~/wip/answer/bin/commands/model.sh "$@") && {
+                export HX_MODEL="$HX_MODEL"
+                echo "🦶export HX_MODEL=$HX_MODEL" >&2
+            } || return 1
         ;;
 
         models)

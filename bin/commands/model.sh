@@ -36,6 +36,6 @@ done)
 if [[ -n "$MATCHES" ]]; then
     echo "$MATCHES" | sed '/^$/d' # Ensure no empty lines are returned if there were blanks in the list
 else
-    printf "No models matching: %s\n" "*$*" >&2
+    printf "* No models matching: %s\n" "$*" >&2
     exit 1
 fi
