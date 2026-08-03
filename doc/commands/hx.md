@@ -24,15 +24,15 @@ hx cache {clear | show | enable | disable | drop}
 ### 1. Core Command Interface (Top-Level)
 These commands manage the active shell environment or provide specialized extraction of your most recent AI interactions.
 
-| Command | Purpose | Implementation Detail |
+| Command | Purpose |
 | :--- | :--- | :--- |
-| **`hx enable`** | **Activate Framework:** Integrates Answer into your current session by sourcing configuration scripts and adding the Hallux icon (🦶) to your `$PS1`. | Sources `/bin/commands/enable` |
-| **`hx disable`** | **Deactivate Framework:** Removes command aliases from your `PATH` for the current session. | Sources `/bin/commands/disable` |
-| **`hx why`** | **Reasoning Analysis:** Pipes the latest cache entry into a specialized script to display model "thinking" or reasoning blocks (🧠). | via `why.sh` |
-| **`hx what`** | **Text Extraction:** Parses and formats the raw content of your most recent cached interaction for clean terminal viewing. | via `what.sh` |
-| **`hx cat`** | **Raw Dump:** Passes the latest cache JSON through a script to output it in its structured format. | via `cat.sh` |
-| **`hx model`** | **Model Config:** Launches the model management interface for configuring LLM endpoints and preferences. | `/bin/commands/model.sh` |
-| **`hx models`** | **Model List:** Runs specialized logic to list or manage available AI models. | `/bin/commands/models.sh` |
+| **`hx enable`** | **Activate Framework:** Integrates Answer into your current session by sourcing configuration scripts and adding the Hallux icon (🦶) to your `$PS1`. |
+| **`hx disable`** | **Deactivate Framework:** Removes command aliases from your `PATH` for the current session. |
+| **`hx why`** | **Reasoning Analysis:** Pipes the latest cache entry into a specialized script to display model "thinking" or reasoning blocks (🧠). |
+| **`hx what`** | **Text Extraction:** Parses and formats the raw content of your most recent cached interaction for clean terminal viewing. |
+| **`hx cat`** | **Raw Dump:** Passes the latest cache JSON through a script to output it in its structured format. |
+| **`hx model`** | **Model Config:** Launches the model management interface for configuring LLM endpoints and preferences. |
+| **`hx models`** | **Model List:** Runs specialized logic to list or manage available AI models. |
 
 ### 2. Provenance (`hx provenance ...`)
 Leveraging Git notes (using the `provenance/hallux` reference), this subcommand allows you to "bookmark" your terminal interactions, creating an auditable trail of command history and LLM responses directly within a repository's metadata.
