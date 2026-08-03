@@ -365,9 +365,12 @@ function hx() {
             # from a bash function sourced in an interactive shell
             ~/wip/answer/bin/commands/model.sh
         ;;
+        models)
+            ~/wip/answer/bin/commands/models.sh
+        ;;
 
         *)
-            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|model]" >&2
+            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|model|models]" >&2
             return 1
         ;;
     esac
@@ -436,12 +439,17 @@ function _hx_provenance() {
 # TODO: `hx models` or `hx model` might take filtering arguments (words to require in model name)
 function _get_model_name() {
     local models_name
-    model_names="$(curl -fsS "${VIA_API_CHAT_BASE}/models" "${AUTHORIZATION_PARAMS[@]}" | jq -r ' . | .data[] | select(.status.value == "loaded") | .id')"
+    if [ -z "$model_names" ]; then
+        model_names="$HX_MODEL"
+    fi
+    if [ -z "$model_names" ]; then
+        model_names="$(curl -fsS "${VIA_API_CHAT_BASE}/models" "${AUTHORIZATION_PARAMS[@]}" | jq -r ' . | .data[] | select(.status.value == "loaded") | .id')"
+    fi
     if [ -z "$model_names" ] || [ "$model_names" == 'llama-server' ]; then
         model_names=$(curl -s "${VIA_API_MODEL_INFO_ENDPOINT}" "${AUTHORIZATION_PARAMS[@]}" | jq -r -e -r .model_name 2> /dev/null)
     fi
     if [ -z "$model_names" ] || [ "$model_names" == 'llama-server' ]; then
-        model_names="${MODEL_NAME_OVERRIDE:-gpt-3.5}"
+        model_names="gpt-3.5"
     fi
     printf "%s\n" "${model_names}" | head -1
     return 0
