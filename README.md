@@ -148,8 +148,24 @@ $ history | tail -n 30 | help "Summarize my recent actions as a concise markdown
 ### Example 3: Context Chunking for Large Files
 To prevent context window overflow when handling massive files, use `split` to page through segments.
 ```bash
-sudo dmesg | split -l 1000 --filter="help.sh look for anomalies in this segment"
+$ sudo dmesg | split -l 1000 --filter="help.sh look for anomalies in this segment"
 ```
+
+### Example 4: Git wrappers
+You can use answer to wrap a few convenient git commands to customize your workflow:
+
+````bash
+klotz@tensor:~/wip/answer🦶$ help-commit
+🐚🐚🐚🐚🐚🐚🐚💬✨🧠
+─────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ ```bash
+   2 │ git add README.md
+   3 │ git commit -m "Add Git wrapper examples to README" \
+   4 │   -m "- Include a usage example for customizing git workflows using answer."
+   5 │ ```
+─────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+🤖 Proceed? (y/N): n
+````
 
 ---
 
