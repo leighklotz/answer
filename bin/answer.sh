@@ -31,7 +31,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Read stdin and pass through the core infer engine to guarantee a resolved state.
-if ! resolved_history=$(cat | _infer); then
+if ! resolved_history=$(_infer); then
   log_and_exit 1 "Inference failed."
 fi
 
