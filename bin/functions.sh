@@ -179,6 +179,7 @@ function _infer () {
   fi
 
   if  [ -n "$cache_dir" ] && [ -f "$cache_file" ]; then
+    log_trace "cache_file=$cache_file"
     printf "🎯" >&2
     response_json=$(cat "$cache_file")
   else
