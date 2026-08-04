@@ -228,8 +228,6 @@ $ echo $BASH_VERSION
 
 If you are on a Mac, you may wish to use [homebrew](https://brew.sh/) to install a more recent bash. (Or, fork this repo and port it to `zsh` :-)
 
-
-
 1. **Clone and Enable:**
    ```bash
    $ git clone <repository_url>
@@ -281,6 +279,14 @@ Here is what this toolchain can do:
 ## Tools setup (optional, but recommended)
 1. Visit [https://github.com/leighklotz/toolex](https://github.com/leighklotz/toolex) and install.
 ---
+
+# More Documentation
+You can find more `answer` documentation in the doc directory:
+- Draft [blog-post-1](doc/blog-post-1.md)
+- Doc pages for [commands](doc/commands/)
+- More extensive [examples](doc/examples/)
+- Implementation [plan](doc/plan/)
+- Design center user [stories](doc/stories/)
 
 ## Testing
 
