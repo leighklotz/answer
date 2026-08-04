@@ -130,8 +130,7 @@ function _infer () {
 
   # Contract: _infer takes a JSON array of chat messages.
   if ! jq -e 'type == "array"' < "$tmp_json" >/dev/null 2>&1; then
-    echo "[]"
-    return 0
+    log_and_exit 1 "_infer takes a JSON array of chat messages."
   fi
 
   # If already resolved, pass through unchanged.
