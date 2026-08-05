@@ -11,7 +11,7 @@ source "${SCRIPT_DIR}/functions.sh"
 # as literal text, meaning we don't have to escape every single quote or 
 # backslash inside your instructions for the LLM.
 read -r -d '' GIT_COMMIT_PROMPT << 'EOF'
-Below is the output of a git bash session. Read the logs carefully. Your goal is to generate a single bash code fence containing commands to add unstaged changes and commit all currently staged files, while respecting user scope.
+Below is the output of a git bash session. Read the logs carefully. Your goal is to generate a single bash code fence containing commands to add unstaged changes and then commit all staged files, while respecting user scope.
 
 If no changes exist (all diffs are empty), output exactly: echo "no changes"
 Otherwise, use one or more commands of this exact format:
