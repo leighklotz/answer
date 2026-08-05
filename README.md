@@ -64,7 +64,7 @@ You can pass general output into `help` and `ask`, with or without the `bx` wrap
     🦶$ openssl --help 2>&1 | help I want to check the certificate at  https://example.com
     ✨
     ```bash
-    openssl s_client -connect example.com:443 -servername example.com </dev/null | openssl x509 -text -noout
+    openssl s_client -connect example.com:443 -servername example.com </dev/null | openssl x59x -text -noout
     ```
     🦶$ 
 ````
@@ -75,7 +75,7 @@ You can pass general output into `help` and `ask`, with or without the `bx` wrap
 Based on your provided scripts, here are the unnecessary debug statements (commented-out code or developer trace logs used for inspecting internal state) that should be removed before production use:
 
 ### 1. `bin/answer.sh`
-*   **Line 28:** `# echo "resolved_history=$resolved_history"`  
+* **Line 28:** `# echo "resolved_history=$resolved_history"`  
     *(A commented-out print statement used to inspect a variable's contents during development.)*
 ...
 
@@ -123,12 +123,14 @@ The harness relies on a suite of single-purpose scripts and a core engine primit
 * **`ask / help`**: *The State Builders.* They process prompts and `stdin` to construct context payloads. `help` is a specialized wrapper focused on Python and Bash development. 
 * **`answer`**: *The Inference Endpoint and Text Extractor.* It consumes the structured request or conversation history, performs or retrieves the inference, and writes the assistant's plain-text response to `stdout`. You normally do not call it explicitly at an interactive terminal, because `ask` and `help` do that automatically. Add it when you want to terminate the structured conversation pipeline and send plain text to a file or an ordinary Unix command.
     > **⚠️ Crucial Redirection Note:** When redirecting output to a file (e.g., `ask "code" > script.sh`), explicitly call `answer` before the redirection (`ask "code" | answer > script.sh`). Otherwise, you will capture the JSON conversation history instead of the plain-text response.
-* **`unfence`**: *The Code Sniper.* Extracts markdown code blocks from LLM output and provides an interactive pager/confirmation prompt to ensure you don't execute dangerous code without reviewing it first.
+* **`unfence`** Extracts markdown code blocks from LLM output and provides an interactive pager/confirmation prompt to ensure you don't execute dangerous code without reviewing it first.
 * **`lx`**: A file-ingestion utility that streams multiple target files into your pipeline, automatically wrapping them in clean markdown syntax blocks for downstream parsing.
 * **`bx`**: A command-execution bridge. It executes shell commands and captures their output inside markdown fences so the results can be injected directly back into an LLM query.
 * **`tools`**: A wrapper that routes conversation arrays to `toolex.py` to handle native LLM tool calls (function calling).
 * **`hx`**: Workspace management utility used for enabling pipeline paths, resetting cache structures, and managing settings.
+* **`systype`**: Provides system profiling metadata (CPU, RAM, Kernel) to ensure LLM reasoning is grounded in your actual hardware specs rather than generic assumptions.
 * **`story.txt`**: A comprehensive reference file containing example usage scenarios, prompts, and expected outputs to help you master the harness.
+
 ---
 
 ## Production Patterns & Interactive Examples
@@ -180,7 +182,6 @@ The *answer* suite uses icons to give status about the pipeline as it executes:
 | 🐚 | `bx` shell input |
 | 📥 | `lx` file input |
 
-
 ---
 
 ## Workspace & Cache Architecture
@@ -196,20 +197,33 @@ The toolchain identifies a `.hallux` folder (crawling upwards from your current 
 
 ## Management Utility (`hx`)
 
-Once bootstrapped via `source`, the `hx` function provides workspace management and session control.
+Once bootstrapped via `source`, the `hx` function provides workspace management, session control, and interaction auditing. It operates in three distinct modes: **Environment & Session Control**, **Interaction Provenance**, or **Cache Management**.
 
-The `hx enable` command brings the harness into the current bash environment. It adds an icon (🦶) to the Bash `$PS1` prompt
+### 1. Environment & Session Control
+These commands manage your active terminal environment and LLM configuration.
 
-Once enabled, the following `hx` commands are supported:
+* **`hx enable / disable`**: Integrates the harness into your current session, adding a `(🦶)` icon to the bash `$PS1`.
+* **`hx model [args]`**: Launches the interface to configure API endpoints and model preferences.
+* **`hx set-model [args]`**: Quickly switches the active LLM (via `$HX_MODEL`) for the current session.
 
-* **Environment Integration:** 
-    * `hx enable`: Integrates the harness into your current session, adding an icon (🦶) to the bash `$PS1` prompt.
-    * `hx disable`: Removes command aliases from your current PATH and removes the icon from `$PS1`. Shell functions remain defined.
-* **Cache Management (`hx cache ...`):** 
-    * `hx cache clear`, `hx cache show`: Manage local history storage and automated caching.
-    * `hx cache enable`, `hx cache disable`: Enable or disable automated caching for the session.
-* **Interaction Recovery:** 
-    * `hx why`, `hx what`: Retrieve reasoning (💭) or raw inference output (🧠) from your most recent LLM interaction.
+### 2. Interaction Provenance (`hx provenance ...`)
+Leveraging Git notes, this allows you to "bookmark" significant terminal interactions. It creates an auditable trail of command history and AI responses within a repository's metadata without polluting your actual git log.
+
+| Subcommand | Description | Behavior / Output |
+| :--- | :--- | :--- |
+| **`add`** | Captures the last executed command, its context, and the resulting response as a Git note. | Stores `Prompt + Command + Response`. |
+| **`list`** | Displays a chronological timeline of all stored interaction hashes. | List of unique Git note hashes. |
+| **`show [hash]`** | Instantly displays the full content of a specific recorded interaction. | Standard Git notes output. |
+
+### 3. Cache Management (`hx cache ...`)
+The framework uses local JSON files for caching to ensure speed and reduce API costs. Use these commands to manage your storage or toggle session behavior via environment variables.
+
+* **`hx cache clear / show`**: Manage local history storage and automated caching.
+* **`hx cache enable / disable`**: Enable or disable automated caching for the session.
+* **`hx cache drop`**: Removes only the single most recent cache entry after a preview/confirmation.
+* **`hx why`** and **`hx what`**: Retrieve reasoning (💭) or raw inference output (🧠) from your most recent LLM interaction.
+
+---
 
 ## Installation & Setup
 
@@ -240,9 +254,10 @@ If you are on a Mac, you may wish to use [homebrew](https://brew.sh/) to install
    $ emacs bin/commands/env.sh
    $ export VIA_API_CHAT_BASE="http://localhost:5000"
    $ export OPENAI_API_KEY="your-key-here"
-   $ cp bin/commands/hx-bootstrap.sh .bash.d/ # or, append to .bashrc, as you wish
+   $ cp bin/commands/hx-bootstrap.sh .bash.d/ # or, append to your `.bashrc`
    $ source ~/.bash.d/hx-bootstrap.sh
    ```
+
 ---
 
 ## Quickstart
@@ -258,20 +273,19 @@ Based on the documentation provided, I am part of the **Answer** toolchain—a s
 Here is what this toolchain can do:
 
     ### Core Functionality
-    *   **Conversational Chaining:** You can pipe commands together (`ask | ask`) to maintain multi-turn conversation history across a pipeline without losing context.
-    *   **Intelligent Mode Switching:** 
-        *   **Interactive Mode (TTY):** Delivers clean, plain text for human reading.
-        *   **Pipeline/Machine Mode:** Emits structured JSON with metadata and MIME headers for downstream automation.
-    *   **Safe Code Execution:** Through `unfence`, you can extract markdown code blocks from LLM responses and pass them through a confirmation gateway to an interpreter (such as Python or Bash).
+    * **Conversational Chaining:** You can pipe commands together (`ask | ask`) to maintain multi-turn conversation history across a pipeline without losing context.
+    * **Intelligent Mode Switching:** 
+        * **Interactive Mode (TTY):** Delivers clean, plain text for human reading.
+        * **Pipeline/Machine Mode:** Emits structured JSON with metadata and MIME headers for downstream automation.
+    * **Safe Code Execution:** Through `unfence`, you can extract markdown code blocks from LLM responses and pass them through a confirmation gateway to an interpreter (such as Python or Bash).
 
     ### Specialized Tooling
-    *   **`ask`**: The primary interface for building context payloads from prompts, multi-line input (`-i`), or mid-pipeline observation (`--tee`).
-    *   **`answer`**: Extracts raw text tokens from JSON streams.
-    *   **`lx`**: Streams multiple files into a pipeline as clean markdown blocks.
-    *   **`bx`**: Captures the output of shell commands and injects it back into an LLM query via markdown fences.
-    *   **`help`**: `ask` prompt-optimized for Python and Bash development workflows.
-    *   **`tools`**: native LLM function/tool calling
-    *   **`unfence | [interpreter]`**: Automates the flow from generating code to executing it in a controlled environment.
+    * **`ask`**: The primary interface for building context payloads from prompts, multi-line input (`-i`), or mid-pipeline observation (`--tee`).
+    * **`answer`**: Extracts raw text tokens from JSON streams.
+    * `lx`: Streams multiple target files into a pipeline as clean markdown blocks.
+    * `bx`: Captures the output of shell commands and injects it back into an LLM query via markdown fences.
+    * `help`: Optimized prompt for Python/Bash development workflows.
+    * `unfence | [interpreter]`: Automates the flow from generating code to executing it in a controlled environment.
 
 
 ````
