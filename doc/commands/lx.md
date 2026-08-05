@@ -24,7 +24,7 @@ The command accepts file paths as positional arguments or reads a list of paths 
 ## Options
 
 | Flag | Long form | Description |
-|------|-----------|-------------|
+|------|------------------------|---------------------------------------------------------------------------------------------------|
 | `--before=STR` | | A custom string to print before each code block. Supports placeholders `{filename}` and `{language}`, and escape sequences (e.g., `\n`). Example: `### File: {filename} \n ```{language}` |
 | `--after=STR`  | | A custom string to print after each code block. Useful for adding separators or manual closing fences if needed. Defaults to a standard Markdown close and separator. |
 | `--help`        | | Displays the usage information and exits. |
@@ -52,10 +52,10 @@ If no options are provided, **`lx`** wraps every file in a standard Markdown blo
 
 ## Input Modes
 
-| Condition | Behavior |
-|-----------|----------|
-| **Arguments** | `lx file1.py file2.sh` treats each as a unique source to be wrapped. |
-| **Piped (`stdin`)** | Reads filenames from the pipe (e.g., `find . -name "*.js" | lx`). Each line is treated as a file path to process. |
+| Condition | Behavior | Target |
+|-----------|----------|-------------------|
+| **Arguments** | `lx file1.py file2.sh` treats each as a unique source to be wrapped. | Positional files. |
+| **Piped (`stdin`)** | Reads filenames from the pipe (e.g., `find . -name "*.js" | lx`). Each line is treated as a file path to process. | Filenames via stdin. |
 
 ## Examples
 

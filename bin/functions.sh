@@ -24,6 +24,9 @@ fi
 
 # MIME Headers
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
+PIPELINE_TEXT_CONVO_HEADER="Content-Type: text/x-llm-history+plain"
+PIPELINE_REASONING_CONVO_HEADER="Content-Type: text/x-llm-reasoning+plain"
+PIPELINE_TEXT_PLAIN_HEADER="Content-Type: text/plain"
 
 # --- SHARED WORKSPACE SETUP ---
 function _ensure_workspace() {
@@ -250,7 +253,7 @@ function hx() {
 
     # Handle provenance Subcommand
     if [[ "$1" == "provenance" ]]; then
-        _hx_provenance $2
+        _hx_provenance $2 $3
         return 0
     # Handle Cache Subcommand
     elif [[ "$1" == "cache" ]]; then
@@ -290,37 +293,10 @@ function hx() {
                 # I have kept your logic but made it consistent within this block.
                 if [[ "$2" == "disable" ]]; then
                     export HX_NO_CACHE=1
-                    echo "⚠️  ache disabled (session-wide)."
+                    echo "⚠️ Cache disabled (session-wide)."
                 else
                     unset HX_NO_CACHE
-                    echo "⚠️  ache enabled (session-wide)."
-                fi
-                return 0
-                ;;
-
-            drop)
-                local c_dir=$(_find_cache_dir)
-                [[ -z "$c_dir" || ! -d "$c_dir" ]] && { echo "❌ No cache directory found."; return 1; }
-
-                # Get the path of the newest file using your internal helper
-                local latest
-                latest="$(_get_newest_cache_file "$c_dir")"
-
-                if [[ -n "$latest" && -f "$latest" ]]; then
-                    preview="$(~/wip/answer/bin/commands/what.sh < "$latest" | head -2)\n"
-
-                    printf "⚠️ Are you sure you want to delete this cache entry?\n" >&2
-                    printf "File: %s\n" "$latest" >&2
-                    printf ">%b...\n" "$preview" | awk '{print "    "$0}' >&2 
-                    read -r -p "Deletion cache entry? (y/N): " reply < /dev/tty
-
-                    if [[ "$reply" =~ ^[Yy]$ ]]; then
-                        rm -- "$latest" && echo "🗑️  Entry dropped." || echo "❌ Deletion failed."
-                    else
-                        echo "🚫 Cancelled."
-                    fi
-                else
-                    echo "❓ No recent cache file found to drop."
+                    echo "⚠️ Cache enabled (session-wide)."
                 fi
                 return 0
                 ;;
@@ -344,7 +320,7 @@ function hx() {
             fi
         ;;
 
-        why | what | cat)
+        why | what | cat | describe | stats)
             local c_dir="$(_find_cache_dir)"
             local latest_f
             latest_f=$(_get_newest_cache_file "$c_dir")
@@ -376,7 +352,7 @@ function hx() {
         ;;
 
         *)
-            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|model|models|set-model]" >&2
+            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|describe|stats|model|models|set-model]" >&2
             return 1
         ;;
     esac
@@ -385,24 +361,44 @@ function hx() {
 function _hx_provenance() {
     case "$1" in
         add)
-            local last_cmd prompt_str
-            last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
-            prompt_str="${PS1@P}"
-            
-            echo '💾 git notes --ref=provenance/hallux append' >&2
-            
-            local hx_out
-            hx_out=$(hx what 2>/dev/null || echo "[hx what failed or missing]")
-            
-            printf "%s%s\n%s\n%s\n\n" \
-                "$prompt_str" \
-                "$last_cmd" \
-                "${PIPELINE_MAGIC_HEADER}" \
-                "$hx_out" \
-                | git notes --ref=provenance/hallux append -F -
-            return 0
-            ;;
-            
+            shift
+            case "$1" in 
+                what|why|cat|describe)
+                    local last_cmd prompt_str subcmd
+                    last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
+                    prompt_str="${PS1@P}"
+                    subcmd="$1"
+
+                    local emoji
+                    declare -A emoji=([what]="💭" [why]="🧠" [cat]="😸" [describe]="📜")
+                    declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [cat]="$PIPELINE_MAGIC_HEADER" [describe]="PIPELINE_TEXT_PLAIN_HEADER")
+                    local subcmd_emoji
+                    local content_type_header
+                    subcmd_emoji="${emoji[$subcmd]}"
+                    content_type_header="${ctype[$subcmd]}"                    
+
+                    printf "💾 hx provenance %s %s | git notes --ref=provenance/hallux append 📌" "$subcmd" "$subcmd_emoji" >&2
+
+                    local hx_out
+                    hx_out=$(hx $subcmd 2>/dev/null || echo "[hx $subcmd failed or missing]")
+
+                    printf "%s%s\n%s\n%s\n\n" \
+                        "$prompt_str" \
+                        "$last_cmd" \
+                        "${content_type_header}" \
+                        "$hx_out" \
+                        | git notes --ref=provenance/hallux append -F -
+                    return 0
+                    ;;
+                "")
+                    echo "usage: hx provenance add [cat|what|why]" >&2
+                    ;;
+
+                *) echo "hx provenance add: unknown subcmd '$1'" >&2
+                   return 1
+                   ;;
+            esac
+        ;;
         show)
             # Instantly prints out your clean chronological append log for HEAD or a specific hash
             git notes --ref=provenance/hallux show "$2"
@@ -428,13 +424,15 @@ function _hx_provenance() {
                     preview="${note_first_line:0:20}...${note_first_line: -20}"
                 fi
                 
-                printf "%s \x1b[36m%s\x1b[0m\n" "$log_line" "$preview"
+                local color_cyan='\x1b[36m'
+                local nc='\x1b[0m'
+                printf "%s 📌${color_cyan}%s${nc}\n" "$log_line" "$preview"
             done
             return 0
             ;;
             
         *)
-            echo "usage: hx provenance [add show refs list]" >&2
+            echo "usage: hx provenance [ show | refs | list | add [ what | why | cat ] ]" >&2
             return 1
             ;;
     esac

@@ -1,4 +1,3 @@
-```markdown
 # help-commit
 
 **help-commit** is a specialized utility in the Answer framework that automates the generation and execution of `git commit` commands by analyzing your current Git state. It uses an LLM to interpret staged changes, unstaged modifications, and provided context (via pipes or arguments) to produce descriptive messages following the Conventional Commits specification.
@@ -59,7 +58,7 @@ Pipe specific text or logs into `help-commit` to provide extra information that 
 $ cat TODO.md | help-commit
 
 # Combine current git status with recent system logs to guide the commit message
-$ tail -n 20 /var/log/syslog | help-commit -- "-i Contextualize based on these log events"
+$ tail -n 20 /var/log/syslog | help-commit -- -i Contextualize based on these log events
 ```
 
 **5. Quiet Mode**
@@ -74,4 +73,4 @@ $ help-commit --quiet
 | :--- | :--- |
 | **0** | Success (The command was generated, presented for confirmation, and/or executed). |
 | **1** | Failure (Not in a Git repository, an error occurred during execution, or arguments were invalid). |
-```
+

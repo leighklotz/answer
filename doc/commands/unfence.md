@@ -1,6 +1,6 @@
 # unfence
 
-**unfence** is an intelligent extraction utility designed to isolate code blocks from Markdown content within a pipeline. It bridges the gap between conversational LLM output (which contains explanations, multiple snippets, and metadata) and shell execution environments by stripping away non-code text.
+**`unfence`** is an intelligent extraction utility designed to isolate code blocks from Markdown content within a pipeline. It bridges the gap between conversational LLM output (which contains explanations, multiple snippets, and metadata) and shell execution environments by stripping away non-code text.
 
 ## Synopsis
 
@@ -15,14 +15,14 @@ The optional `[LANGUAGE]` argument allows you to target a specific block type im
 When an LLM generates a response, it typically wraps code within Markdown fences (e.g., \`\`\`bash). **unfence** scans the input, identifies available fenced blocks, and extracts content for execution or further processing. 
 
 Unlike a simple parser that only finds the first block, **unfence** is context-aware:
-* **Adaptive Extraction:** If no language is provided and only one block exists, it extracts it directly (with a safety prompt). If multiple blocks exist, it enters **Selection Mode**.
-* **Language Sniping:** Providing a language argument (e.g., `unfence python`) filters the available blocks to those matching that specific language tag.
+* **Adaptive Extraction:** If no language is provided and only one block exists, it extracts it directly (with an interactive safety prompt if piped). If multiple blocks exist, it enters **Selection Mode**.
+* **Language Sniping:** Providing a language argument (e.g., `unfence python`) filters the available blocks to those matching that specific language tag. 
 * **Auto-answer & Cache Integration:** If the input begins with the pipeline magic header (`Content-Type: application/x-llm-history+json`), it automatically invokes the `answer` command to resolve the conversation state into plain text before attempting extraction. Because this uses the Answer caching mechanism, subsequent extractions of identical prompts are instantaneous and do not require new API calls.
-* **Pipeline Safety Gate:** To prevent accidental execution of dangerous code in a pipeline, it provides an interactive safety gate whenever its output is being piped or when multiple choices are available.
+* **Pipeline Safety Gate:** To prevent accidental execution of dangerous code in a pipeline, it provides an interactive safety gate via `/dev/tty` whenever its output is being redirected or when multiple choices are available. This ensures that the prompt does not corrupt your data stream (`stdout`).
 
 ## Input Modes
 
-The behavior of `unfence` changes based on the type of input received:
+The behavior of `unfence` depends on whether it receives structured history or raw text:
 
 | Condition | Logic | Resulting Content |
 |-----------|-------|-------------------|
@@ -37,22 +37,22 @@ If your input contains several different code blocks and you run `unfence` witho
 * **By Language:** Enter the name of a language present in the list (e.g., `bash`, `python`) to filter down further.
 
 ### 2. Targeted Mode (`unfence <lang>`)
-If you run `unfence python`, the script skips general selection and attempts to find all Python blocks:
-* **One Match:** It identifies that specific block and prompts for confirmation (if piped).
-* **Multiple Matches:** It asks which of the matching indices you wish to extract.
+If you run `unfence python`, the script skips general selection and attempts to find all blocks matching that tag:
+* **One Match:** It identifies that specific block and prompts for confirmation (if piped/redirected).
+* **Multiple Matches:** It asks which of the matching indices you wish to extract via an interactive prompt.
 
 ## Pipeline Safety Gate
 
 To prevent the accidental execution of incorrect or dangerous code in a pipeline, `unfence` provides a safety gate whenever:
-1. Its output is being redirected/piped (`stdout != TTY`).
-2. Multiple blocks are detected, requiring user selection.
+1. Its output is being redirected (e.g., using `>`, `|`, or when running in non-interactive shells).
+2. Multiple blocks are detected, requiring user selection to resolve ambiguity.
 
 **The Workflow:**
 * **Preview:** The extracted content (or the list of options) is displayed to **stderr** via a pager so that it does not interfere with the pipe. Pager priority: `batcat` $\rightarrow$ `bat` $\rightarrow$ `less`/`more` $\rightarrow$ `cat`. 
-* **Confirmation:** You are prompted in your terminal (reading from `/dev/tty`) : `🤖 Proceed with this command? (y/N): `.
+* **Confirmation Prompt:** You are prompted in your terminal (reading from `/dev/tty`) : `🤖 Proceed with this command? (y/N): `. This prompt appears on your screen but is *not* sent to the next command in the pipeline.
 * **Decision:** 
-    * **`y`**: The content is sent to `stdout` for the next command in the pipeline.
-    * **Any other key**: The process prints `🚫 discarded` to `stderr` and exits safely.
+    * **`y`**: The selected content is sent to `stdout` for the next command.
+    * **Any other key**: The process prints `🚫 discarded` to `stderr` and exits safely, preventing execution of potentially incorrect code.
 
 ## Options
 
@@ -63,29 +63,29 @@ To prevent the accidental execution of incorrect or dangerous code in a pipeline
 ## Examples
 
 **1. Targeted Extraction (The "Language Sniper")**
-If an LLM provides a Bash script followed by a Python test script, you can pick only the Python part:
+If an LLM provides a Bash setup script followed by a Python test script, you can pick only the Python part:
 ```bash
-# This will prompt you which python block to use if multiple exist
-ask "Write a bash setup and a python validator" | unfence python | python3
+# This will prompt which python block to use if multiple exist
+ask "Write a bash setup and a python validator" | unfence python | unfreeze bash? # (Wait for selection) -> python3
 ```
 
 **2. Direct Execution (The "Code-to-Shell" Pattern)**
 Extract a shell script from an LLM response and run it immediately:
 ```bash
-# This will trigger the safety prompt before `bash` executes
+# This will trigger the safety prompt via stderr before `bash` executes on stdout
 ask "Write a script to list all running processes" | unfence | bash
 ```
 
 **3. Handling Multiple Blocks Interactively**
 If you pipe multiple blocks without specifying a language, the tool guides you through selection:
 ```bash
-# The user is prompted to select by number or language name
+# The user is prompted to select by number or language name in their terminal
 ask "Give me three different ways to list files in bash" | unfence | bash
 ```
 
-**4. Cleaning Output for Tools**
-Use it mid-pipeline to isolate code from a long conversational response before passing it to a compiler:
+**4. Cleaning Output for Tools (Redirection)**
+Use it mid-pipeline to isolate code from a long conversational response before saving it to a file:
 ```bash
-# The extraction will resolve the JSON state, extract text, then strip fences
-ask "Write a C++ program that prints Hello World and include the compilation command as text" | unfence cpp > main.cpp && g++ main.cpp -o main && ./main
+# The extraction will resolve the JSON, show the preview on stderr, and save only the script to main.py
+ask "Write a C++ program that prints Hello World" | unfence cpp > main.cpp && g++ main.cpp -o hello && ./hello
 ```
