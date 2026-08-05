@@ -24,6 +24,8 @@ fi
 
 # MIME Headers
 PIPELINE_MAGIC_HEADER="Content-Type: application/x-llm-history+json"
+PIPELINE_TEXT_CONVO_HEADER="Content-Type: text/x-llm-history+plain"
+PIPELINE_REASONING_CONVO_HEADER="Content-Type: text/x-llm-reasoning+plain"
 
 # --- SHARED WORKSPACE SETUP ---
 function _ensure_workspace() {
@@ -250,7 +252,7 @@ function hx() {
 
     # Handle provenance Subcommand
     if [[ "$1" == "provenance" ]]; then
-        _hx_provenance $2
+        _hx_provenance $2 $3
         return 0
     # Handle Cache Subcommand
     elif [[ "$1" == "cache" ]]; then
@@ -385,24 +387,44 @@ function hx() {
 function _hx_provenance() {
     case "$1" in
         add)
-            local last_cmd prompt_str
-            last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
-            prompt_str="${PS1@P}"
-            
-            echo '💾 git notes --ref=provenance/hallux append' >&2
-            
-            local hx_out
-            hx_out=$(hx what 2>/dev/null || echo "[hx what failed or missing]")
-            
-            printf "%s%s\n%s\n%s\n\n" \
-                "$prompt_str" \
-                "$last_cmd" \
-                "${PIPELINE_MAGIC_HEADER}" \
-                "$hx_out" \
-                | git notes --ref=provenance/hallux append -F -
-            return 0
-            ;;
-            
+            shift
+            case "$1" in 
+                what|why|cat)
+                    local last_cmd prompt_str subcmd
+                    last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
+                    prompt_str="${PS1@P}"
+                    subcmd="$1"
+
+                    local emoji
+                    declare -A emoji=([what]="💭" [why]="🧠" [cat]="😸")
+                    declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [cat]="$PIPELINE_MAGIC_HEADER")
+                    local subcmd_emoji
+                    local content_type_header
+                    subcmd_emoji="${emoji[$subcmd]}"
+                    content_type_header="${ctype[$subcmd]}"                    
+
+                    printf "💾 hx provenance %s %s | git notes --ref=provenance/hallux append 📌" "$subcmd" "$subcmd_emoji" >&2
+
+                    local hx_out
+                    hx_out=$(hx $subcmd 2>/dev/null || echo "[hx $subcmd failed or missing]")
+
+                    printf "%s%s\n%s\n%s\n\n" \
+                        "$prompt_str" \
+                        "$last_cmd" \
+                        "${content_type_header}" \
+                        "$hx_out" \
+                        | git notes --ref=provenance/hallux append -F -
+                    return 0
+                    ;;
+                "")
+                    echo "usage: hx provenance add [cat|what|why]" >&2
+                    ;;
+
+                *) echo "hx provenance add: unknown subcmd '$1'" >&2
+                   return 1
+                   ;;
+            esac
+        ;;
         show)
             # Instantly prints out your clean chronological append log for HEAD or a specific hash
             git notes --ref=provenance/hallux show "$2"
@@ -428,13 +450,15 @@ function _hx_provenance() {
                     preview="${note_first_line:0:20}...${note_first_line: -20}"
                 fi
                 
-                printf "%s \x1b[36m%s\x1b[0m\n" "$log_line" "$preview"
+                local color_cyan='\x1b[36m'
+                local nc='\x1b[0m'
+                printf "%s 📌${color_cyan}%s${nc}\n" "$log_line" "$preview"
             done
             return 0
             ;;
             
         *)
-            echo "usage: hx provenance [add show refs list]" >&2
+            echo "usage: hx provenance [ show refs list] | add [ what | why | cat ]" >&2
             return 1
             ;;
     esac

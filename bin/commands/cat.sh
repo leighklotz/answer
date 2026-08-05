@@ -10,6 +10,6 @@ if [ -t 0 ]; then
     log_and_exit 1 "No stdin detected. Requires inference response."
 fi
 
-printf "🧠\n" >&2
+printf "😸\n" >&2
 cat
 
