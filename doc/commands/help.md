@@ -73,7 +73,22 @@ $ sudo dmesg | tail -n 50 | help "Are there any USB connection errors?"
 $ ls -la /etc/shadow | help "Who has read access to this and why is that important?"
 ```
 
-### 3. Mid-Pipeline Observation
+### 3. Post-Inference Inspection (Detailed Auditing)
+If you have just used a query via `help` or `ask`, you can perform an in-depth audit of the resulting interaction's performance, metadata, and reasoning using management utilities. This allows for reviewing token costs, latency, and detailed model outputs without manually traversing cache files.
+
+* **Full Metadata Summary (`hx describe`)**: Generates a beautifully formatted Markdown summary of your most recent interaction (including conversation history/reasoning blocks, model information, token usage statistics, and performance metrics).
+* **Quick Stats (`hx stats`)**: A streamlined version for viewing only metadata and usage statistics without the conversational text.
+
+**Example Workflow:**
+```bash
+# 1. Get a technical solution via help
+$ help "write a bash script to check disk space" | unfence | bash
+
+# 2. Immediately inspect the details (token usage, latency) of that specific interaction
+$ hx describe
+```
+
+### 4. Mid-Pipeline Observation
 Use `-t` when you want to see the LLM's technical reasoning in your terminal, but need the resulting JSON state to be passed to a tool like `unfence`:
 ```bash
 $ help "write a bash script to check disk space" --tee | unfence | bash

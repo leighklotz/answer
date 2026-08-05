@@ -12,9 +12,9 @@ The command outputs a concise text summary of the host environment to `stdout`.
 
 ## Description
 
-When used in a pipeline—often grouped with hardware benchmarks (`hdparam`, `iostat`) or process monitors (`ps`, `top`) via subshells or the `bx` command—`systype` provides the baseline "truth" of the current execution environment. This allows an LLM to perform comparative analysis; for example, it can compare a measured disk speed against the theoretical maximums known for your specific hardware architecture and interface.
+When used in a pipeline—often grouped with hardware benchmarks (`hdparam`, `iostat`) or process monitors (`ps`, `top`) via subshells or the `bx` command—`systype` provides the baseline "truth" of the current execution environment. This allows an LLM to perform comparative analysis; for example, it can compare a measured disk throughput against the theoretical maximums known for your specific hardware architecture and interface.
 
-By providing this metadata upfront, you enable the model to transition from general troubleshooting to precise system engineering (e.g., determining if a specific instruction set is available or if memory pressure is critical based on total capacity).
+By providing this metadata upfront in a conversation or pipeline, you enable the model to transition from general troubleshooting to precise system engineering (e.g., determining if a specific instruction set is available or if memory pressure is critical based on total capacity). This grounding prevents models from making generic assumptions about resources that may not be present in your actual execution environment.
 
 ## Output Information
 

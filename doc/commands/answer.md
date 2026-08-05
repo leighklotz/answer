@@ -10,19 +10,21 @@ It is also an **inference trigger**: if you pipe content to `answer` (whether vi
 <conversation-json | raw_text> | answer [OPTIONS]
 ```
 
+The first non-flag argument begins the prompt if used interactively, or it consumes `stdin`.
+
 ## Description
 
-In a pipeline, commands like `ask` and `tools` pass complex JSON arrays containing message histories (prefixed with the `PIPELINE_MAGIC_HEADER`). The `answer` command is used to "exit" conversation mode by stripping away all metadata and leaving only the human-readable text.
+In a pipeline, commands like `ask` and `tools` pass complex JSON arrays containing message histories (prefixed with the magic header `Content-Type: application/x-llm-history+json`). The `answer` command is used to "exit" conversation mode by stripping away all metadata and leaving only the human-readable text.
 
 ### Automated Turn Resolution
-If you pipe a sequence of messages into `answer` that ends in a user prompt, it does not simply parse the JSON; it actively triggers an inference request to the LLM API to complete the turn. This allows for seamless chaining where you can pass raw terminal output or previous conversation history directly into `answer` and receive only the finalized response from the assistant.
+If you pipe a sequence of messages into `answer` that ends in a user prompt (the last message's role is `"user"`), it does not simply parse the JSON; it actively triggers an inference request to the LLM API to complete the turn using the established context. This allows for seamless chaining where you can pass raw terminal output or previous conversation history directly into `answer` and receive only the finalized response from the assistant.
 
 ## Options
 
 | Flag | Long form | Description |
 |------|------------------------|---------------------------------------------------------------------------------------------------|
 | `-t` | `--tee`   | **Observation Mode:** When used within a pipeline, this prints a visual preview of the extracted text to **stderr** (with a 👕 emoji) so you can monitor progress in your terminal. The actual `stdout` remains pure plain text for the next command in the pipe. |
-| `-j` | `--json`  | **Data Mode:** Instead of extracting plain text, outputs the full resolved JSON conversation array (preceded by `PIPELINE_MAGIC_HEADER`) to `stdout`. Useful when passing structured state to subsequent tools like `tools` or other LLM wrappers. |
+| `-j` | `--json`  | **Data Mode:** Instead of extracting plain text, outputs the full resolved JSON conversation array (preceded by the magic header) to `stdout`. Useful when passing structured state to subsequent tools like `tools` or other LLM wrappers. |
 
 ## Input Modes
 
@@ -30,7 +32,7 @@ The behavior of `answer` depends on whether it receives a structured pipeline he
 
 | Condition | Behavior |
 |-----------|----------|
-| **Piped (JSON History)** | Reads the `PIPELINE_MAGIC_HEADER`. If the last message is from the user, it triggers an inference call to resolve the turn before extracting content. |
+| **Piped (JSON History)** | Detects the magic header (`Content-Type: application/x-llm-history+json`). If the last message is from the user, it triggers an inference call to resolve the turn before extracting content. |
 | **Piped (Raw Text/Context)**| Treats incoming raw text as a new prompt or context; resolves via inference if necessary, then extracts the resulting assistant response content. |
 
 ## Output Modes
@@ -45,8 +47,8 @@ The behavior of `answer` depends on whether it receives a structured pipeline he
 ### 2. Visual Feedback (`stderr`)
 When performing inference, `answer` provides immediate status feedback via emojis on `stderr`:
 * 🎯 **Cache Hit:** The response was retrieved instantly from your local cache.
-* ✨ **Fresh Request:** A new request was sent to the LLM API.
-* 🧠 **Reasoning/Thinking:** Detected that the model provided a reasoning or "thinking" block (e.g., `reasoning_content`).
+* ✨ **Fresh Request:** A new request was sent to the LLM API (cache miss).
+* 🧠 **Reasoning/Thinking:** Detected that the model provided a reasoning or "thinking" block (`reasoning_content`) in its response.
 
 ## Examples
 
@@ -84,5 +86,5 @@ $ ask "What is 5 + 5?" | answer
 Pass the entire updated conversation history (including the new assistant message) back into a pipeline that requires structured context.
 ```bash
 $ ask "Who won the Super Bowl in 2024?" | answer --json | next_structured_tool
-# Output: [MAGIC_HEADER]\n[{"role": "user", ...}, {"role": "assistant", ...}]
+# Output: Content-Type: application/x-llm-history+json\n[{"role": "user", ...}, {"role": "assistant", ...}]
 ```

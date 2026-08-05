@@ -10,12 +10,14 @@ shopt -s nullglob
 mkdir -p doc
 
 CMDS="answer ask bx dreck help-commit help hx lx makedoc systype tools unfence"
+: "${MAKEDOC_PREREADING:=}"
 
 if [ -n "$1" ]; then
     CMDS=$@
 fi
 
 echo "CMDS=$CMDS"
+echo "MAKEDOC_PREREADING=$MAKEDOC_PREREADING"
 
 for cmd in $CMDS; do
     echo -n "cmd=$cmd	"
@@ -31,7 +33,7 @@ for cmd in $CMDS; do
             src="${FUNCTIONS_SH}"
         fi
 
-        context=()
+        context=($MAKEDOC_PREREADING)
         [ -n "$src" ] && context+=("$src")
 
         if [ -f $doc_md ]; then
