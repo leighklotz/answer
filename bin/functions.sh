@@ -320,7 +320,7 @@ function hx() {
             fi
         ;;
 
-        why | what | cat | describe)
+        why | what | cat | describe | stats)
             local c_dir="$(_find_cache_dir)"
             local latest_f
             latest_f=$(_get_newest_cache_file "$c_dir")
@@ -352,7 +352,7 @@ function hx() {
         ;;
 
         *)
-            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|describe|model|models|set-model]" >&2
+            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|describe|stats|model|models|set-model]" >&2
             return 1
         ;;
     esac
