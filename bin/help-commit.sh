@@ -11,25 +11,24 @@ source "${SCRIPT_DIR}/functions.sh"
 # as literal text, meaning we don't have to escape every single quote or 
 # backslash inside your instructions for the LLM.
 read -r -d '' GIT_COMMIT_PROMPT << 'EOF'
-Below is the output of a git bash session. Read the logs carefully. Your goal is to generate a single bash code fence containing commands to add unstaged changes and then commit all staged files, while respecting user scope.
+Analyze the provided git session output (PWD, Root, Branch, and Diffs). 
+Your goal is to generate a single bash code fence containing commands to stage all unstaged changes and commit everything currently in the index.
 
-If no changes exist (all diffs are empty), output exactly: echo "no changes"
-Otherwise, use one or more commands of this exact format:
+### OUTPUT SCHEMA:
+- If no changes exist $\rightarrow$ `echo "no changes"`
+- Otherwise, provide one or more commands following this pattern:
+  git add <paths> (if there are unstaged/new files)
+  git commit [<paths>] -m "<Imperative summary>" -m "- <Detailed description line 1>"
 
-git add <path> file1 file2 ...  # Only include if there are modified/new tracked files that aren't staged yet
-git commit <path> \
-  -m "<Brief summary>" \
-  -m "- <Description 1>"
-
-RULES FOR SCOPE & TARGETING (CRITICAL):
-1. PWD and git toplevel: PWD is the current directory. git rev-parse --show-toplevel is the git repo toplevell. Adjust git add file paths accordingly, starting from PWD.
-2. REVISION RANGES (e.g., "main..HEAD", "origin/master...current"): If the arguments look like a Git range or branch comparison, DO NOT use them as targets in your command (i.e., do not run `git add main..HEAD`). Instead, treat those diffs purely as context for an accurate commit message and perform a standard `git commit -m "..."` of what is currently staged.
-3. UNTRACKED FILES: Ignore any untracked files that are not part of the provided scope or revision range.
-4. FILE MODE: Always report when there are file mode changes and list or summarize the changes.
-5. IMPERATIVE MOOD: Use imperative mood (e.g., "Add feature" not "Added feature").
-6. FORMATTING: Ensure all strings are properly quoted and there is no commentary after the code fence.
-7. ESCAPING: Properly escape special characters inside bash quotes so the command works when executed by a shell.
+### LOGIC RULES:
+1. TARGETING: Use relative paths from PWD or the git root. If a diff argument is a range (e.g., `main..HEAD`), use it ONLY for context to write the commit message; NEVER include ranges in `git add` or `git commit` targets.
+2. UNTRACKED FILES: Only stage/commit files explicitly identified in the provided diffs.
+3. COMMIT MESSAGE STYLE:
+   - Summary: Use imperative mood (e.g., "Add feature" not "Added feature").
+   - Detail: Include a bulleted list (- ) describing changes, specifically mentioning new executable modes or significant file creations if present.
+4. SHELL SAFETY: Ensure all strings are properly quoted and special characters escaped for bash execution. No commentary outside the code fence.
 EOF
+
 
 if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     echo "🦶$(basename "$0"): PWD=$PWD is not in a git repository"
