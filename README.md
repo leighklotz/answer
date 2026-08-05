@@ -64,7 +64,7 @@ You can pass general output into `help` and `ask`, with or without the `bx` wrap
     🦶$ openssl --help 2>&1 | help I want to check the certificate at  https://example.com
     ✨
     ```bash
-    openssl s_client -connect example.com:443 -servername example.com </dev/null | openssl x59x -text -noout
+    openssl s_client -connect example.com:443 -servername example.com </dev/null | openssl x509 -text -noout
     ```
     🦶$ 
 ````
