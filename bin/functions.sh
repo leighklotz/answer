@@ -432,7 +432,7 @@ function _hx_provenance() {
             ;;
             
         *)
-            echo "usage: hx provenance [ show refs list] | add [ what | why | cat ]" >&2
+            echo "usage: hx provenance [ show | refs | list | add [ what | why | cat ] ]" >&2
             return 1
             ;;
     esac
