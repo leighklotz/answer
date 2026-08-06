@@ -117,6 +117,19 @@ function _find_cache_dir () {
   printf "%s/.config/hallux/cache" "${HOME}"
 }
 
+function _get_newest_cache_file() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 1
+    
+    if stat --version >/dev/null 2>&1; then
+        # GNU find / Linux version
+        find "$dir" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-
+    else
+        # macOS / BSD version using stat
+        find "$dir" -maxdepth 1 -type f -exec stat -f "%m %N" {} + | sort -rn | head -n 1 | cut -d' ' -f2-
+    fi
+}
+
 function _infer () {
   local tmp_json tmp_req last_role
   _mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
@@ -229,83 +242,19 @@ function _infer () {
 
   # Combine the original array with the new assistant message
   jq -s -c '.[0] + .[1:]' <(cat "$tmp_json") <(printf "%s" "$assistant_msg_json")
-  local infer_status=$?
-  return $infer_status
 }
+
 
 ### user-level Functions and aliases
 function hx() {
-    # Helper function inside hx to safely get newest file without parsing 'ls'
-    _get_newest_cache_file() {
-        local dir="$1"
-        [[ -d "$dir" ]] || return 1
-        
-        # Check if we are on macOS (BSD) or Linux (GNU) via the stat command
-        if stat --version >/dev/null 2>&1; then
-            # GNU find / Linux version
-            find "$dir" -maxdepth 1 -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-
-        else
-            # macOS / BSD version using stat
-            # -f "%m %N": Print modification time and name
-            find "$dir" -maxdepth 1 -type f -exec stat -f "%m %N" {} + | sort -rn | head -n 1 | cut -d' ' -f2-
-        fi
-    }
-
     # Handle provenance Subcommand
     if [[ "$1" == "provenance" ]]; then
         _hx_provenance $2 $3
         return 0
-    # Handle Cache Subcommand
     elif [[ "$1" == "cache" ]]; then
-        case "$2" in
-            clear)
-                local cache_dir
-                cache_dir=$(_find_cache_dir)
-                
-                if [[ -z "$cache_dir" || ! -d "$cache_dir" ]]; then 
-                    echo "❌ No valid cache directory found." >&2
-                    return 1
-                fi
-
-                # Safety check: prevent accidental deletion of root or home if _find_cache_dir fails catastrophically
-                if [[ "$cache_dir" == "/" || "$cache_dir" == "$HOME" ]]; then
-                    echo "❌ Error: Cache directory is a protected system path." >&2
-                    return 1
-                fi
-
-                printf "⚠️ Are you sure you want to remove %s?\n" "$cache_dir" >&2
-                read -r -p "Delete directory? (y/N): " reply < /dev/tty
-                if [[ "$reply" =~ ^[Yy]$ ]]; then
-                    rm -- "$cache_dir"/*.json && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
-                else
-                    echo "🚫 Cancelled."
-                fi
-                return $?
-                ;;
-
-            show)
-                printf "%s\n" "$(_find_cache_dir)"
-                return 0
-                ;;
-
-            disable|enable)
-                # Standardized behavior: Decide if you want to export a variable OR source a script.
-                # I have kept your logic but made it consistent within this block.
-                if [[ "$2" == "disable" ]]; then
-                    export HX_NO_CACHE=1
-                    echo "⚠️ Cache disabled (session-wide)."
-                else
-                    unset HX_NO_CACHE
-                    echo "⚠️ Cache enabled (session-wide)."
-                fi
-                return 0
-                ;;
-
-            *)
-                echo "Unknown cache option '$2': (clear|show|enable|disable|drop)" >&2
-                return 1
-                ;;
-        esac
+        shift # Remove 'cache' from arguments, now subcommands are in $@
+        _hx_cache "$@"
+        return $?
     fi
 
     # Handle Main Commands
@@ -355,6 +304,55 @@ function hx() {
             echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|describe|stats|model|models|set-model]" >&2
             return 1
         ;;
+    esac
+}
+
+function _hx_cache() {
+    case "$1" in
+        clear)
+            local cache_dir
+            cache_dir=$(_find_cache_dir)
+            
+            if [[ -z "$cache_dir" || ! -d "$cache_dir" ]]; then 
+                echo "❌ No valid cache directory found." >&2
+                return 1
+            fi
+
+            # Safety check: prevent accidental deletion of root or home if _find_cache_dir fails catastrophically
+            if [[ "$cache_dir" == "/" || "$cache_dir" == "$HOME" ]]; then
+                echo "❌ Error: Cache directory is a protected system path." >&2
+                return 1
+            fi
+
+            printf "⚠️ Are you sure you want to remove %s?\n" "$cache_dir" >&2
+            read -r -p "Delete directory? (y/N): " reply < /dev/tty
+            if [[ "$reply" =~ ^[Yy]$ ]]; then
+                rm -- "$cache_dir"/*.json && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
+            else
+                echo "🚫 Cancelled."
+            fi
+            ;;
+
+        show)
+            printf "%s\n" "$(_find_cache_dir)"
+            return 0
+            ;;
+
+        enable|disable)
+            if [[ "$1" == "disable" ]]; then
+                export HX_NO_CACHE=1
+                echo "⚠️ Cache disabled (session-wide)."
+            else
+                unset HX_NO_CACHE
+                echo "⚠️ Cache enabled (session-wide)."
+            fi
+            return 0
+            ;;
+
+        *)
+            echo "Unknown cache option '$1': (clear|show|enable|disable)" >&2
+            return 1
+            ;;
     esac
 }
 
