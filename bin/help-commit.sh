@@ -18,10 +18,10 @@ Your goal is to generate a single bash code fence containing commands to stage a
 - If no changes exist $\rightarrow$ `echo "no changes"`
 - Otherwise, provide one or more commands following this pattern:
   git add <paths> (if there are unstaged/new files)
-  git commit [<paths>] -m "<Imperative summary>" -m "- <Detailed description line 1>"
+  git commit -m "<Imperative summary>" -m "- <Detailed description line 1>"
 
 ### LOGIC RULES:
-1. TARGETING: Use relative paths from PWD or the git root. If a diff argument is a range (e.g., `main..HEAD`), use it ONLY for context to write the commit message; NEVER include ranges in `git add` or `git commit` targets.
+1. TARGETING: Always provide `git add` and `git commit` targets as paths relative to the current PWD. If a diff argument is a range (e.g., `main..HEAD`), use it ONLY for context to write the commit message; NEVER include ranges in `git add` or `git commit` targets.
 2. UNTRACKED FILES: Only stage/commit files explicitly identified in the provided diffs.
 3. COMMIT MESSAGE STYLE:
    - Summary: Use imperative mood (e.g., "Add feature" not "Added feature").
