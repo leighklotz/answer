@@ -375,7 +375,7 @@ function _hx_provenance() {
                     subcmd_emoji="${emoji[$subcmd]}"
                     content_type_header="${ctype[$subcmd]}"                    
 
-                    printf "💾 hx provenance %s %s | git notes --ref=provenance/hallux append 📌" "$subcmd" "$subcmd_emoji" >&2
+                    printf "💾 hx provenance %s %s | git notes --ref=provenance/hallux append 📌\n" "$subcmd" "$subcmd_emoji" >&2
 
                     local hx_out
                     hx_out=$(hx $subcmd 2>/dev/null || echo "[hx $subcmd failed or missing]")
