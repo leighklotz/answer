@@ -26,6 +26,8 @@ fi
 if command -v downlink &> /dev/null;
 then
     DOWNLINK_COMMAND="$(command -v downlink)"
+elif [ -d ~/wip/fetcher/bin/ ]; then
+    DOWNLINK_COMMAND="~/wip/fetcher/bin/downlink"
 else
     DOWNLINK_COMMAND=""
 fi
@@ -64,6 +66,7 @@ fi
 log_info "${FETCHER} fetching <${URL}>"
 case "${FETCHER}" in
     downlink)
+        log_info "DOWNLINK_COMMAND=$DOWNLINK_COMMAND"
         if [ -z "${USER_AGENT}" ]; then
             "${DOWNLINK_COMMAND}" "${URL}"
         else
@@ -71,9 +74,11 @@ case "${FETCHER}" in
         fi
         ;;
     lynx)
+        log_info "* lynx"
         lynx --dump --nolist -useragent="${USER_AGENT}" "${URL}"
         ;;
     links)
+        log_info "* links"
         links -codepage utf-8 -force-html -width 72 -dump -http.fake-user-agent "${USER_AGENT}" -http.fake-referer "${REFERER}" "${URL}"
         ;;
     *)
