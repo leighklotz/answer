@@ -26,8 +26,8 @@ fi
 if command -v downlink &> /dev/null;
 then
     DOWNLINK_COMMAND="$(command -v downlink)"
-elif [ -d ~/wip/fetcher/bin/ ]; then
-    DOWNLINK_COMMAND="~/wip/fetcher/bin/downlink"
+elif [ -d ~/wip/downlink/bin/ ]; then
+    DOWNLINK_COMMAND="$HOME/wip/downlink/bin/downlink"
 else
     DOWNLINK_COMMAND=""
 fi
