@@ -4,7 +4,15 @@
 
 if [[ "$PS1" != *"🦶"* ]]; then
     export ANSWER_OLD_PS1="$PS1"
-    [[ "$PS1" == *'$'* ]] && PS1="${PS1/\\$/🦶\\$}" || PS1="🦶${PS1}"
+    
+    # Insert 🦶 and \! (command number) right before the prompt character (\$)
+    # If \$ exists: replaces \$ → 🦶\! \$
+    # If \$ doesn't exist: prepends 🦶\!
+    if [[ "$PS1" == *'\$'* ]]; then
+        PS1="${PS1/\\$/ [\\!]🦶$}"
+    else
+        PS1="🦶\\! ${PS1}"
+    fi
 fi
 
 source $HOME/wip/answer/bin/functions.sh
