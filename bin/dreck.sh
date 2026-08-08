@@ -5,7 +5,7 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-PROMPT="Perform a rigorous comparison between these two files. 1) Detect any 'LLM dreck' in the second file (unnecessary conversational intro/outro or boilerplate). 2) Check for lazy elisions—ensure no critical content from the first file was omitted, summarized away, or truncated in the second version. 3) Conclude if the changes represent a substantive improvement in quality and completeness."
+PROMPT="Perform a rigorous comparison between these two files. 0) if the file is JSON, empty, binary data, etc. report that fact and stop immediately. 1) Detect any 'LLM dreck' in the second file (unnecessary conversational intro/outro or boilerplate). 2) Check for lazy elisions—ensure no critical content from the first file was omitted, summarized away, or truncated in the second version. 3) Conclude if the changes represent a substantive improvement in quality and completeness."
 
 # TODO:
 # `- dreck fn1 fn2` # as current, compares fn1 and fn2 with lx
