@@ -7,12 +7,7 @@
 # --pipe mode (which resolves tool calls and returns the updated conversation
 # array), and writes the result to stdout.
 
-# Example use case
-# ask what branches are not merged into main | tools git
-# For more info see https://github.com/leighklotz/toolex
-#
-
-SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
@@ -25,16 +20,10 @@ if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     exit 1
 fi
 
-
 if [ -t 0 ]; then
     echo "🦶tools: expected JSON conversation array on stdin" >&2
     exit 1
 fi
-
-# We prefix the user's arguments with --tools.
-# Because of nargs='+' in Python, everything provided after this 
-# will be consumed as tools until another flag (e.g., --log-level) is hit.
-# toolex.py reads MIME+JSON conversation from stdin, writes updated MIME+JSON to stdout
 
 if [ -t 1 ]; then
     log_trace "Calling ${TOOLEX_SH} $TOOLS_FLAGS --tools $@"
