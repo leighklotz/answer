@@ -17,7 +17,8 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-TOOLEX_SH=~/wip/toolex/toolex.sh
+: "${TOOLEX_SH:=$HOME/wip/toolex/toolex.sh}"
+: "${TOOLS_FLAGS:=}"
 
 if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "Usage: tools <module> [<module...>] [--keep-reasoning]" >&2
@@ -34,8 +35,14 @@ fi
 # Because of nargs='+' in Python, everything provided after this 
 # will be consumed as tools until another flag (e.g., --log-level) is hit.
 # toolex.py reads MIME+JSON conversation from stdin, writes updated MIME+JSON to stdout
+
 if [ -t 1 ]; then
-  "${TOOLEX_SH}" --tools "$@" | "${SCRIPT_DIR}/answer"
+    log_trace "Calling ${TOOLEX_SH} $TOOLS_FLAGS --tools $@"
+    if [ -n "$TRACE" ]; then
+        tee /dev/stderr | "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@" | "${SCRIPT_DIR}/answer"
+    else
+        "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@" | "${SCRIPT_DIR}/answer"
+    fi
 else
-  "${TOOLEX_SH}" --tools "$@"
+    "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@"
 fi
