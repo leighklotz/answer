@@ -33,7 +33,7 @@ function log_with_icon {
     local icon="$1"
     local message="$2"
     local timestamp="$(date -u +"%Y-%m-%d %H:%M:%S.%3NZ")"
-    printf "%s %s %b\n" "${icon}" "${timestamp}" "${message}" > /dev/stderr
+    printf "%s %s %b\n" "${icon}" "${timestamp}" "${message}" > /dev/fd/2
 }
 
 function log_verbose {
@@ -78,7 +78,7 @@ function log_error {
     local prog="$(basename "$0")"
     local message="$1"
     log_with_icon '❌' "${COLOR_RED}ERROR in ${prog}:${NOCOLOR} ${message}"
-    [ -n "${PRINT_STACK_TRACE}" ] && printf "%s\n" "$(stack_trace)" > /dev/stderr
+    [ -n "${PRINT_STACK_TRACE}" ] && printf "%s\n" "$(stack_trace)" > /dev/fd/2
 }
 
 function log_and_exit {
@@ -86,6 +86,6 @@ function log_and_exit {
     local code="$1"
     local message="$2"
     log_with_icon '⛔' "${COLOR_RED}ERROR in ${prog}:${NOCOLOR} ${message}"
-    [ -n "${PRINT_STACK_TRACE}" ] && printf "Error code %s %s\n" "$code" "$(stack_trace)" | tee > /dev/stderr
+    [ -n "${PRINT_STACK_TRACE}" ] && printf "Error code %s %s\n" "$code" "$(stack_trace)" | tee > /dev/fd/2
     [[ "${code}" =~ ^[0-9]+$ ]] && exit "${code}" || exit 1
 }

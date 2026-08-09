@@ -28,7 +28,7 @@ fi
 if [ -t 1 ]; then
     log_trace "Calling ${TOOLEX_SH} $TOOLS_FLAGS --tools $@"
     if [ -n "$TRACE" ]; then
-        tee /dev/stderr | "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@" | "${SCRIPT_DIR}/answer"
+        tee /dev/fd/2 | "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@" | "${SCRIPT_DIR}/answer"
     else
         "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@" | "${SCRIPT_DIR}/answer"
     fi
