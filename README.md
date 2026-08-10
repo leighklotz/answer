@@ -9,7 +9,7 @@ The **answer** toolchain treats Large Language Models as composable, standard co
 It allows users to integrate AI directly into their terminal workflows by:
 * **Chaining Conversations:** pipe inferences together to maintain inference history.
 * **Execute Code Safely:** Explicit commands provide control and confirmation of script execution.
-* **Extending Shell Capabilities:** Includes utilities such as `lx` (file ingestion), `bx` (command execution injection), and `help` (specialized for poxix/bash/python workflows) to make your LLM a predictable part of the Unix pipeline alongside tools such as `grep`, `awk`, and `sed`.
+* **Extending Shell Capabilities:** Includes utilities such as `lx` (file ingestion), `bx` (command execution injection), and `help` (specialized for posix/bash/python workflows) to make your LLM a predictable part of the Unix pipeline alongside tools such as `grep`, `awk`, and `sed`.
 
 ---
 
@@ -100,7 +100,7 @@ help "Write a python script to list files" | unfence python | python
 ### 5. Mid-Pipeline Observation (`ask -t | ask`)
 View what the model is generating without fracturing your conversation chain. The `--tee` (or `-t`) flag routes human-readable text out to `stderr`, while passing the pristine JSON history down `stdout`.
 ```bash
-help "Plan a bash script to xyzzy" | help -t "Write the in bash code" | unfence bash | bash
+ask "Plan a bash script to xyzzy" | ask -t "Write the in bash code" | unfence bash | bash
 ```
 
 ### 6. Interactive terminal (`ask -i`)
@@ -120,8 +120,8 @@ This emoji is a **dumpling** (🥟).
 
 The harness relies on a suite of single-purpose scripts and a core engine primitive:
 
-* **`ask / help`**: *The State Builders.* They process prompts and `stdin` to construct context payloads. `help` is a specialized wrapper focused on Python and Bash development. 
-* **`answer`**: *The Inference Endpoint and Text Extractor.* It consumes the structured request or conversation history, performs or retrieves the inference, and writes the assistant's plain-text response to `stdout`. You normally do not call it explicitly at an interactive terminal, because `ask` and `help` do that automatically. Add it when you want to terminate the structured conversation pipeline and send plain text to a file or an ordinary Unix command.
+* **`ask / help`**: process prompts and `stdin` to construct context payloads. `help` is a specialized wrapper focused on Python and Bash development. 
+* **`answer`**: consumes the structured request or conversation history, performs or retrieves the inference, and writes the assistant's plain-text response to `stdout`. You normally do not call it explicitly at an interactive terminal, because `ask` and `help` do that automatically. Add it when you want to terminate the structured conversation pipeline and send plain text to a file or an ordinary Unix command.
     > **⚠️ Crucial Redirection Note:** When redirecting output to a file (e.g., `ask "code" > script.sh`), explicitly call `answer` before the redirection (`ask "code" | answer > script.sh`). Otherwise, you will capture the JSON conversation history instead of the plain-text response.
 * **`unfence`** Extracts markdown code blocks from LLM output and provides an interactive pager/confirmation prompt to ensure you don't execute dangerous code without reviewing it first.
 * **`lx`**: A file-ingestion utility that streams multiple target files into your pipeline, automatically wrapping them in clean markdown syntax blocks for downstream parsing.
@@ -135,16 +135,15 @@ The harness relies on a suite of single-purpose scripts and a core engine primit
 
 ## Production Patterns & Interactive Examples
 
-### Example 1: Multi-Turn Pipeline Translation
+### Example 1: Multi-Turn Pipeline 
 ```bash
-$ alias to_python='help output the calculation in a code fence as a python script to be used as stdin to `python`'
-$ help write fib in bash | help call it with 20 | to_python | unfence python | python
+$ ask write fib in bash | ask call it with 20 | ask rewrite in python and output the code in a python code fence | unfence python | python
 ```
 
 ### Example 2: Auditing Your Debugging History
 Use standard shell mechanics such as `fc` or `history` to capture your terminal trail and feed it into the model for analysis.
 ```bash
-$ history | tail -n 30 | help "Summarize my recent actions as a concise markdown guide, skipping failed attempts."
+$ history | tail -n 30 | ask "Summarize my recent actions as a concise markdown guide, skipping failed attempts."
 ```
 
 ### Example 3: Context Chunking for Large Files
@@ -172,7 +171,7 @@ klotz@tensor:~/wip/answer🦶$ help-commit
 ---
 
 ### Status Emoji
-The *answer* suite uses icons to give status about the pipeline as it executes:
+The *answer* suite uses Unicode emoji icons to give status about the pipeline as it executes:
 
 | Icon | Meaning |
 | :--- | :--- |
@@ -207,7 +206,8 @@ These commands manage your active terminal environment and LLM configuration.
 * **`hx set-model [args]`**: Quickly switches the active LLM (via `$HX_MODEL`) for the current session.
 
 ### 2. Interaction Provenance (`hx provenance ...`)
-Leveraging Git notes, this allows you to "bookmark" significant terminal interactions. It creates an auditable trail of command history and AI responses within a repository's metadata without polluting your actual git log.
+`hx provenance` allows you to "bookmark" significant terminal interactions. It creates an auditable trail of command history and inference responses within a repository's metadata without polluting your actual git log. It command captures some of the recent command and response history as a specialized Git note `provenance/hallux` reference.
+It is still a work in progress.
 
 | Subcommand | Description | Behavior / Output |
 | :--- | :--- | :--- |
@@ -215,13 +215,45 @@ Leveraging Git notes, this allows you to "bookmark" significant terminal interac
 | **`list`** | Displays a chronological timeline of all stored interaction hashes. | List of unique Git note hashes. |
 | **`show [hash]`** | Instantly displays the full content of a specific recorded interaction. | Standard Git notes output. |
 
+N.B.: You must call `hx provenance` directly in order to save provecnance.  Contrast with bash and inference cache:
+- bash history collects .bash_history files into `$HISTFILE` files
+- answer caches the responses to inference commannds, but not to tool calls. 
+
+#### `add` Subcommand Modes
+| Mode | Description | Use Case | Icon |
+| :--- | :--- | :--- | :--- |
+| *(default)* | Captures the last command and its output via history. | Standard CLI workflow automation. | — |
+| **`response`** | Marks an interaction specifically as a model/tool response. | Explicitly labeling LLM outputs in history. | `➡️` |
+| **`-`** (dash) | Reads content from STDIN or prompts for manual input in TTY. | Piping raw text OR manually entering notes interactively. | `\|` |
+| **`describe`** | Records a plain-text description/note. | Adding non-command metadata to the provenance log. | `📜` |
+| **`-`** (dash) | Reads content directly from **STDIN**. | Piping raw text or manual input into the provenance log without running a command. | `\|` |
+
+**Usage Examples:**
+
+*   **Standard Capture:**  
+    `$ hx provenance add what` *(Captures last command and response)*
+*   **Capture STDIN (Pipeline Mode):**  
+    `$ echo "Custom text to record" \| hx provenance add -`
+*   **Explicitly mark a response:**  
+    `$ cat result.txt | hx provenance add response`
+*   **Interactive Input:** Simply run `hx provenance add -`. If you are in an active terminal, the tool will prompt you for input; if you are piping text, it reads from STDIN immediately.
+
+### Summary of logical alignment check:
+| hx provenance subcmd | Emoji | Meaning |
+| :--- | :--- | :--- |
+| `what` | 💭 | last text response |
+| `why` | 🧠 |  last reasoning trace |
+| `response`| ➡️ | last convo JSON response |
+| `describe` | 📜 | describe last convo JSON response with inference |
+| `-` | \| direct stdin attached | 
+
 ### 3. Cache Management (`hx cache ...`)
 The framework uses local JSON files for caching to ensure speed and reduce API costs. Use these commands to manage your storage or toggle session behavior via environment variables.
 
 * **`hx cache clear / show`**: Manage local history storage and automated caching.
 * **`hx cache enable / disable`**: Enable or disable automated caching for the session.
 * **`hx cache drop`**: Removes only the single most recent cache entry after a preview/confirmation.
-* **`hx why`** and **`hx what`**: Retrieve reasoning (💭) or raw inference output (🧠) from your most recent LLM interaction.
+* **`hx why`** and **`hx what`**: Retrieve reasoning (**🧠**) or standard interaction/output (**💭**) from your most recent `answer` inference.
 
 ---
 
@@ -282,12 +314,10 @@ Here is what this toolchain can do:
     ### Specialized Tooling
     * **`ask`**: The primary interface for building context payloads from prompts, multi-line input (`-i`), or mid-pipeline observation (`--tee`).
     * **`answer`**: Extracts raw text tokens from JSON streams.
-    * `lx`: Streams multiple target files into a pipeline as clean markdown blocks.
-    * `bx`: Captures the output of shell commands and injects it back into an LLM query via markdown fences.
-    * `help`: Optimized prompt for Python/Bash development workflows.
-    * `unfence | [interpreter]`: Automates the flow from generating code to executing it in a controlled environment.
-
-
+    * **`lx`**: Streams multiple target files into a pipeline as clean markdown blocks.
+    * **`bx`**: Captures the output of shell commands and injects it back into an LLM query via markdown fences.
+    * **`help`**: Optimized prompt for Python/Bash development workflows.
+    * **`unfence | [interpreter]`**: Automates the flow from generating code to executing it in a controlled environment.
 ````
 
 ## Tools setup (optional, but recommended)

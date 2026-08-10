@@ -361,15 +361,16 @@ function _hx_provenance() {
         add)
             shift
             case "$1" in 
-                what|why|cat|describe)
+                what|why|response|describe|-)
                     local last_cmd prompt_str subcmd
                     last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
                     prompt_str="${PS1@P}"
                     subcmd="$1"
 
                     local emoji
-                    declare -A emoji=([what]="💭" [why]="🧠" [cat]="😸" [describe]="📜")
-                    declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [cat]="$PIPELINE_MAGIC_HEADER" [describe]="PIPELINE_TEXT_PLAIN_HEADER")
+                    declare -A emoji=([what]="💭" [why]="🧠" [response]="➡️" [describe]="📜" [-]="|")
+                    declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [response]="$PIPELINE_MAGIC_HEADER" [describe]="$PIPELINE_TEXT_PLAIN_HEADER" [-]="$PIPELINE_TEXT_PLAIN_HEADER")
+
                     local subcmd_emoji
                     local content_type_header
                     subcmd_emoji="${emoji[$subcmd]}"
@@ -378,7 +379,14 @@ function _hx_provenance() {
                     printf "💾 hx provenance %s %s | git notes --ref=provenance/hallux append 📌\n" "$subcmd" "$subcmd_emoji" >&2
 
                     local hx_out
-                    hx_out=$(hx $subcmd 2>/dev/null || echo "[hx $subcmd failed or missing]")
+                    if [ "$subcmd" == "-" ]; then
+                        if [ -t 0 ]; then
+                            echo "Provide hx provenance add input:" >&2
+                        fi
+                        hx_out="$(cat)"
+                    else
+                        hx_out=$(hx $subcmd 2>/dev/null || echo "[hx $subcmd failed or missing]")
+                    fi
 
                     printf "%s%s\n%s\n%s\n\n" \
                         "$prompt_str" \
@@ -462,7 +470,3 @@ function help ()
 {
     help.sh "$@"
 }
-
-alias to_awk='help output the calculation in a code fence as an awk script to be used as stdin to \`awk -f -\`'
-alias to_bash='help output the calculation in a code fence as a bash script to be used as stdin to \`bash\`'
-alias to_python='help output the calculation in a code fence as a python script to be used as stdin to \`python\`'

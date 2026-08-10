@@ -26,7 +26,10 @@ Your goal is to generate a single bash code fence containing commands to stage a
 3. COMMIT MESSAGE STYLE:
    - Summary: Use imperative mood (e.g., "Add feature" not "Added feature").
    - Detail: Include a bulleted list (- ) describing changes, specifically mentioning new executable modes or significant file creations if present.
-4. SHELL SAFETY: Ensure all strings are properly quoted and special characters escaped for bash execution. No commentary outside the code fence.
+4. SHELL SAFETY:
+   - Ensure all strings are properly quoted and special characters escaped for bash execution and bash string interpolation and quoting rules.
+   - Note the backquote character which introduces code in markdown actually *executes* code in double-quote strings inside bash so it must be quoted inside double quoted strings.
+   - No commentary outside the code fence.
 EOF
 
 
