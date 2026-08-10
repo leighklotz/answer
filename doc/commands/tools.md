@@ -5,10 +5,10 @@
 ## Synopsis
 
 ```bash
-<conversation-json> | tools [MODULE_NAME...]
+<conversation-json> | tools [MODULE[:PERMISSION[,...]]...]
 ```
 
-The arguments are one or more module names that define which sets of functions/tools the LLM is allowed to call during this pipeline stage. Each argument is passed as a `--tools <name>` flag to the underlying execution engine (typically `toolex.py`).
+The arguments are one or more module names, optionally followed by a colon-separated list of permissions (e.g., `git:read`, `git:read:write`, `git:all`). These arguments are passed as `--tools` flags to the underlying execution engine (`toolex.py`). You can mix multiple modules with different permissions (e.g., `bash:read git:write`).
 
 ## Description
 
