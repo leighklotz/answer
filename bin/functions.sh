@@ -368,7 +368,7 @@ function _hx_provenance() {
                     subcmd="$1"
 
                     local emoji
-                    declare -A emoji=([what]="💭" [why]="🧠" [response]="➡️" [describe]="📜" [-]="|")
+                    declare -A emoji=([what]="💭" [why]="🧠" [response]="⬅️️" [describe]="📜" [-]="➡️️")
                     declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [response]="$PIPELINE_MAGIC_HEADER" [describe]="$PIPELINE_TEXT_PLAIN_HEADER" [-]="$PIPELINE_TEXT_PLAIN_HEADER")
 
                     local subcmd_emoji

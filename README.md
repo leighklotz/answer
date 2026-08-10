@@ -243,9 +243,9 @@ N.B.: You must call `hx provenance` directly in order to save provecnance.  Cont
 | :--- | :--- | :--- |
 | `what` | 💭 | last text response |
 | `why` | 🧠 |  last reasoning trace |
-| `response`| ➡️ | last convo JSON response |
+| `response`| ⬅️ | last convo JSON response |
 | `describe` | 📜 | describe last convo JSON response with inference |
-| `-` | \| direct stdin attached | 
+| `-` | ➡️ | direct stdin attached | 
 
 ### 3. Cache Management (`hx cache ...`)
 The framework uses local JSON files for caching to ensure speed and reduce API costs. Use these commands to manage your storage or toggle session behavior via environment variables.
