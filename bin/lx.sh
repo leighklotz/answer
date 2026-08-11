@@ -15,11 +15,11 @@ declare -A ext_langs=(
   [toml]=toml [md]=markdown [markdown]=markdown [txt]=text
 )
 
-before=""   # override with --before
-after=""    # override with --after
+BEFORE=""   # override with --before
+AFTER=""    # override with --after
 
 usage() {
-  cat <<EOF
+  cat <<'EOF'
 Usage: lx.sh [--before=STR] [--after=STR] [files...]
 Reads file paths from args and/or stdin (one per line).
 Placeholders supported in --before: {filename}, {language}
@@ -27,10 +27,12 @@ EOF
 }
 
 # parse simple flags
+CAT_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --before=*) before="${1#*=}"; shift;;
-    --after=*) after="${1#*=}"; shift;;
+    --line-numbers|-n) CAT_ARGS=('-n'); shift;;
+    --before=*) BEFORE="${1#*=}"; shift;;
+    --after=*) AFTER="${1#*=}"; shift;;
     --help) usage; exit 0;;
     --) shift; break;;
     -*) echo "Unknown option: $1" >&2; usage; exit 1;;
@@ -51,7 +53,7 @@ if [ ${#files[@]} -eq 0 ]; then
   exit 1
 fi
 
-default_after=$'```\n---\n'
+DEFAULT_AFTER=$'```\n---\n'
 
 for f in "${files[@]}"; do
   if [ -z "$f" ]; then
@@ -83,18 +85,18 @@ for f in "${files[@]}"; do
   fi
 
   # build and print before block (with placeholders)
-  default_before="# file ${f}\n\`\`\`${lang}\n"
-  bf="${before:-$default_before}"
+  DEFAULT_BEFORE="# file ${f}\n\`\`\`${lang}\n"
+  bf="${BEFORE:-$DEFAULT_BEFORE}"
   # safe placeholder replacements
   bf="${bf//\{filename\}/$f}"
   bf="${bf//\{language\}/$lang}"
   printf '%b' "$bf"
 
   # print file contents
-  cat -- "$f"
+  cat "${CAT_ARGS[@]}" -- "$f"
 
   # print after block (default is closing fence + blank line)
-  aft="${after:-$default_after}"
+  aft="${AFTER:-$DEFAULT_AFTER}"
   printf '%b' "$aft"
   printf "📥" >&2
 done
