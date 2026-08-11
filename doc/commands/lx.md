@@ -1,3 +1,4 @@
+```markdown
 # lx
 
 **`lx`** is the **Context Ingestor** of the Answer framework. It streams target files into a pipeline, automatically wrapping their content in Markdown code fences with appropriate language tags and metadata headers. This ensures that when multiple files are piped into an `ask`, `help`, or `bx` command, they arrive as structured, machine-readable context rather than raw text blocks, allowing the LLM to distinguish between different file contents easily.
@@ -5,7 +6,7 @@
 ## Synopsis
 
 ```bash
-lx [OPTIONS] [files...]
+lx [--before=STR] [--after=STR] [--line-numbers|-n] [files...]
 ```
 
 The command accepts file paths as positional arguments or reads a list of paths via standard input (`stdin`). It uses the 📥 icon in terminal output and pipeline headers to signify ingestion.
@@ -16,15 +17,17 @@ The command accepts file paths as positional arguments or reads a list of paths 
 
 ### Key Features
 * **Automatic Language Detection:** Leverages file extensions to determine syntax highlighting tags (e.g., `.py` $\rightarrow$ `python`, `.sh` $\rightarrow$ `bash`).
-* **Flexible Input Streams:** Supports direct command-line arguments, piping from other commands (`find | lx`), or reading filenames via `stdin`.
-* **Dynamic Placeholders:** Uses `{filename}` and `{language}` placeholders in custom headers to inject real-time metadata into the stream.
+* **Flexible Input Streams:** Supports direct command-line arguments, piping from other commands (`find | lx`), or reading filenames via `stdin`. Empty lines from stdin are skipped.
+* **Dynamic Placeholders:** Uses `{filename}` and `{language}` placeholders in `--before` to inject real-time metadata into the stream. Escape sequences like `\n` are interpreted via `printf '%b'`.
+* **Line Numbers:** Optional `--line-numbers` / `-n` adds `cat -n` to file output.
 * **Markdown Orchestration:** Automatically handles fence opening/closing and provides customizable delimiters using `--before` and `--after` options.
-* **Resilient Processing:** Gracefully skips directories, special files (like devices), or unreadable files without breaking the pipeline execution.
+* **Resilient Processing:** Gracefully skips directories, special files (like devices), or unreadable files without breaking the pipeline execution. Prints `📥` to stderr per processed file.
 
 ## Options
 
 | Flag | Long form | Description |
 |------|------------------------|---------------------------------------------------------------------------------------------------|
+| `-n` | `--line-numbers` | Prepend line numbers to file contents by passing `-n` to `cat`. |
 | `--before=STR` | | A custom string to print before each code block. Supports placeholders `{filename}` and `{language}`, and escape sequences (e.g., `\n`). Example: `### File: {filename} \n ```{language}` |
 | `--after=STR`  | | A custom string to print after each code block. Useful for adding separators or manual closing fences if needed. Defaults to a standard Markdown close and separator. |
 | `--help`        | | Displays the usage information and exits. |
@@ -43,6 +46,9 @@ If no options are provided, **`lx`** wraps every file in a standard Markdown blo
 ```{language}
 ```
 *(A newline is automatically added after the filename and language tag)*
+
+The script actually uses:
+`# file ${f}\n\`\`\`${lang}\n`
 
 **Default `--after`:**
 ```markdown
@@ -82,4 +88,11 @@ Ensure that long outputs from multiple tools are clearly demarcated in the resul
 ```bash
 # Use --after to add a clear visual separator between files and subsequent output
 $ lx script.js utils.py | help "Refactor these" --after="\n\`\`\`\n--- \n"
+```
+
+**5. Line Numbers**
+Include line numbers for easier reference in LLM analysis.
+```bash
+$ lx -n src/main.py | help "Find off-by-one errors"
+```
 ```
