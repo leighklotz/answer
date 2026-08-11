@@ -15,8 +15,10 @@ printf "📜\n" >&2
 jq -r '
   (.choices[0].message |
     "### 💬 Conversation
-**Assistant [Reasoning]:** \(.reasoning_content // "N/A")
-**Assistant:** \(.content // "N/A")"
+### 🧠 **Assistant Reasoning**
+\(.reasoning_content // "N/A")
+### 💭 **Assistant Response:**
+\(.content // "N/A")"
   ) +
   "
 ***
