@@ -262,12 +262,19 @@ function hx() {
         enable | disable)
             local cmd_file="$HOME/wip/answer/bin/commands/${1}"
             if [[ -f "$cmd_file" ]]; then
+                # shellcheck disable=SC1090
                 source "$cmd_file"
             else
                 echo "Error: Command script $cmd_file not found." >&2
                 return 1
             fi
         ;;
+
+        again)
+            # Executes the previous bash command line again, but through bx and with stderr redirected.
+            # Use in a pipe such as `hx again | ask what went wrong`
+            _hx_again
+            ;;
 
         why | what | cat | describe | stats)
             local c_dir="$(_find_cache_dir)"
@@ -354,6 +361,14 @@ function _hx_cache() {
             return 1
             ;;
     esac
+}
+
+# executes the previous bash command line again, but through bx and with stderr redirected.
+# Use in a pipe such as `hx again | ask what went wrong`
+function _hx_again() {
+    local cmd
+    cmd=$(fc -ln -1)
+    bx ${cmd/#bx /} 2>&1
 }
 
 function _hx_provenance() {
