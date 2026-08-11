@@ -6,6 +6,8 @@ CAPTURE_COMMAND=(cat)
 FETCHER_COMMAND=("${SCRIPT_DIR}/fetcher.sh")
 readonly SCRIPT_DIR FETCHER_COMMAND
 
+# shellcheck source=./commands/enable
+# shellcheck source=./logging.sh
 source "${SCRIPT_DIR}/commands/enable"
 source "${SCRIPT_DIR}/logging.sh"
 
@@ -13,7 +15,7 @@ trap 'log_error "error in ${BASH_SOURCE[0]}:${BASH_LINENO[1]:-?} while running: 
 
 # Requires snap/golang yq for yaml->json, and regular jq to extract
 command -v yq >/dev/null || log_and_exit 1 "yq missing"
-yq --version | grep -Eq '^yq version v4\.' || log_and_exit 1 "yq v4 required"
+yq --version | grep -Eq yq '.https://github.com/mikefarah/yq/. version v4.*' || log_and_exit 1 "yq v4 required"
 command -v jq >/dev/null || log_and_exit 1 "jq missing"
 [[ -x "${FETCHER_COMMAND[0]}" ]] || log_and_exit 1 "fetcher missing"
 
@@ -98,8 +100,7 @@ function to_link() {
 # remove smart quotes, as they cause parsing errors
 function replace_smart_quotes() {
     # shellcheck disable=SC1111
-    LC_ALL=C
-    sed -e "s/[‘’]/\'/g" -e "s/[“”‟]/\"/g" -e "s/[‚„]/,/g" -e "s/[‛]/\`/g"
+    LC_ALL=C sed -e "s/[‘’]/\'/g" -e "s/[“”‟]/\"/g" -e "s/[‚„]/,/g" -e "s/[‛]/\`/g"
 }
 
 SCUTTLE_PROMPT=$(cat <<'EOF'
