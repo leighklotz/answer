@@ -20,18 +20,19 @@ echo "CMDS=$CMDS"
 echo "MAKEDOC_PREREADING=$MAKEDOC_PREREADING"
 
 for cmd in $CMDS; do
-    echo -n "cmd=$cmd	"
+    echo -n "cmd=$cmd"
     doc_md="doc/commands/${cmd}.md"
     doc_md_new="doc/commands/${cmd}.md.new"
     dest=""
     if [ -f "$doc_md_new" ]; then
-      echo "Skipping $doc_md becasuse $doc_md_new exists"
+      echo "Skipping $doc_md because $doc_md_new exists"
     else
-        if [ -f "${cmd}.sh" ]; then
-            src="${cmd}.sh"
+        if [ -f "${SCRIPT_DIR}/${cmd}.sh" ]; then
+            src="${SCRIPT_DIR}/${cmd}.sh"
         else
             src="${FUNCTIONS_SH}"
         fi
+        echo -ne "->${src}\t" >&2
 
         context=($MAKEDOC_PREREADING)
         [ -n "$src" ] && context+=("$src")
