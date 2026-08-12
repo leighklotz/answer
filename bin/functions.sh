@@ -169,7 +169,7 @@ function _infer () {
 
   jq \
     --arg server_model "$server_model" \
-    --argjson thinking "${ENABLE_THINKING:-false}" \
+    --argjson thinking "${ENABLE_THINKING:-true}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     '{
       model: $server_model,
