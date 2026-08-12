@@ -33,7 +33,7 @@ function log_with_icon {
     local icon="$1"
     local message="$2"
     local timestamp="$(date -u +"%Y-%m-%d %H:%M:%S.%3NZ")"
-    printf "%s %s %b\n" "${icon}" "${timestamp}" "${message}" > /dev/fd/2
+    printf "%s %s %b\n" "${icon}" "${timestamp}" "${message}" >&2
 }
 
 function log_verbose {

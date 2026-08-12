@@ -46,8 +46,10 @@ function usage() {
     echo $'- all after a `--` is given as parameters for the LLM context (e.g., main..HEAD)'
 }
 
-GIT_DIFF_OPTIONS=""
 ASK_OPTIONS=()
+GIT_DIFF_OPTIONS=""
+DRY_RUN=""
+QUIET=""
 
 # Parse command line arguments: 
 # Everything before '--' goes to git diff options.
@@ -60,6 +62,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --quiet|-q)
             QUIET=1
+            shift
+            ;;
+        --dry-run|-n)
+            DRY_RUN=1
             shift
             ;;
         --)
@@ -82,15 +88,12 @@ log_info "GIT_DIFF_OPTIONS=$GIT_DIFF_OPTIONS"
 (bx pwd;
  bx git rev-parse --show-toplevel;
  bx git branch --show-current;
- bx git rev-parse --show-toplevel;
- git diff --stat --no-merges ${GIT_DIFF_OPTIONS};
+ bx git diff --stat --no-merges ${GIT_DIFF_OPTIONS};
  bx git diff --numstat ${GIT_DIFF_OPTIONS};
  bx git diff ${GIT_DIFF_OPTIONS};
  bx git diff --cached ${GIT_DIFF_OPTIONS}) 2>&1 |
   ask -i "${ASK_OPTIONS[@]}" -- "$GIT_COMMIT_PROMPT" |
-  answer |
-  unfence |
-  bash
+  answer | { [ -n "$DRY_RUN" ] && cat || unfence | bash; }
 
 # Capture the exit status of the last command in the pipe (thanks to pipefail)
 STATUS=$?
