@@ -30,15 +30,15 @@ function stack_trace() {
 }
 
 function log_with_icon {
-    local icon="$1"
-    local message="$2"
+    local icon="${1:-}"
+    local message="${2:-}"
     local timestamp="$(date -u +"%Y-%m-%d %H:%M:%S.%3NZ")"
     printf "%s %s %b\n" "${icon}" "${timestamp}" "${message}" >&2
 }
 
 function log_verbose {
     local prog="$(basename "$0")"
-    local message="$1"
+    local message="${1:-}"
     if [ -n "${VERBOSE}" ]; then
         log_with_icon '📣' "${prog}: ${message}"
     fi
@@ -47,7 +47,7 @@ function log_verbose {
 function log_debug {
     if [ -n "${DEBUG}" ]; then
         local prog="$(basename "$0")"
-        local message="$1"
+        local message="${1:-}"
         log_with_icon '🐞' "${COLOR_BLUE}DEBUG ${prog}:${NOCOLOR} ${message}"
     fi
 }
@@ -55,36 +55,36 @@ function log_debug {
 function log_info {
     if [ -n "${INFO}" ]; then
         local prog="$(basename "$0")"
-        local message="$1"
+        local message="${1:-}"
         log_with_icon 'ℹ' "${COLOR_GREEN}INFO ${prog}:${NOCOLOR} ${message}"
     fi
 }
 
 function log_warn {
     local prog="$(basename "$0")"
-    local message="$1"
+    local message="${1:-}"
     log_with_icon '⚠️' "${COLOR_YELLOW}WARN ${prog}:${NOCOLOR} ${message}"
 }
 
 function log_trace {
     if [ -n "${TRACE}" ]; then
       local prog="$(basename "$0")"
-      local message="$1"
+      local message="${1:-}"
       log_with_icon '🔍' "${COLOR_BLUE}TRACE ${prog}:${NOCOLOR} ${message}"
     fi
 }
 
 function log_error {
     local prog="$(basename "$0")"
-    local message="$1"
+    local message="${1:-}"
     log_with_icon '❌' "${COLOR_RED}ERROR in ${prog}:${NOCOLOR} ${message}"
     [ -n "${PRINT_STACK_TRACE-}" ] && printf "%s\n" "$(stack_trace)" > /dev/fd/2
 }
 
 function log_and_exit {
     local prog="$(basename "$0")"
-    local code="$1"
-    local message="$2"
+    local code="${1:-}"
+    local message="${2:-}"
     log_with_icon '⛔' "${COLOR_RED}ERROR in ${prog}:${NOCOLOR} ${message}"
     [ -n "${PRINT_STACK_TRACE-}" ] && printf "Error code %s %s\n" "$code" "$(stack_trace)" | tee > /dev/fd/2
     [[ "${code}" =~ ^[0-9]+$ ]] && exit "${code}" || exit 1
