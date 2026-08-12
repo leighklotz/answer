@@ -15,7 +15,7 @@ trap 'log_error "error in ${BASH_SOURCE[0]}:${BASH_LINENO[1]:-?} while running: 
 
 # Requires snap/golang yq for yaml->json, and regular jq to extract
 command -v yq >/dev/null || log_and_exit 1 "yq missing"
-yq --version | grep -Eq yq '.https://github.com/mikefarah/yq/. version v4.*' || log_and_exit 1 "yq v4 required"
+yq --version | grep -qE 'yq.*mikefarah/yq.*version v4' || log_and_exit 1 "yq v4 required"
 command -v jq >/dev/null || log_and_exit 1 "jq missing"
 [[ -x "${FETCHER_COMMAND[0]}" ]] || log_and_exit 1 "fetcher missing"
 
@@ -92,6 +92,15 @@ def csv_tags:
 EOF
 )
 
+function normalize_yaml() {
+    replace_smart_quotes
+    sed '/^description: |$/,/^\(keywords:\|error:\)/ {
+        /^description: |$/b
+        /^\(keywords:\|error:\)/q
+        s/^/  /
+    }'
+}
+
 function to_link() {
     # <https://scuttle.klotz.me/bookmarks/klotz?action=add&address=https://example.com&title=Example+Website+&description=This+is+an+example+website&tags=example,website,canonical+page>
   yq -o=json -I0 '.' | jq -r "$TO_LINK_JQ_FILTER"
@@ -113,7 +122,10 @@ Summarize the article in one brief paragraph followed by a blank line and then a
 YAML output format:
 - If the page loaded normally, respond with only a YAML file with these 4 fields: `link`, `title`, `description`, and `keywords` array.
 - DO Put quotes around the `title`.
-- Use YAML block scalar for `description` and `error` fields. Indent every line of the block scalar by two spaces. DO NOT put quotes around the block scalar content.
+- Use YAML block scalar for `description` and `error` fields.
+- The `description` field is a YAML literal block scalar that contains the paragraph *and* the indented bullet list”
+- Indent every line of the block scalar by two spaces.
+- DO NOT put quotes around the block scalar content.
 
 In success case, output in exact this YAML format:
 
@@ -137,4 +149,4 @@ EOF
     printf 'Text of link %s\n\n---\n\n' "$LINK"
     "${FETCHER_COMMAND[@]}" "$LINK" | "${CAPTURE_COMMAND[@]}"
 } |
-    ask "${ASK_EXTRA_ARGS[@]}" -- "${SCUTTLE_PROMPT}" | answer | replace_smart_quotes | extract_output
+    ask "${ASK_EXTRA_ARGS[@]}" -- "${SCUTTLE_PROMPT}" | answer | normalize_yaml | extract_output
