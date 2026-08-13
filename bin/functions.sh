@@ -177,7 +177,8 @@ function _infer () {
       max_tokens: $max_tokens,
       enable_thinking: $thinking,
       thinking: $thinking,
-      thinking_budget_tokens: 5000
+      thinking_budget_tokens: 5000,
+      reasoning_effort: "high",
     }' < "$tmp_json" > "$tmp_req"
 
   local fingerprint request_hash cache_dir cache_file response_json
