@@ -1,7 +1,7 @@
 # tools example
 
 ```
-klotz@snapback:~/wip/answer🦶$ help summarize logs and diffs since main | tools git | help write a PR for the changes|ask avoid emoji
+klotz@snapback:~/wip/answer👣$ help summarize logs and diffs since main | tools git | help write a PR for the changes|ask avoid emoji
 💬✨🤖 git log main..HEAD --oneline✨🤖 git diff main..HEAD✨💬✨✨
 ```
 

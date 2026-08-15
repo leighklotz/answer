@@ -10,7 +10,7 @@ function hx () {
 
     case "$arg" in
         "")           # hx no arg, chatty
-            hx enable && echo -n "🦶hallux enabled: model=" && hx model
+            hx enable && echo -n "👣hallux enabled: model=" && hx model
             ;;
         "enable")     # hx enable, quiet
             source ~/wip/answer/bin/commands/enable

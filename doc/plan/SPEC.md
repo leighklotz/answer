@@ -15,7 +15,7 @@ The core component. Sends a user prompt to a language-model API and returns the 
 #### Synopsis
 
 ```bash
-🦶$ ask [OPTIONS] [PROMPT...]
+👣$ ask [OPTIONS] [PROMPT...]
 ```
 
 When invoked as the shell function `ask` (sourced from `functions.sh` via `enable.sh`):
@@ -151,13 +151,13 @@ Executes a command and wraps its stdout in a Bash code fence.
 #### Synopsis
 
 ```bash
-🦶$ bx <command> [args...]
+👣$ bx <command> [args...]
 ```
 
 #### Output
 
 ```bash
-🦶$ <command> [args...]
+👣$ <command> [args...]
 <output>
 ```
 
@@ -193,7 +193,7 @@ All conversation state is represented as a JSON array of message objects compati
 The central design pattern is the Unix pipeline. Conversation history flows left-to-right through the pipe:
 
 ```bash
-🦶$ ask "prompt 1" | ask "prompt 2" | ask "prompt 3" | answer
+👣$ ask "prompt 1" | ask "prompt 2" | ask "prompt 3" | answer
 ```
 
 Each `ask` in the pipeline:
@@ -208,11 +208,11 @@ Each `ask` in the pipeline:
 **N.B. For your conveinence, at the end of a pipeline (i.e. if `stdout` is a terminal), `ask` will automatically call answer, so it can be omitted.**
 
 ```bash
-🦶$ ask "prompt 1" | ask "prompt 2" | ask "prompt 3" 
+👣$ ask "prompt 1" | ask "prompt 2" | ask "prompt 3" 
 ```
 
 ```bash
-🦶$ dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about md0?" | answer
+👣$ dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about md0?" | answer
 ```
 
 
@@ -221,7 +221,7 @@ Each `ask` in the pipeline:
 When `answer --tee` is used mid-pipeline, human-readable text is printed to stderr while the JSON conversation array continues to flow on stdout:
 
 ```bash
-🦶$ dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about md0?" | answer
+👣$ dmesg | ask -i "Spot any SCSI issues" | answer --tee | ask "What can I do about md0?" | answer
 ```
 Diagram:
 
@@ -244,7 +244,7 @@ ask -i "SCSI issues"  |  tools linux_tools  |  answer --tee  |  ask "about md0?"
 The `tools` command acts as a pipeline stage between `ask` and `answer`, resolving any tool calls in the conversation:
 
 ```bash
-🦶$ ask "Spot wifi issues with dmesg" | tools linux_tools | answer
+👣$ ask "Spot wifi issues with dmesg" | tools linux_tools | answer
 ```
 
 ---
@@ -261,7 +261,7 @@ A safety gate for pipelines that forwards piped data to stdout only after explic
 #### Behaviour
 
 1.  **Capture:** Reads all data from `stdin` into a temporary file to support large inputs (including JSON conversation histories).
-2.  **Preview:** Prints a preview of the first 10 lines of the input to `stderr`, prefixed with the Hallux logo (🦶).
+2.  **Preview:** Prints a preview of the first 10 lines of the input to `stderr`, prefixed with the Hallux logo (👣).
 3.  **Prompt:** Displays a user query (the `PROMPT` arguments) to `stderr` and waits for a single-line response from the actual terminal (`/dev/tty`).
 4.  **Decision:**
     *   If the response starts with `y` or `Y`, the captured input is streamed to `stdout`.
@@ -283,12 +283,12 @@ A safety gate for pipelines that forwards piped data to stdout only after explic
 
 **As a safety gate before execution:**
 ```bash
-🦶$ ask "Write a script to delete logs" | answer | pipetest "Execute this?" | bash
+👣$ ask "Write a script to delete logs" | answer | pipetest "Execute this?" | bash
 ```
 
 **As a gate in a complex pipeline:**
 ```bash
-🦶$ (bx git status; bx git diff) | ask -i "Create a commit message" | answer | pipetest "Commit these changes?" | unfence | bash
+👣$ (bx git status; bx git diff) | ask -i "Create a commit message" | answer | pipetest "Commit these changes?" | unfence | bash
 ```
 ---
 
@@ -298,7 +298,7 @@ Informative messages and emoji go to stderr or bash PS1.
 
 | Emoji | Meaning in Code Conext |
 | :--- | :--- |
-| 🦶 | Hallux logo, shown whel  when Hallux is active. |
+| 👣 | Hallux logo, shown when Hallux is active. |
 | 📣 | `log_verbose`: Indicates verbose logging output is active. |
 | 🐞 | `log_debug`: Indicates debugging information. |
 | ℹ️ | `log_info`: Indicates general informational messages. |

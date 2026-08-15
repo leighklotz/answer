@@ -2,19 +2,19 @@
 This example demostrates the `hx what` and `hx why` management commands, which you can use to show the last assistant response, and if availble, the last assistant reasoning response.
 
 ````
-klotz@core:~/wip/answer🦶$ help-commit
+klotz@core:~/wip/answer👣$ help-commit
 ```bash
 git add doc/blog-post-1.md && \
 git commit -m "docs: update blog post to clarify help command and piping mechanism"
 ```
 y/N? y
 ...
-klotz@core:~/wip/answer🦶$ hx what
+klotz@core:~/wip/answer👣$ hx what
 🧠
 ```bash
 git add doc/blog-post-1.md && git commit -m "docs: update description of tool usage and piping behavior in blog post"
 ```
-klotz@core:~/wip/answer🦶$ hx why
+klotz@core:~/wip/answer👣$ hx why
 💭
     *   Working directory: `/home/klotz/wip/answer` (Git root is also here).
         *   Changes in `doc/blog-post-1.md`:
@@ -56,5 +56,5 @@ klotz@core:~/wip/answer🦶$ hx why
         git add doc/blog-post-1.md && \
         git commit -m "docs: update blog post to clarify help command and piping mechanism"
         ```
-klotz@core:~/wip/answer🦶$
+klotz@core:~/wip/answer👣$
 ````

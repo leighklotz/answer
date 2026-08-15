@@ -27,7 +27,7 @@ These commands manage the active shell environment or provide specialized extrac
 
 | Command | Purpose | Implementation Note |
 | :--- | :--- | :--- |
-| **`hx enable`** | **Activate Framework:** Integrates Answer into your current session, adding a `(🦶)` icon to your `$PS1`. | Sources `~/wip/answer/bin/commands/enable`. |
+| **`hx enable`** | **Activate Framework:** Integrates Answer into your current session, adding a `(👣)` icon to your `$PS1`. | Sources `~/wip/answer/bin/commands/enable`. |
 | **`hx disable`** | **Deactivate Framework:** Removes command aliases/environment changes for the current session. | Sources `~/wip/answer/bin/commands/disable`. |
 | **`hx again`** | **Replay Previous Command:** Executes the previous bash command line again, but through bx with stderr redirected. | Calls `_hx_again`. |
 | **`hx why`** | **Reasoning Analysis:** Extracts and displays model "thinking" or reasoning blocks (🧠) from your most recent cached interaction. | `cat "$latest" \| ~/wip/answer/bin/commands/why.sh`. |

@@ -33,7 +33,7 @@ You can use the `ask` and `help` commands to ask one-shot questions, right in th
 
 ````bash
     $ hx enable
-    🦶$ help briefly, how can i use a bash variable reference to drop the last file extension 
+    👣$ help briefly, how can i use a bash variable reference to drop the last file extension 
     ✨
     Use **parameter expansion** with the `%` operator to remove the shortest match of a dot and any characters
     following it from the end of the string:
@@ -43,7 +43,7 @@ You can use the `ask` and `help` commands to ask one-shot questions, right in th
     echo "${FILE%.*}"
     # Output: image.tar
     ```
-    klotz@snapback:~/wip/answer🦶$ 
+    klotz@snapback:~/wip/answer👣$ 
 ````
 
 
@@ -52,7 +52,7 @@ You can use the `ask` and `help` commands to ask one-shot questions, right in th
 You can pass general output into `help` and `ask`, with or without the `bx` wrapper. If the input is self-explanatory, use stdin directly. If the request would benefit from having the command that produced the output documented, use `bx`. If there are multiple files, use `lx`.
 
 ````bash
-    🦶$ sudo dmesg | tail -40 | help what is the up with the WiFi
+    👣$ sudo dmesg | tail -40 | help what is the up with the WiFi
     ✨
     Based on the log snippet provided, there does not appear to be a connection failure or a hardware error. 
     Here is the breakdown of what the WiFi status shows:
@@ -61,16 +61,16 @@ You can pass general output into `help` and `ask`, with or without the `bx` wrap
 ````
 
 ````
-    🦶$ openssl --help 2>&1 | help I want to check the certificate at  https://example.com
+    👣$ openssl --help 2>&1 | help I want to check the certificate at  https://example.com
     ✨
     ```bash
     openssl s_client -connect example.com:443 -servername example.com </dev/null | openssl x509 -text -noout
     ```
-    🦶$ 
+    👣$ 
 ````
 
 ````bash
-    🦶$ lx bin/*.sh | help look for unnecessary debug statements
+    👣$ lx bin/*.sh | help look for unnecessary debug statements
     📥📥📥📥📥📥📥📥📥📥📥📥📥📥✨
 Based on your provided scripts, here are the unnecessary debug statements (commented-out code or developer trace logs used for inspecting internal state) that should be removed before production use:
 
@@ -156,7 +156,7 @@ $ sudo dmesg | split -l 1000 --filter="help.sh look for anomalies in this segmen
 You can use answer to wrap a few convenient git commands to customize your workflow:
 
 ````bash
-klotz@tensor:~/wip/answer🦶$ help-commit
+klotz@tensor:~/wip/answer👣$ help-commit
 🐚🐚🐚🐚🐚🐚🐚💬✨🧠
 ─────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
    1 │ ```bash
@@ -201,7 +201,7 @@ Once bootstrapped via `source`, the `hx` function provides workspace management,
 ### 1. Environment & Session Control
 These commands manage your active terminal environment and LLM configuration.
 
-* **`hx enable / disable`**: Integrates the harness into your current session, adding a `(🦶)` icon to the bash `$PS1`.
+* **`hx enable / disable`**: Integrates the harness into your current session, adding a `(👣)` icon to the bash `$PS1`.
 * **`hx model [args]`**: Launches the interface to configure API endpoints and model preferences.
 * **`hx set-model [args]`**: Quickly switches the active LLM (via `$HX_MODEL`) for the current session.
 
