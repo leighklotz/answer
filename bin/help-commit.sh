@@ -12,11 +12,11 @@ source "${SCRIPT_DIR}/functions.sh"
 # backslash inside your instructions for the LLM.
 read -r -d '' GIT_COMMIT_PROMPT << 'EOF'
 Analyze the provided git session output (PWD, Root, Branch, and Diffs). 
-Your goal is to generate a single bash code fence containing commands to stage all unstaged changes and commit everything currently in the index.
+Your goal is to generate a single bash code fence containing commands to stage all unstaged changes and commit everything currently in the index, in one or more commit sets as appropriate.
 
 ### OUTPUT SCHEMA:
 - If no changes exist $\rightarrow$ `echo "no changes"`
-- Otherwise, provide one or more commands following this pattern:
+- Otherwise, provide one or commit sets, following this pattern:
   git add <paths> (if there are unstaged/new files)
   git commit -m "<Imperative summary>" -m "- <Detailed description line 1>"
 
@@ -34,7 +34,7 @@ EOF
 
 
 if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-    echo "👣$(basename "$0"): PWD=$PWD is not in a git repository"
+    log_error "PWD=$PWD is not in a git repository"
     exit 1
 fi
 
