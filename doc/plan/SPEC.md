@@ -298,7 +298,7 @@ Informative messages and emoji go to stderr or bash PS1.
 
 | Emoji | Meaning in Code Conext |
 | :--- | :--- |
-| 👣 | Hallux logo, shown whel  when Hallux is active. |
+| 👣 | Hallux logo, shown when Hallux is active. |
 | 📣 | `log_verbose`: Indicates verbose logging output is active. |
 | 🐞 | `log_debug`: Indicates debugging information. |
 | ℹ️ | `log_info`: Indicates general informational messages. |
