@@ -171,12 +171,13 @@ function _infer () {
     --arg server_model "$server_model" \
     --argjson thinking "${ENABLE_THINKING:-true}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
+    --argjson thinking_budget "${THINKING_BUDGET:-500}" \
     '{
       model: $server_model,
       messages: .,
       max_tokens: $max_tokens,
       enable_thinking: $thinking,
-      thinking_budget_tokens: 5000,
+      thinking_budget_tokens: $thinking_budget,
     }' < "$tmp_json" > "$tmp_req"
 
   local fingerprint request_hash cache_dir cache_file response_json
