@@ -72,7 +72,7 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
     fi
 
     if ! jq -e '.' <<< "$clean_stdin" >/dev/null 2>&1; then
-      echo "🦶ask: WARN: infer returned invalid JSON, resetting state." >&2
+      echo "👣ask: WARN: infer returned invalid JSON, resetting state." >&2
       clean_stdin="[]"
     fi
 

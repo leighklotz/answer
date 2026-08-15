@@ -2,7 +2,7 @@ $ help-commit.sh
 🤖 ```bash
 git commit -m "docs: add help-commit example file"
 ```
-🦶 : Y or N? y
+👣 : Y or N? y
 
 [main 8025a73] docs: add help-commit example file
  1 file changed, 16 insertions(+)

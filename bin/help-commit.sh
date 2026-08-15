@@ -34,7 +34,7 @@ EOF
 
 
 if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-    echo "🦶$(basename "$0"): PWD=$PWD is not in a git repository"
+    echo "👣$(basename "$0"): PWD=$PWD is not in a git repository"
     exit 1
 fi
 

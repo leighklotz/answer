@@ -21,7 +21,7 @@ if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
 fi
 
 if [ -t 0 ]; then
-    echo "🦶tools: expected JSON conversation array on stdin" >&2
+    echo "👣tools: expected JSON conversation array on stdin" >&2
     exit 1
 fi
 

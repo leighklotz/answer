@@ -4,17 +4,17 @@
 
 # Require bash 4+
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
-    echo "🦶ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
+    echo "👣ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
     return 1 2>/dev/null
 fi
 
 # Check if ask.sh is available
 if ! command -v ask.sh &> /dev/null; then
-    echo "🦶$0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
+    echo "👣$0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
 if [[  "$(command -v ask.sh)" != *answer* ]]; then
-    echo "🦶$0: WARN: Wrong ask.sh is on the PATH.  Please use 'hx disable' followed by 'hx enable'." >&2
+    echo "👣$0: WARN: Wrong ask.sh is on the PATH.  Please use 'hx disable' followed by 'hx enable'." >&2
 fi
 
 # Source env.sh if variables are not already defined
@@ -225,7 +225,7 @@ function _infer () {
       | select(type == "string" and length > 0)
     ' 2>/dev/null
   ) || {
-    echo "🦶infer: ERROR: empty or missing assistant content in chat completion response" >&2
+    echo "👣infer: ERROR: empty or missing assistant content in chat completion response" >&2
     printf "%s" "$response_json" | jq -c '{id, object, choices, error}' 2>/dev/null || true
     return 1
   }
@@ -298,7 +298,7 @@ function hx() {
             shift
             HX_MODEL=$(~/wip/answer/bin/commands/model.sh "$@") && {
                 export HX_MODEL="$HX_MODEL"
-                echo "🦶export HX_MODEL=$HX_MODEL" >&2
+                echo "👣export HX_MODEL=$HX_MODEL" >&2
             } || return 1
         ;;
 

@@ -23,8 +23,8 @@ Once bootstrapped, you can use the `hx` command within your shell to activate th
 
 ```bash
  $ hx enable
- 🦶$ help 2+3=
+ 👣$ help 2+3=
  ✨
  5
- 🦶$
+ 👣$
 ```

@@ -8,7 +8,7 @@ I started by manually and incrementally executing a bash for loop based on my pr
 
 ````bash
     klotz@tensor:~/wip/answer$ . commands/enable 
-    klotz@tensor:~/wip/answer🦶$ history 15 | help write the loop i am trying to write to document all the commands. some are foo.sh and some are function foo in functions.sh so better choose which file to send to help as the source.
+    klotz@tensor:~/wip/answer👣$ history 15 | help write the loop i am trying to write to document all the commands. some are foo.sh and some are function foo in functions.sh so better choose which file to send to help as the source.
     💭```bash
     for cmd in answer ask bx help-commit help unfence; do
         fn="doc/$cmd.md"
@@ -36,7 +36,7 @@ So when I wanted to use the `unfence` command to write the reults of the previou
 A bit more thought could go into making the bash history and the hx cache more useful for keeping multiple threads of pipelines going. Compare this vis-a-vis the linear conversation mode of browser tabs and special-purpose LLM TUI coder interfaces.
 
 ````bash
-    klotz@tensor:~/wip/answer🦶$ history 15 | help write the loop i am trying to write to document all the commands. some are foo.sh and some are function foo in functions.sh so better choose which file to send to help as the source. | unfence > makedoc.sh
+    klotz@tensor:~/wip/answer👣$ history 15 | help write the loop i am trying to write to document all the commands. some are foo.sh and some are function foo in functions.sh so better choose which file to send to help as the source. | unfence > makedoc.sh
 
 ```bash
     💭
@@ -64,7 +64,7 @@ A bit more thought could go into making the bash history and the hx cache more u
       22 │     lx "${CTX_ARGS[@]}" | help "document the $cmd command for $DEST" | unfence > "$DEST"
       23 │ done
     🤖 Proceed with this command? (y/N): y
-    klotz@tensor:~/wip/answer🦶$ cat makedoc.sh 
+    klotz@tensor:~/wip/answer👣$ cat makedoc.sh 
     for cmd in answer ask bx help-commit help unfence; do
         # 1. Determine if the source is a standalone script or a function in functions.sh
         if [ -f "${cmd}.sh" ]; then
@@ -88,7 +88,7 @@ A bit more thought could go into making the bash history and the hx cache more u
         # 4. Run the pipeline to generate documentation
         lx "${CTX_ARGS[@]}" | help "document the $cmd command for $DEST" | unfence > "$DEST"
     done
-    klotz@tensor:~/wip/answer🦶$ 
+    klotz@tensor:~/wip/answer👣$ 
     ```
     
 ````
@@ -106,7 +106,7 @@ Interesting things to note:
 Notice the cache hits (🎯) and inference (💭) icons: 
 
 ````bash
-klotz@tensor:~/wip/answer🦶$ lx doc/answer.md doc/answer.md.new  | help which doc is better
+klotz@tensor:~/wip/answer👣$ lx doc/answer.md doc/answer.md.new  | help which doc is better
 💭The **`.new`** version is better, but with a caveat: you should only use the specific markdown code blocks within it, rather than the entire text.
 
 ### Why the `.new` version is superior:
@@ -119,36 +119,36 @@ klotz@tensor:~/wip/answer🦶$ lx doc/answer.md doc/answer.md.new  | help which 
 **Recommendation:**
 Use the code block under **"Updated `doc/answer.md`"** to replace your current `doc/answer.md`, and add the **"Updated `doc/IMPL.md`"** section to your implementation documentation.
 
-klotz@tensor:~/wip/answer🦶$ lx doc/answer.md doc/answer.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?'
+klotz@tensor:~/wip/answer👣$ lx doc/answer.md doc/answer.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?'
 🎯💭**Update it.** 
 
 The `.new` version corrects technical inaccuracies in the original documentation regarding the distinction between the high-level shell function and the low-level `answer.sh` script.
-klotz@tensor:~/wip/answer🦶$ 
+klotz@tensor:~/wip/answer👣$ 
 ````
 
 Then I performed the file rename myself, and then added that to the pipeline. You can again see the cached previous results:
 
 ````bash
-klotz@tensor:~/wip/answer🦶$ mv doc/answer.md.new doc/answer.md
-klotz@tensor:~/wip/answer🦶$ lx doc/bx.md doc/bx.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?'
+klotz@tensor:~/wip/answer👣$ mv doc/answer.md.new doc/answer.md
+klotz@tensor:~/wip/answer👣$ lx doc/bx.md doc/bx.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?'
 💭💭The new version (`doc/bx.md.new`) is correct. The old version had a logic error regarding the order of operations. You should use the new one.
-klotz@tensor:~/wip/answer🦶$ lx doc/bx.md doc/bx.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?' | help 'write the bash `mv` command to perform the update, or else write an echo command that explains why not' 
+klotz@tensor:~/wip/answer👣$ lx doc/bx.md doc/bx.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?' | help 'write the bash `mv` command to perform the update, or else write an echo command that explains why not' 
 🎯🎯💭```bash
 mv doc/bx.md.new doc/bx.md
 ```
-klotz@tensor:~/wip/answer🦶$ lx doc/bx.md doc/bx.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?' | help 'write the bash `mv` command to perform the update, or else write an echo command that explains why not' | unfence | bash
+klotz@tensor:~/wip/answer👣$ lx doc/bx.md doc/bx.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?' | help 'write the bash `mv` command to perform the update, or else write an echo command that explains why not' | unfence | bash
 🎯🎯🎯
    1 │ mv doc/bx.md.new doc/bx.md
 🤖 Proceed with this command? (y/N): y
-klotz@tensor:~/wip/answer🦶$ ls -l doc/bx*
+klotz@tensor:~/wip/answer👣$ ls -l doc/bx*
 -rw-r--r-- 1 klotz user 2106 Jul  1 17:54 doc/bx.md
-klotz@tensor:~/wip/answer🦶$ 
+klotz@tensor:~/wip/answer👣$ 
 ````
 
 Not everything was accepted:
 
 ````bash
-klotz@tensor:~/wip/answer🦶$ lx doc/help.md doc/help.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?' | help 'write the bash `mv` command to perform the update, or else write an echo command that explains why not' | unfence | bash
+klotz@tensor:~/wip/answer👣$ lx doc/help.md doc/help.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?' | help 'write the bash `mv` command to perform the update, or else write an echo command that explains why not' | unfence | bash
 💭💭💭─────┬───────────────────────────────────────────────────────────────────────────────────────────────────
    1 │ echo "A direct 'mv' command cannot be used because 'doc/help.md.new' contains conversational meta-
      │ text preceding the actual markdown content, which would corrupt the documentation file."
@@ -161,11 +161,11 @@ I edited the file and removed the LLM remarks at the beginning, and re-ran the c
 
 ````bash
 
-klotz@tensor:~/wip/answer🦶$ lx doc/help.md doc/help.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?' | help 'write the bash `mv` command to perform the update, or else write an echo command that explains why not' | unfence | bash
+klotz@tensor:~/wip/answer👣$ lx doc/help.md doc/help.md.new  | help which doc is better | help 'be clear and brief: just update it or are there problems?' | help 'write the bash `mv` command to perform the update, or else write an echo command that explains why not' | unfence | bash
 💭💭💭
    1 │ mv doc/help.md.new doc/help.md
 🤖 Proceed with this command? (y/N): y
-klotz@tensor:~/wip/answer🦶$ 
+klotz@tensor:~/wip/answer👣$ 
 ````
 
 # Git Heck
@@ -173,7 +173,7 @@ klotz@tensor:~/wip/answer🦶$
 Here, after being presented with the options, chose one  from the text output directly in the emacs shell buffer, pressing enter on the line to imput it so the emacs bash subshell. This is another variety of copy and paste.
 
 ````bash
-klotz@tensor:~/wip/answer🦶$ bx git status | help explain | help i do not want the .new files. they were a mistake.
+klotz@tensor:~/wip/answer👣$ bx git status | help explain | help i do not want the .new files. they were a mistake.
 🎯💭Since your `git status` shows the code **`AD`** for the `.new` files, it means they are **staged** (Added) in the index, but **missing** (Deleted) from your working directory.
 
 To remove them from your staging area so they are no longer part of your upcoming commit, run:
@@ -193,4 +193,4 @@ git restore --staged doc/*.new
   ```
 
 **In your specific case, `git restore --staged doc/*.new` is the correct command to fix the mistake.**
-klotz@tensor:~/wip/answer🦶$  git reset
+klotz@tensor:~/wip/answer👣$  git reset
