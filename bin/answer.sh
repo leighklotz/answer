@@ -58,6 +58,8 @@ fi
 if [[ $JSON_MODE -eq 1 ]]; then
     # Output the full JSON conversation array preceded by the magic header for pipeline continuity.
     printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "${resolved_history}"
+elif [[ -t 1 && -n "$HX_MD" ]]; then
+    printf '%s\n' "$assistant_text" | $HX_MD
 else
     # Default: output only the raw plain text response to stdout.
     printf '%s\n' "$assistant_text"
