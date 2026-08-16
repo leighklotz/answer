@@ -10,14 +10,20 @@ if [ -t 0 ]; then
   log_and_exit 1 "No stdin detected. Pipe conversation history or input text into answer."
 fi
 
-TEE_MODE=0
-JSON_MODE=0
+HX_LOWDOWN='lowdown -t term'
+TEE_MODE=''
+MARKDOWN_TEE_MODE=''
+JSON_MODE=''
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -t|--tee)
             TEE_MODE=1
+            shift
+            ;;
+        -m|--markdown-tee)
+            MARKDOWN_TEE_MODE=1
             shift
             ;;
         -j|--json)
@@ -52,6 +58,10 @@ fi
 # If --tee is active, always output the text preview to stderr for human readability.
 if [[ $TEE_MODE -eq 1 ]]; then
     printf '\n👕%s\n' "$assistant_text" >&2
+fi
+
+if [[ $MARKDOWN_TEE_MODE -eq 1 ]]; then
+    printf '\n👕%s\n' "$assistant_text" | $HX_LOWDOWN >&2
 fi
 
 # stdout text/json
