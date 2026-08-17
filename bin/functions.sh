@@ -417,7 +417,7 @@ function _hx_provenance() {
                     return 0
                     ;;
                 "")
-                    echo "usage: hx provenance add [cat|what|why]" >&2
+                    echo "usage: hx provenance add [what|why|response|describe]-" >&2
                     ;;
 
                 *) echo "hx provenance add: unknown subcmd '$1'" >&2
