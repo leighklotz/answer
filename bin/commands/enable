@@ -1,8 +1,0 @@
-source "$(dirname "${BASH_SOURCE[0]}")/enable-core"
-
-if [[ -n "${PS1-}" && "${PS1-}" != *"\ud83d\udc63"* ]]; then
-  export ANSWER_OLD_PS1="$PS1"
-  PS1="${PS1/\\$/\ud83d\udc63\$}"
-fi
-
-source "$(dirname "${BASH_SOURCE[0]}")/../aliases.sh"
