@@ -46,7 +46,7 @@ for cmd in $CMDS; do
         fi
 
         context+=(README.md tests/story-test.sh doc/commands/*.md)
-        lx "${context[@]}" | help "$prompt" | answer > "$dest"
+        lx "${context[@]}" | ask "$prompt" | answer > "$dest"
         echo >&2
         if [ ! -s "$dest" ]; then
             log_and_exit 1 "$dest was empty"
