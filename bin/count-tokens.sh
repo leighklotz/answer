@@ -1,8 +1,7 @@
 #!/bin/bash -e
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
-source ${SCRIPT_DIR}/commands/enable
-
+source ${SCRIPT_DIR}/commands/hx-bootstrap.sh" && hx enable
 model="$(hx model)"
 URL="${VIA_API_CHAT_BASE%/}/tokenize"
 
