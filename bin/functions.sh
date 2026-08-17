@@ -250,77 +250,6 @@ function _infer () {
 
 
 ### user-level Functions and aliases
-function hx() {
-    # Handle provenance Subcommand
-    if [[ "$1" == "provenance" ]]; then
-        _hx_provenance $2 $3
-        return 0
-    elif [[ "$1" == "cache" ]]; then
-        shift # Remove 'cache' from arguments, now subcommands are in $@
-        _hx_cache "$@"
-        return $?
-    fi
-
-    # Handle Main Commands
-    case "$1" in
-        "")           # hx no arg, chatty
-            hx enable && echo -n "👣 hallux enabled: model=" && hx model
-            ;;
-
-        enable | disable)
-            local cmd_file="$HOME/wip/answer/bin/commands/${1}"
-            if [[ -f "$cmd_file" ]]; then
-                # shellcheck disable=SC1090
-                source "$cmd_file"
-            else
-                echo "Error: Command script $cmd_file not found." >&2
-                return 1
-            fi
-        ;;
-
-        again)
-            # Executes the previous bash command line again, but through bx and with stderr redirected.
-            # Use in a pipe such as `hx again | ask what went wrong`
-            _hx_again
-            ;;
-
-        why | what | cat | describe | stats)
-            local c_dir="$(_find_cache_dir)"
-            local latest_f
-            latest_f=$(_get_newest_cache_file "$c_dir")
-
-            if [[ -n "$latest_f" && -f "$latest_f" ]]; then
-                cat "$latest_f" | ~/wip/answer/bin/commands/"${1}.sh"
-            else
-                echo "No cache file found for '$1'." >&2
-                return 1
-            fi
-        ;;
-
-        model)
-            shift
-            ~/wip/answer/bin/commands/model.sh "$@"
-        ;;
-
-        set-model)
-            shift
-            HX_MODEL=$(~/wip/answer/bin/commands/model.sh "$@") && {
-                export HX_MODEL="$HX_MODEL"
-                echo "👣 export HX_MODEL=$HX_MODEL" >&2
-            } || return 1
-        ;;
-
-        models)
-            shift
-            ~/wip/answer/bin/commands/models.sh "$@"
-        ;;
-
-        *)
-            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|describe|stats|model|models|set-model]" >&2
-            return 1
-        ;;
-    esac
-}
 
 function _hx_cache() {
     case "$1" in
@@ -486,10 +415,4 @@ function _get_model_name() {
     fi
     printf "%s\n" "${model_names}" | head -1
     return 0
-}
-
-# use `builtin help` if you want native bash help command
-function help ()
-{
-    help.sh "$@"
 }

@@ -1,16 +1,8 @@
-# enable.sh: source this file
+source "$(dirname "${BASH_SOURCE[0]}")/enable-core"
 
-[[ ":$PATH:" != *":$HOME/wip/answer/bin:"* ]] && export PATH="$HOME/wip/answer/bin:$PATH"
-
-if [[ -n "${PS1-}" && "${PS1-}" != *"👣"* ]]; then
-    export ANSWER_OLD_PS1="$PS1"
-    
-    if [[ "$PS1" == *'\$'* ]]; then
-        #PS1="${PS1/\\$/ [\\!]👣$}"
-        PS1="${PS1/\\$/👣$}"
-    else
-        PS1="${PS1}👣"
-    fi
+if [[ -n "${PS1-}" && "${PS1-}" != *"\ud83d\udc63"* ]]; then
+  export ANSWER_OLD_PS1="$PS1"
+  PS1="${PS1/\\$/\ud83d\udc63\$}"
 fi
 
-source $HOME/wip/answer/bin/functions.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../aliases.sh"
