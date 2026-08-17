@@ -45,6 +45,9 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
   if [[ "$PLAIN_INPUT" != "1" ]]; then
       first_line=""
       IFS= read -r first_line < "$stdin_tmp" || true
+      if [[ ! -r "$stdin_tmp" ]]; then
+          log_and_exit 2 "ask: cancelled"
+      fi
       if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
           is_history=true
       else
