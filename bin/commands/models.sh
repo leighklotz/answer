@@ -12,7 +12,7 @@ if [[ -n "$MODEL_DATA" ]]; then
     # Wrap everything in a group to pipe the whole stream into 'column' at once
     {
         # Print the Header Row first (using tabs)
-        printf "Name\tSize(GB)\tReasoning\n"
+        printf "Name\tSize(GB)\tReasoning\tContext\n"
 
         # Loop through each model object line by line
         while read -r row; do
@@ -34,8 +34,15 @@ if [[ -n "$MODEL_DATA" ]]; then
             else
                 REASONING="No"
             fi
-            # Output current model row: Name [TAB] Size_GB [TAB] Reasoning
-            printf "%s\t%s\t%s\n" "$NAME" "$SIZE_GB" "$REASONING"
+
+            # Context length per model - llama.cpp reports it in meta.n_ctx
+            CTX=$(echo "$row" | jq -r '.meta.n_ctx // .n_ctx // empty')
+            if [[ -z "$CTX" || "$CTX" == "null" ]]; then
+                CTX="?"
+            fi
+
+            # Output current model row: Name [TAB] Size_GB [TAB] Reasoning [TAB] Context
+            printf "%s\t%s\t%s\t%s\n" "$NAME" "$SIZE_GB" "$REASONING" "$CTX"
 
         done <<< "$(echo "$MODEL_DATA")"
     } | column -t  # <--- This handles the alignment for everything above it
