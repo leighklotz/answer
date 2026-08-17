@@ -137,6 +137,9 @@ function _infer () {
 
   # Read first line to check for header
   read -r first_line
+  if [[ ! -w "$tmp_json" ]]; then
+         log_and_exit 2 "_infer: cancelled"
+  fi
   if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
     cat > "$tmp_json"
   else
