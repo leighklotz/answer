@@ -4,7 +4,7 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
-FUNCTIONS_SH="${SCRIPT_DIR}/functions.sh"
+ENABLE_CORE_SH="${SCRIPT_DIR}/enable-core.sh"
 
 shopt -s nullglob
 mkdir -p doc
@@ -30,7 +30,7 @@ for cmd in $CMDS; do
         if [ -f "${SCRIPT_DIR}/${cmd}.sh" ]; then
             src="${SCRIPT_DIR}/${cmd}.sh"
         else
-            src="${FUNCTIONS_SH}"
+            src="${ENABLE_CORE_SH}"
         fi
         echo -ne "->${src}\t" >&2
 
