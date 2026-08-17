@@ -1,8 +1,12 @@
+```markdown
 # answer
 
-**`answer`** is an extractor and bridge between structured LLM conversation state (JSON) and standard shell execution (Pristine Plain Text). It acts as a **terminal converter**: it transforms heavy, metadata-rich JSON arrays into the raw text strings that standard command-line tools (`grep`, `python`, `bash`, `unfence`) expect. 
+**`answer`** is an extractor and bridge between structured LLM conversation state (JSON) and standard shell execution (Pristine Plain Text). It acts as a **terminal converter**: it transforms heavy, metadata-rich JSON arrays into the raw text strings that standard command-line tools (`grep`, `python`, `bash`, `unfence`) expect.
 
 It is also an **inference trigger**: if you pipe content to `answer` (whether via structured history or raw piped text), and the resulting state ends with a user role, it automatically executes an inference call to resolve the turn before extracting the assistant's response. This ensures that pipelines remain continuous even when transitioning from human-readable input back into machine-executable code.
+
+`answer` requires stdin. If stdin is a TTY the command exits fast with:
+`No stdin detected. Pipe conversation history or input text into answer.`
 
 ## Synopsis
 
@@ -10,7 +14,7 @@ It is also an **inference trigger**: if you pipe content to `answer` (whether vi
 <conversation-json | raw_text> | answer [OPTIONS]
 ```
 
-The first non-flag argument begins the prompt if used interactively, or it consumes `stdin`.
+`answer` reads from stdin only. It does not accept a prompt as a positional argument.
 
 ## Description
 
@@ -24,6 +28,7 @@ If you pipe a sequence of messages into `answer` that ends in a user prompt (the
 | Flag | Long form | Description |
 |------|------------------------|---------------------------------------------------------------------------------------------------|
 | `-t` | `--tee`   | **Observation Mode:** When used within a pipeline, this prints a visual preview of the extracted text to **stderr** (with a 👕 emoji) so you can monitor progress in your terminal. The actual `stdout` remains pure plain text for the next command in the pipe. |
+| `-m` | `--markdown-tee` | **Markdown Observation Mode:** Like `--tee`, prints a preview to **stderr** with a 👕 emoji, but renders the assistant text through `lowdown -t term` for markdown formatting. Stdout is unchanged. |
 | `-j` | `--json`  | **Data Mode:** Instead of extracting plain text, outputs the full resolved JSON conversation array (preceded by the magic header) to `stdout`. Useful when passing structured state to subsequent tools like `tools` or other LLM wrappers. |
 
 ## Input Modes
@@ -35,13 +40,16 @@ The behavior of `answer` depends on whether it receives a structured pipeline he
 | **Piped (JSON History)** | Detects the magic header (`Content-Type: application/x-llm-history+json`). If the last message is from the user, it triggers an inference call to resolve the turn before extracting content. |
 | **Piped (Raw Text/Context)**| Treats incoming raw text as a new prompt or context; resolves via inference if necessary, then extracts the resulting assistant response content. |
 
+`answer` requires stdin to be present; interactive invocation without a pipe exits with an error.
+
 ## Output Modes
 
 ### 1. Standard Outputs
 | Mode | Context | stdout (Data stream) | stderr (Terminal Feedback) |
 |------|---------|-------------------|----------------------------|
-| **Extraction** (Default/Interactive) | Used as a terminal endpoint for reading or piping to tools like `unfence`. | Raw plain text of the assistant's response. | Inference status icons + Errors. |
-| **Observation** (`--tee` in a pipe) | Use this to see what is happening without breaking the pipeline structure. | Raw plain text of the assistant's response. | A visual "preview" (with 👕 emoji). |
+| **Extraction** (Default/Interactive) | Used as a terminal endpoint for reading or piping to tools like `unfence`. | Raw plain text of the assistant's response. If stdout is a TTY and `$HX_MD` is set, the text is rendered through `$HX_MD`. | Inference status icons + Errors. A blank line is printed to stderr before final output when stdout is a TTY. |
+| **Observation** (`--tee` in a pipe) | Use this to see what is happening without breaking the pipeline structure. | Raw plain text of the assistant's response. | A visual "preview" (with 👕 emoji) of the extracted text. |
+| **Markdown Observation** (`--markdown-tee`) | Mid-pipeline inspection with rendered markdown. | Raw plain text of the assistant's response. | Markdown-rendered preview via `lowdown -t term` prefixed with 👕 emoji. |
 | **JSON Mode** (`--json`) | Used when continuing a structured conversation chain. | Full resolved JSON conversation array (+ magic header). | Inference status icons + Errors. |
 
 ### 2. Visual Feedback (`stderr`)
@@ -74,7 +82,13 @@ $ ask "Say Hello" | answer --tee | echo "The AI said:"
 The AI said:Hello
 ```
 
-**4. Resolving and Extracting from Cache**
+**4. Markdown Observation Mode**
+Render a markdown preview to stderr while keeping stdout plain.
+```bash
+$ ask "Explain parameter expansion" | answer --markdown-tee | head -n 5
+```
+
+**5. Resolving and Extracting from Cache**
 If you repeat an identical query, `answer` will indicate the cache was used via stderr before printing the result to stdout:
 ```bash
 $ ask "What is 5 + 5?" | answer
@@ -82,9 +96,10 @@ $ ask "What is 5 + 5?" | answer
 10
 ```
 
-**5. Structured Pass-through (JSON Mode)**
+**6. Structured Pass-through (JSON Mode)**
 Pass the entire updated conversation history (including the new assistant message) back into a pipeline that requires structured context.
 ```bash
 $ ask "Who won the Super Bowl in 2024?" | answer --json | next_structured_tool
 # Output: Content-Type: application/x-llm-history+json\n[{"role": "user", ...}, {"role": "assistant", ...}]
+```
 ```
