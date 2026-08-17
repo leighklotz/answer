@@ -40,7 +40,7 @@ fi
 
 function usage() {
     local p=$(basename "$0")
-    echo "$p: [--help] | [--quiet] [git diff options] [--] [ask options]"
+    echo "$p: [--help] | [--quiet] [--dry-run | -n] [git diff options] [--] [ask options]"
     echo $'- --quiet: suppress introductory message'
     echo $'- any next arguments until `--` are given to `git diff`'
     echo $'- all after a `--` is given as parameters for the LLM context (e.g., main..HEAD)'

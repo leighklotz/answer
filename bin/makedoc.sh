@@ -6,6 +6,8 @@ source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 ENABLE_CORE_SH="${SCRIPT_DIR}/enable-core.sh"
 
+cd "${SCRIPT_DIR}/.."
+
 shopt -s nullglob
 mkdir -p doc
 
@@ -38,7 +40,7 @@ for cmd in $CMDS; do
         [ -n "$src" ] && context+=("$src")
 
         if [ -f $doc_md ]; then
-            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions."
+            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions. Bias towards making small changes based on script code changes, and avoid editorial changes unless necessary. If the usage document does not largely correspond to the implementation, note that fact do not output the new file. "
             dest="${doc_md_new}"
         else
             prompt="Create the usage document \`doc/commands/${cmd}.md\` for the $cmd command for $src"
