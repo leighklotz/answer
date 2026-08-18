@@ -18,8 +18,8 @@ Your goal is to generate a single bash code fence containing commands to stage a
 - If no changes exist $\rightarrow$ `echo "no changes"`
 - Otherwise, provide one or commit sets, following this pattern:
   git add <paths> (if there are unstaged/new files)
-  git commit -m "<Imperative summary>" \
-             -m "- <Detailed description line 1>"
+  git commit -m '<Imperative summary>' \
+             -m '- <Detailed description line 1>'
 
 ### LOGIC RULES:
 1. TARGETING: Always provide `git add` and `git commit` targets as paths relative to the current PWD. If a diff argument is a range (e.g., `main..HEAD`), use it ONLY for context to write the commit message; NEVER include ranges in `git add` or `git commit` targets.
@@ -29,7 +29,6 @@ Your goal is to generate a single bash code fence containing commands to stage a
    - Detail: Include a bulleted list (- ) describing changes, specifically mentioning new executable modes or significant file creations if present.
 4. SHELL SAFETY:
    - Ensure all strings are properly quoted and special characters escaped for bash execution and bash string interpolation and quoting rules.
-   - Note the backquote character which introduces code in markdown actually *executes* code in double-quote strings inside bash so it must be quoted inside double quoted strings.
    - No commentary outside the code fence.
 EOF
 
