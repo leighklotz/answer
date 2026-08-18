@@ -11,6 +11,26 @@ if [[ $# -eq 0 ]]; then
     exit 0
 fi
 
+# Handle load/unload commands specifically to allow 'hx load <mname>' and 'hx unload' via dispatcher
+case "$1" in
+  load)
+    shift
+    _load_model "$@"
+    exit 0
+    ;;
+  unload)
+    shift
+    if [[ -z "$1" ]]; then
+      # If no model name provided, try to find the current one and unload it.
+      m=$(_get_model_name)
+      [[ -n "$m" ]] && _unload_model "$m" || echo "No models currently loaded." >&2
+    else
+      _unload_model "$1"
+    fi
+    exit 0
+    ;;
+esac
+
 # 2. Fetch all currently loaded models from the API
 ALL_LOADED=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -rc '.data[] | select(.status.value == "loaded") | .id')
 
@@ -20,7 +40,6 @@ if [[ -z "$ALL_LOADED" ]]; then
 fi
 
 # 3. Filter the list of names based on all provided substrings (AND logic)
-# If you run 'model llama vllm', it only returns models matching both strings.
 MATCHES=$(echo "$ALL_LOADED" | while read -r model; do
     keep=true
     for pattern in "$@"; do

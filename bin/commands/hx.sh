@@ -9,9 +9,9 @@ cmd="$1"; shift || true
 case "$cmd" in
   set-model)
     m="$("$SCRIPT_DIR/model.sh" "$@")"
-    printf '%s\n' "$m"
+    printf '%s\\n' "$m"
     ;;
-  model)   "$SCRIPT_DIR/model.sh" "$@" ;;
+  model|load|unload)   "$SCRIPT_DIR/model.sh" "$@" ;;
   models)  "$SCRIPT_DIR/models.sh" "$@" ;;
   cache)   _hx_cache "$@" ;;
   provenance) "$SCRIPT_DIR/provenance.sh" "$@" ;;

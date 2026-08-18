@@ -323,3 +323,44 @@ function _get_model_name() {
     printf "%s\n" "${model_names}" | head -1
     return 0
 }
+
+function _load_model() {
+    local model="$1"
+    if [[ -z "$model" ]]; then
+        echo "Usage: _load_model <model_name>" >&2
+        return 1
+    fi
+
+    log_info "Loading model: $model"
+    local endpoint="${VIA_API_CHAT_BASE}/models/load"
+
+    curl -fsS -X POST "$endpoint" \
+        -H "Content-Type: application/json" \
+        -d "$(printf '{"model": "%s"}' "$model")" > /dev/null || {
+            log_error "Failed to load model: $model"
+            return 1
+        }
+
+    echo "✅ $model loaded" >&2
+}
+
+function _unload_model() {
+    local model="$1"
+    if [[ -z "$model" ]]; then
+        echo "Usage: _unload_model <model_name>" >&2
+        return 1
+    fi
+
+    log_info "Unloading model: $model"
+    local endpoint="${VIA_API_CHAT_BASE}/models/unload"
+
+    curl -fsS -X POST "$endpoint" \
+        -H "Content-Type: application/json" \
+        -d "$(printf '{"model": "%s"}' "$model")" > /dev/null || {
+            log_error "Failed to unload model: $model"
+            return 1
+        }
+
+    echo "✅ $model unloaded" >&2
+}
+
