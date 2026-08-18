@@ -5,8 +5,24 @@ source "${SCRIPT_DIR}/../env.sh"
 source "${SCRIPT_DIR}/../logging.sh"
 source "${SCRIPT_DIR}/../functions.sh"
 
-# Fetch all loaded models into a variable (each model is one line of JSON)
-MODEL_DATA=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -c ".data[] | select(.status.value == \"loaded\")")
+CMD="$1"
+
+# Determine mode: 'all' or default to 'loaded'
+if [[ "$CMD" == "all" ]]; then
+    MODE="all"
+elif [[ "$CMD" == "loaded" ]] || [[ -z "$CMD" ]]; then
+    MODE="loaded"
+else
+  echo "Usage: hx models [all|loaded]" >&2
+  exit 1
+fi
+
+# Fetch model data based on mode
+if [[ "$MODE" == "all" ]]; then
+    MODEL_DATA=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -c ".data[]")
+else
+    MODEL_DATA=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -c ".data[] | select(.status.value == \"loaded\")")
+fi
 
 if [[ -n "$MODEL_DATA" ]]; then
     # Wrap everything in a group to pipe the whole stream into 'column' at once
@@ -47,6 +63,10 @@ if [[ -n "$MODEL_DATA" ]]; then
         done <<< "$(echo "$MODEL_DATA")"
     } | column -t  # <--- This handles the alignment for everything above it
 else
-    echo "Error: No loaded models found or metadata unavailable." >&2
+    if [[ "$MODE" == "all" ]]; then
+       echo "No models available." >&2
+    else
+       echo "Error: No loaded models found or metadata unavailable." >&2
+    fi
     exit 1
 fi
