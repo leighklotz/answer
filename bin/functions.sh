@@ -171,13 +171,15 @@ function _infer () {
     --argjson thinking "${ENABLE_THINKING:-true}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     --argjson thinking_budget "${THINKING_BUDGET:-500}" \
+    --arg reasoning_effort "${REASONING_EFFORT:-medium}" \
     '{
       model: $server_model,
       messages: .,
       max_tokens: $max_tokens,
       enable_thinking: $thinking,
       thinking_budget_tokens: $thinking_budget,
-    }' < "$tmp_json" > "$tmp_req"
+      chat_template_kwargs: { reasoning_effort: $reasoning_effort }
+}' < "$tmp_json" > "$tmp_req"
 
   local fingerprint request_hash cache_dir cache_file response_json
 
