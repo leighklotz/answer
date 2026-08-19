@@ -6,9 +6,7 @@ CAPTURE_COMMAND=(cat)
 FETCHER_COMMAND=("${SCRIPT_DIR}/fetcher.sh")
 readonly SCRIPT_DIR FETCHER_COMMAND
 
-# shellcheck source=./commands/enable
-# shellcheck source=./logging.sh
-source "${SCRIPT_DIR}/commands/enable"
+source "${SCRIPT_DIR}/commands/hx-bootstrap.sh" && hx core
 source "${SCRIPT_DIR}/logging.sh"
 
 trap 'log_error "error in ${BASH_SOURCE[0]}:${BASH_LINENO[1]:-?} while running: ${BASH_COMMAND:-}"; exit 1' ERR
