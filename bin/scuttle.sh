@@ -147,6 +147,6 @@ EOF
 
 {
     printf 'Text of link %s\n\n---\n\n' "$LINK"
-    "${FETCHER_COMMAND[@]}" "$LINK" | "${CAPTURE_COMMAND[@]}"
+    "${FETCHER_COMMAND[@]}" "$LINK" | iconv -f utf-8 -t utf-8 -c | "${CAPTURE_COMMAND[@]}"
 } |
     ask "${ASK_EXTRA_ARGS[@]}" -- "${SCUTTLE_PROMPT}" | answer | normalize_yaml | extract_output
