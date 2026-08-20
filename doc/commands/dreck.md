@@ -1,68 +1,76 @@
+```markdown
 # dreck
 
-**`dreck`** is the sanitation and cleanup utility designed to purge transient artifacts left behind by interrupted or complex LLM pipelines within the Answer framework. It acts as a "garbage collector" for your workspace, specifically targeting orphaned temporary directories and stale runtime files that may persist after an inference session is aborted (e.g., via `SIGINT`/`Ctrl+C`) or if a pipeline crashes before reaching its cleanup phase.
+**`dreck`** is a comparison utility for auditing LLM rewrites. It performs a rigorous side-by-side analysis of two versions of a file — typically an original source and a rewritten version produced by an LLM — and reports on conversational boilerplate, lazy elisions, and substantive quality changes.
 
-By cleaning up this "dreck," you ensure a pristine execution environment, preventing filesystem clutter in `/tmp/` or your local workspace and avoiding potential conflicts with subsequent high-concurrency automated runs.
+The command ingests the two inputs with `lx` and runs them through `ask` with a fixed comparison system prompt. It is intended for detecting "LLM dreck": unnecessary conversational intro/outro or boilerplate in the second file, and for ensuring no critical content from the first file was omitted, summarized away, or truncated.
 
 ## Synopsis
 
 ```bash
-dreck [OPTIONS]
+dreck [FILE1 FILE2] [-- [EXTRA_PROMPT...]]
 ```
+
+If `FILE1` and `FILE2` are supplied, they are ingested via `lx` and piped to `ask`.
+If no files are supplied, `dreck` reads two entities from stdin — e.g. the output of `lx`, `git diff`, or any other pipeline — and compares them in the same way.
+
+The `--` separator is used to pass additional user prompt words that are appended to the built-in comparison prompt.
 
 ## Description
 
-When the Answer framework executes complex multi-stage pipelines (especially those involving long-running inference calls), it creates a shared temporary workspace (`HALLUX_RUN_DIR`) to manage intermediate JSON states, request buffers, and local cache lookups. While the `_cleanup_run_dir` function handles standard exits, interrupted processes can leave behind "orphaned" directories in your system's temporary folder (e.g., `/tmp/hallux_run.*`).
+`dreck` sources `env.sh`, `logging.sh` and `functions.sh` and then builds a conversation with `ask`.
 
-**`dreck`** scans for these unowned or abandoned workspaces and removes them, ensuring that the machine stays clean regardless of how an LLM session is terminated. It can also be configured to perform a "deep clean" by wiping local cache entries along with transient runtime files.
+The fixed system prompt used for every comparison is:
 
-## Options
+> Perform a rigorous comparison between these two files. 0) if the file is JSON, empty, binary data, etc. report that fact and stop immediately. 1) Detect any 'LLM dreck' in the second file (unnecessary conversational intro/outro or boilerplate). 2) Check for lazy elisions—ensure no critical content from the first file was omitted, summarized away, or truncated in the second version. 3) Conclude if the changes represent a substantive improvement in quality and completeness.
 
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `--cache` | | **Deep Clean:** In addition to cleaning orphaned temporary workspaces, this flag instructs the utility to also purge all entries in your local LLM interaction cache (`hx cache clear`). |
-| `--force` | | **Silent Mode:** Skips interactive confirmation prompts. Use with caution: once invoked, files are deleted immediately without a safety gate. |
+When two positional arguments are present:
 
-## Visual Feedback (`stderr`)
+```bash
+lx "$1" "$2" | ask "$@" "${PROMPT}" "${USER_PROMPT}"
+```
 
-Like other utilities in the Answer toolchain, `dreck` provides real-time status updates via icons on **stderr**:
-* 🧹 **Cleaning:** Currently identifying and removing orphaned temporary workspaces.
-* 🗑️ **Purging Cache:** Wiping local JSON interaction history (when `--cache` is used).
-* ✨ **Cleaned:** The environment has been successfully restored to a pristine state.
-* 🚫 **Aborted:** No orphans were found, or the operation was cancelled by the user.
+When no files are given the pipeline is:
+
+```bash
+ask "$@" "${PROMPT}"
+```
+
+`USER_PROMPT` is currently unpopulated in the implementation; the TODO in the script describes the intended behaviour of appending words after `--` to the base prompt as a user extension.
 
 ## Input Modes
 
-| Mode | Behavior | Target |
-|-----------|----------|-------------------|
-| **Standard** | Interactive cleanup of orphaned `HALLUX_RUN_DIR` directories in `/tmp`. | Temporary session files only. |
-| **Deep Clean (`--cache`)** | Removes temporary workspaces AND all cached LLM responses. | Temp dirs + `.hallux/cache/*.json`. |
+| Condition | Behaviour |
+|-----------|-----------|
+| `dreck FILE1 FILE2` | Ingests both files with `lx` and compares them. |
+| `dreck FILE1 FILE2 -- EXTRA...` | Same as above, with additional prompt words forwarded to `ask`. |
+| `dreck` with piped input | Compares two entities arriving on stdin, e.g. `lx a b | dreck` or `git diff | dreck`. |
+| `dreck -- EXTRA...` with piped input | Same as above with an extra user prompt extension. |
 
 ## Examples
 
-**1. Standard Cleanup (The "Light" Sweep)**
-Remove orphaned workspace directories left over from interrupted pipelines or crashed sessions. This is safe and will prompt for confirmation before deletion.
+**Compare two files**
+
 ```bash
-$ dreck
-🧹 Cleaning...
-Are you sure you want to remove 3 orphaned workspaces? (/tmp/hallux_run.*)
-(y/N): y
-✨ Cleaned.
+$ dreck original.md rewritten.md
 ```
 
-**2. Deep Workspace Reset (The "Heavy" Sweep)**
-Completely wipe the environment: clear out all cached LLM conversations and delete any lingering temporary files. Use this if you suspect local cache corruption or want to free up disk space significantly.
+**Compare two files with an additional instruction**
+
 ```bash
-$ dreck --cache
-🧹 Cleaning... 🗑️ Purging Cache...
-Are you sure you want to perform a deep clean? (y/N): y
-✨ Cleaned.
+$ dreck original.md rewritten.md -- "Focus on factual accuracy and citation preservation"
 ```
 
-**3. Automated Sanitation (CI/CD Pipeline)**
-In an automated environment or CI script where manual confirmation is impossible, use `--force` to ensure the cleanup completes silently as part of your build process.
+**Compare pipeline inputs**
+
 ```bash
-# Run tests and then immediately clean up any mess left by failed test runs
-$ ./tests/story-test.sh && dreck --force
-✨ Cleaned.
+$ lx v1.txt v2.txt | dreck
+$ git diff -U10 file1.md file2.md | dreck -- "Highlight any missing code blocks"
+```
+
+**Compare with a custom prompt extension on stdin**
+
+```bash
+$ cat diff.txt | dreck -- "Check for lazy elisions only"
+```
 ```

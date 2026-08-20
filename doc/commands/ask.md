@@ -1,6 +1,7 @@
+```markdown
 # ask
 
-**ask** is the "State Builder" in the Answer framework. It is responsible for sending user prompts to the LLM API, managing the conversational history, and ensuring the conversation state flows correctly through Unix pipes.
+**ask** is the "State Builder" in the Answer framework. It is responsible for building user prompts into a JSON conversation payload, managing the conversational history, and ensuring the conversation state flows correctly through Unix pipes.
 
 ## Synopsis
 
@@ -12,18 +13,24 @@ The first non-flag argument begins the prompt.
 
 ## Description
 
-`ask`, along with its optimized wrappers like `help`, serves as the primary entry point for starting or continuing an AI conversation. It manages state by passing full conversation arrays between pipeline stages via standard input/output streams using a magic header (`Content-Type: application/x-llm-history+json`). 
+`ask`, along with its optimized wrappers like `help`, serves as the primary entry point for starting or continuing an AI conversation. It manages state by passing full conversation arrays between pipeline stages via standard input/output streams using a magic header (`Content-Type: application/x-llm-history+json`).
 
-The command performs "idempotent" turn resolution: it checks if the incoming history already ends with an `assistant` role. If it does, the message is passed through unchanged to prevent redundant API calls; new inference is only triggered when the last message in the sequence is from a `user`. It also automatically detects and acknowledges reasoning/thinking blocks provided by models (like OpenAI's `reasoning_content`).
+The command performs "idempotent" turn resolution via the downstream `answer`/`_infer` engine: it checks if the incoming history already ends with an `assistant` role. If it does, the message is passed through unchanged to prevent redundant API calls; new inference is only triggered when the last message in the sequence is from a `user`. It also automatically detects and acknowledges reasoning/thinking blocks provided by models.
+
+Routing is mode dependent:
+* `--tee` / `-t` resolves the turn immediately via `_infer`, prints a human readable preview to stderr and forwards the updated JSON history to stdout.
+* Interactive terminal or `--answer` pipes the built message payload through `${SCRIPT_DIR}/answer` for immediate plain-text output.
+* Pure pipeline mode forwards `PIPELINE_MAGIC_HEADER` + messages to stdout for the next stage.
 
 ## Options
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-i` | `--input` | **Attachment Mode:** Forces `stdin` to be treated as a formal attachment. Content is appended to the end of the prompt with an `ATTACHMENT:` label. In interactive terminals, this enables multi-line input (terminated with `Ctrl-D`). |
-| `-t` | `--tee`   | **Observation Mode:** Prints a human-readable preview of the assistant's response to **stderr** while passing the updated JSON conversation history through **stdout**. This allows you to monitor progress without breaking pipeline chains. |
+| `-i` | `--input` | **Attachment Mode:** Forces `stdin` to be treated as a formal attachment. Content is appended to the end of the prompt with an `ATTACHMENT:` label. In interactive terminals, this enables multi-line input terminated with `Ctrl-D`. |
+| `-t` | `--tee`   | **Observation Mode:** Resolves the turn via `_infer`, prints a human-readable preview of the assistant's response to **stderr** while passing the updated JSON conversation history through **stdout**. This allows you to monitor progress without breaking pipeline chains. |
 | `--use-system-message` | | Prepends the content of the `$SYSTEM_MESSAGE` environment variable as a `system` role message at the start of the session. |
-| `--help` | | Print usage information and exit. |
+| `--answer` | | **Answer Mode:** Forces routing through `answer` even when stdout is not a TTY. The built message payload is piped to `answer` for immediate inference and plain-text output, equivalent to interactive terminal behavior. |
+| `--help` | | Print usage information and exit. `Usage: ask [-i|--input] [--use-system-message] [--tee|-t] [prompt]` |
 
 ## Input Modes
 
@@ -31,11 +38,11 @@ The behavior of `ask` changes based on whether it is extending an existing conve
 
 | Condition | Logic | Resulting Message Format |
 |-----------|-------|--------------------------|
-| **Interactive (Terminal)** | No stdin / No flags | A single message containing the provided prompt. |
-| **Piped (JSON History)** | `stdin` begins with `PIPELINE_MAGIC_HEADER` | The existing conversation array is extended with your new prompt as a `user` role. |
-| **Piped (Raw Text) + Prompt** | `stdin` is raw text and a prompt is provided | A new JSON array is created, containing the prompt followed by the piped text as context. |
-| **Piped (Raw Text) + No Prompt** | `stdin` is raw text and no prompt provided | The input itself becomes the first message in a new conversation. |
-| **Attachment Mode (`-i`)** | `stdin` provided via pipe or TTY | Your prompt is followed by an explicit `ATTACHMENT:` block containing the piped content. |
+| **Interactive (Terminal)** | No stdin / No flags | A single message `{"role":"user","content":$prompt}`. If stdout is a TTY the payload is piped to `answer`. |
+| **Piped (JSON History)** | `stdin` begins with `PIPELINE_MAGIC_HEADER` | Header is stripped, the JSON is resolved via `_infer`, and your new prompt is appended as a `user` role. If no prompt is given the resolved history is passed through unchanged. |
+| **Piped (Raw Text) + Prompt** | `stdin` is raw text and a prompt is provided, `-i` not set | A new JSON array is created with `{"role":"user","content": $prompt + "\n\nCONTEXT:\n" + $stdin}`. |
+| **Piped (Raw Text) + No Prompt** | `stdin` is raw text and no prompt provided | The input itself becomes the first message in a new conversation: `[{"role":"user","content": $stdin}]`. |
+| **Attachment Mode (`-i`)** | `stdin` provided via pipe or TTY | Your prompt is followed by an explicit `ATTACHMENT:` block containing the piped content: `{"role":"user","content": $prompt + "\n\nATTACHMENT:\n" + $stdin}`. |
 
 ## Output Modes
 
@@ -43,15 +50,16 @@ The output behavior depends on how you are using it as part of a pipeline:
 
 ### 1. Data Stream (stdout)
 | Mode | Context | stdout (Data stream) | stderr (Terminal Feedback) |
-|---------|----------|-------------------|----------------------------|
-| **Extraction Endpoint** | Used as a terminal endpoint for tools (e.g., `... \| answer \| python`) | Raw plain text content of only the assistant's latest message. | Inference status icons and errors. |
-| **Observation Mode (`--tee`)** | Mid-pipeline inspection (e.g., `... \| ask --tee \| next_cmd`) | The full, updated JSON conversation array. | A human-readable preview + inference status emojis. |
+|------|---------|-------------------|----------------------------|
+| **Extraction Endpoint** | Terminal or `--answer` mode, `... \| answer \| python` | Plain text from `answer` – raw content of the assistant's latest message. | Inference status icons and errors from `answer`. |
+| **Pipeline Mode** | Non-TTY, no `--tee`, no `--answer` | `PIPELINE_MAGIC_HEADER` + JSON messages for the next stage. | `💬` indicator. |
+| **Observation Mode (`--tee`)** | Mid-pipeline inspection | `PIPELINE_MAGIC_HEADER` + full resolved JSON conversation array. | Human-readable assistant preview + inference status emojis. |
 
 ### 2. Visual Feedback (stderr)
 During interactive terminal use or observation mode, `ask` provides real-time feedback on the state of your request via **stderr**:
 * ✨ **Fresh Request:** A new call was made to the LLM API.
 * 🎯 **Cache Hit:** The response was retrieved instantly from your local cache.
-* 🧠 **Reasoning/Thinking:** The model provided a reasoning or "thinking" block (e.g., `reasoning_content`).
+* 🧠 **Reasoning/Thinking:** The model provided a reasoning or "thinking" block e.g. `reasoning_content`.
 
 ## Environment Variables
 
@@ -105,4 +113,5 @@ Use `-t` to see what the model is thinking or generating while allowing JSON sta
 ```bash
 $ ask "Write a complex bash script" | ask -t "Now add error handling" | answer --tee > final_script.sh
 # The preview appears in your terminal via stderr; stdout sends clean text/JSON as requested.
+```
 ```

@@ -13,10 +13,6 @@ if ! command -v ask.sh &> /dev/null; then
     echo "👣 $0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
-if [[  "$(command -v ask.sh)" != *answer* ]]; then
-    echo "👣 $0: WARN: Wrong ask.sh is on the PATH.  Please use 'hx disable' followed by 'hx enable'." >&2
-fi
-
 # Source env.sh if variables are not already defined
 if [ -z "${VIA_API_CHAT_BASE}" ] && [ -f "$(dirname "${BASH_SOURCE[0]}")/env.sh" ]; then
     source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
@@ -175,13 +171,15 @@ function _infer () {
     --argjson thinking "${ENABLE_THINKING:-true}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     --argjson thinking_budget "${THINKING_BUDGET:-500}" \
+    --arg reasoning_effort "${REASONING_EFFORT:-medium}" \
     '{
       model: $server_model,
       messages: .,
       max_tokens: $max_tokens,
       enable_thinking: $thinking,
       thinking_budget_tokens: $thinking_budget,
-    }' < "$tmp_json" > "$tmp_req"
+      chat_template_kwargs: { reasoning_effort: $reasoning_effort }
+}' < "$tmp_json" > "$tmp_req"
 
   local fingerprint request_hash cache_dir cache_file response_json
 
@@ -248,129 +246,6 @@ function _infer () {
   jq -s -c '.[0] + .[1:]' <(cat "$tmp_json") <(printf "%s" "$assistant_msg_json")
 }
 
-
-### user-level Functions and aliases
-function hx() {
-    # Handle provenance Subcommand
-    if [[ "$1" == "provenance" ]]; then
-        _hx_provenance $2 $3
-        return 0
-    elif [[ "$1" == "cache" ]]; then
-        shift # Remove 'cache' from arguments, now subcommands are in $@
-        _hx_cache "$@"
-        return $?
-    fi
-
-    # Handle Main Commands
-    case "$1" in
-        "")           # hx no arg, chatty
-            hx enable && echo -n "👣 hallux enabled: model=" && hx model
-            ;;
-
-        enable | disable)
-            local cmd_file="$HOME/wip/answer/bin/commands/${1}"
-            if [[ -f "$cmd_file" ]]; then
-                # shellcheck disable=SC1090
-                source "$cmd_file"
-            else
-                echo "Error: Command script $cmd_file not found." >&2
-                return 1
-            fi
-        ;;
-
-        again)
-            # Executes the previous bash command line again, but through bx and with stderr redirected.
-            # Use in a pipe such as `hx again | ask what went wrong`
-            _hx_again
-            ;;
-
-        why | what | cat | describe | stats)
-            local c_dir="$(_find_cache_dir)"
-            local latest_f
-            latest_f=$(_get_newest_cache_file "$c_dir")
-
-            if [[ -n "$latest_f" && -f "$latest_f" ]]; then
-                cat "$latest_f" | ~/wip/answer/bin/commands/"${1}.sh"
-            else
-                echo "No cache file found for '$1'." >&2
-                return 1
-            fi
-        ;;
-
-        model)
-            shift
-            ~/wip/answer/bin/commands/model.sh "$@"
-        ;;
-
-        set-model)
-            shift
-            HX_MODEL=$(~/wip/answer/bin/commands/model.sh "$@") && {
-                export HX_MODEL="$HX_MODEL"
-                echo "👣 export HX_MODEL=$HX_MODEL" >&2
-            } || return 1
-        ;;
-
-        models)
-            shift
-            ~/wip/answer/bin/commands/models.sh "$@"
-        ;;
-
-        *)
-            echo "usage: hx [cache [clear|show|disable] | enable|disable|why|what|cat|describe|stats|model|models|set-model]" >&2
-            return 1
-        ;;
-    esac
-}
-
-function _hx_cache() {
-    case "$1" in
-        clear)
-            local cache_dir
-            cache_dir=$(_find_cache_dir)
-            
-            if [[ -z "$cache_dir" || ! -d "$cache_dir" ]]; then 
-                echo "❌ No valid cache directory found." >&2
-                return 1
-            fi
-
-            # Safety check: prevent accidental deletion of root or home if _find_cache_dir fails catastrophically
-            if [[ "$cache_dir" == "/" || "$cache_dir" == "$HOME" ]]; then
-                echo "❌ Error: Cache directory is a protected system path." >&2
-                return 1
-            fi
-
-            printf "⚠️ Are you sure you want to remove %s?\n" "$cache_dir" >&2
-            read -r -p "Delete directory? (y/N): " reply < /dev/tty
-            if [[ "$reply" =~ ^[Yy]$ ]]; then
-                rm -- "$cache_dir"/*.json && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
-            else
-                echo "🚫 Cancelled."
-            fi
-            ;;
-
-        show)
-            printf "%s\n" "$(_find_cache_dir)"
-            return 0
-            ;;
-
-        enable|disable)
-            if [[ "$1" == "disable" ]]; then
-                export HX_NO_CACHE=1
-                echo "⚠️ Cache disabled (session-wide)."
-            else
-                unset HX_NO_CACHE
-                echo "⚠️ Cache enabled (session-wide)."
-            fi
-            return 0
-            ;;
-
-        *)
-            echo "Unknown cache option '$1': (clear|show|enable|disable)" >&2
-            return 1
-            ;;
-    esac
-}
-
 # executes the previous bash command line again, but through bx and with stderr redirected.
 # Use in a pipe such as `hx again | ask what went wrong`
 function _hx_again() {
@@ -378,95 +253,6 @@ function _hx_again() {
     cmd=$(fc -ln -1)
     bx ${cmd/#bx /} 2>&1
 }
-
-function _hx_provenance() {
-    case "$1" in
-        add)
-            shift
-            case "$1" in 
-                what|why|response|describe|-)
-                    local last_cmd prompt_str subcmd
-                    last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
-                    prompt_str="${PS1@P}"
-                    subcmd="$1"
-
-                    local emoji
-                    declare -A emoji=([what]="💭" [why]="🧠" [response]="↩️" [describe]="📜" [-]="➡️️")
-                    declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [response]="$PIPELINE_MAGIC_HEADER" [describe]="$PIPELINE_TEXT_PLAIN_HEADER" [-]="$PIPELINE_TEXT_PLAIN_HEADER")
-
-                    local subcmd_emoji
-                    local content_type_header
-                    subcmd_emoji="${emoji[$subcmd]}"
-                    content_type_header="${ctype[$subcmd]}"                    
-
-                    printf "💾 hx provenance %s %s | git notes --ref=provenance/hallux append 📌\n" "$subcmd" "$subcmd_emoji" >&2
-
-                    local hx_out
-                    if [ "$subcmd" == "-" ]; then
-                        if [ -t 0 ]; then
-                            echo "Provide hx provenance add input:" >&2
-                        fi
-                        hx_out="$(cat)"
-                    else
-                        hx_out=$(hx $subcmd 2>/dev/null || echo "[hx $subcmd failed or missing]")
-                    fi
-
-                    printf "%s%s\n%s\n%s\n\n" \
-                        "$prompt_str" \
-                        "$last_cmd" \
-                        "${content_type_header}" \
-                        "$hx_out" \
-                        | git notes --ref=provenance/hallux append -F -
-                    return 0
-                    ;;
-                "")
-                    echo "usage: hx provenance add [what|why|response|describe]-" >&2
-                    ;;
-
-                *) echo "hx provenance add: unknown subcmd '$1'" >&2
-                   return 1
-                   ;;
-            esac
-        ;;
-        show)
-            # Instantly prints out your clean chronological append log for HEAD or a specific hash
-            git notes --ref=provenance/hallux show "$2"
-            return 0
-            ;;
-            
-        refs)
-            # Scans the repo and lists hashes that have your tool's data attached
-            git notes --ref=provenance/hallux list
-            return 0
-            ;;
-            
-        list)
-            # Decorated list that slices the first and last 20 characters of the first note line
-            git notes --ref=provenance/hallux list | while read -r note_hash commit_hash; do
-                local log_line note_first_line preview
-                log_line=$(git log -1 --oneline "$commit_hash")
-                note_first_line=$(git notes --ref=provenance/hallux show "$commit_hash" 2>/dev/null | head -n 1)
-                
-                if (( ${#note_first_line} <= 43 )); then
-                    preview="$note_first_line"
-                else
-                    preview="${note_first_line:0:20}...${note_first_line: -20}"
-                fi
-                
-                local color_cyan='\x1b[36m'
-                local nc='\x1b[0m'
-                printf "%s 📌${color_cyan}%s${nc}\n" "$log_line" "$preview"
-            done
-            return 0
-            ;;
-            
-        *)
-            echo "usage: hx provenance [ show | refs | list | add [ what | why | cat ] ]" >&2
-            return 1
-            ;;
-    esac
-}
-
 
 # TODO: Find a better way to pick a model of multiple models are loaded
 # TODO: `hx models` or `hx model` might take filtering arguments (words to require in model name)
@@ -488,8 +274,42 @@ function _get_model_name() {
     return 0
 }
 
-# use `builtin help` if you want native bash help command
-function help ()
-{
-    help.sh "$@"
+function _load_model() {
+    local model="$1"
+    if [[ -z "$model" ]]; then
+        echo "Usage: _load_model <model_name>" >&2
+        return 1
+    fi
+
+    log_info "Loading model: $model"
+    local endpoint="${VIA_API_CHAT_BASE}/models/load"
+
+    curl -fsS -X POST "$endpoint" \
+        -H "Content-Type: application/json" \
+        -d "$(printf '{"model": "%s"}' "$model")" > /dev/null || {
+            log_error "Failed to load model: $model"
+            return 1
+        }
+
+    echo "✅ $model loaded" >&2
+}
+
+function _unload_model() {
+    local model="$1"
+    if [[ -z "$model" ]]; then
+        echo "Usage: _unload_model <model_name>" >&2
+        return 1
+    fi
+
+    log_info "Unloading model: $model"
+    local endpoint="${VIA_API_CHAT_BASE}/models/unload"
+
+    curl -fsS -X POST "$endpoint" \
+        -H "Content-Type: application/json" \
+        -d "$(printf '{"model": "%s"}' "$model")" > /dev/null || {
+            log_error "Failed to unload model: $model"
+            return 1
+        }
+
+    echo "✅ $model unloaded" >&2
 }

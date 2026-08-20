@@ -1,65 +1,80 @@
 # makedoc
 
-**`makedoc`** is a documentation orchestration utility designed to maintain consistency across the Answer toolchain documentation. It automates the generation of standardized Markdown (`.md`) files in the `doc/` directory by parsing structured comment blocks embedded directly within shell scripts or configuration templates. 
+**`makedoc`** is a documentation orchestration utility that uses the Answer toolchain LLM pipeline to generate or update Markdown usage documents for commands. It builds a context bundle from source scripts, `README.md`, tests and existing docs, then runs `lx ... | ask "..." | answer` to produce `doc/commands/<cmd>.md`.
 
-By using `makedoc`, developers ensure that changes to command flags, environment variables, or syntax descriptions in the source code are reflected in the user documentation with minimal manual effort and zero formatting drift.
+It is not a parser. Documentation is produced by prompting the model with the command implementation and project context.
 
 ## Synopsis
 
 ```bash
-makedoc [OPTIONS] <path>...
+makedoc [COMMANDS...]
 ```
 
-The path can be a specific file, a directory of scripts (e.g., `bin/commands`), or multiple sources separated by spaces.
+If no COMMANDS are given, a default set is processed. If one or more COMMANDS are supplied, only those commands are processed.
 
 ## Description
 
-`makedoc` scans the provided files for specialized "docstring" comments that follow a structured syntax. Once it identifies these blocks, it parses the metadata to generate human-readable Markdown documentation formatted according to project standards. 
+`makedoc` iterates over the target commands and for each command:
 
-The utility is designed for a **source-of-truth** workflow: instead of maintaining separate `.md` files and code implementation in two places, developers write documentation directly above their function definitions or command logic within shell scripts using specific annotation prefixes (e.g., `@description`, `@usage`, `--flag`). This minimizes the risk of "documentation rot" where the help menu shows one behavior while the script implements another.
+1. Determines the source file:
+   * `${SCRIPT_DIR}/${cmd}.sh` if it exists
+   * otherwise `${SCRIPT_DIR}/enable-core.sh`
+2. Builds a context array:
+   * Files from `$MAKEDOC_PREREADING` if set
+   * The source file determined above
+   * `README.md tests/story-test.sh doc/commands/*.md`
+3. Ingests the context with `lx`
+4. Prompts the model via `ask`:
+   * If `doc/commands/${cmd}.md` exists:  
+     `Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions.`
+     Output is written to `doc/commands/${cmd}.md.new`
+   * If the doc does not exist:  
+     `Create the usage document \`doc/commands/${cmd}.md\` for the $cmd command for $src`
+     Output is written to `doc/commands/${cmd}.md`
+5. Fails if the destination file is empty.
 
-## Options
+The script creates `doc` if needed, uses `shopt -s nullglob`, and skips a command if `doc/commands/${cmd}.md.new` already exists.
 
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `-o` | `--output <dir>` | **Target Directory:** Specifies the directory where generated `.md` files will be written. Defaults to `doc/commands`. If specified, existing files in that directory are not deleted unless `--force` is used. |
-| `-f` | `--force`   | **Overwrite Mode:** Silently overwrites any existing documentation files with updated versions from the source scripts. |
-| `-t` | `--template <file>` | **Template Injection:** Uses a specified Markdown template to control the visual structure and branding of the generated output. |
-| `--help` |           | Print usage information and exit. |
+Diagnostic information such as `CMDS=...` and `MAKEDOC_PREREADING=...` is printed to stdout; per-command progress is written to stderr.
 
-## Input Modes
+## Environment Variables
 
-The behavior of `makedoc` depends on the types of files provided as arguments:
+| Variable | Description |
+|----------|-------------|
+| `MAKEDOC_PREREADING` | Optional space-separated list of additional files to prepend to the context for every command. |
 
-| Condition | Behavior | Resulting Output Format |
-|-----------|----------|-------------------------|
-| **Shell Scripts (`.sh`)** | Scans for comment blocks prefixed with `@description`, `@usage`, or `--flag`. | Generates `.md` files corresponding to the primary function name found in the script. |
-| **Config Files (YAML/JSON)** | Parses key-value pairs and structural metadata into a structured "Configuration" section. | Generates technical reference documentation for environment variables or tool settings. |
+## Default Commands
+
+When invoked with no arguments the following commands are processed:
+
+```
+answer ask bx dreck help-commit help hx lx makedoc systype tools unfence
+```
 
 ## Examples
 
-**1. Standard Documentation Generation**
-Automatically generate all command documentation from your `bin/commands` directory:
+**Process the default set**
 ```bash
-$ makedoc bin/commands
-# This will scan every .sh file and create matching files in doc/commands/
+$ makedoc
+CMDS=answer ask bx dreck help-commit help hx lx makedoc systype tools unfence
+MAKEDOC_PREREADING=
+cmd=answer->.../bin/answer.sh
+...
 ```
 
-**2. Targeted Output to a Custom Directory**
-Generate a dedicated "API reference" folder for external developers without cluttering the main `doc/` directory:
+**Process a specific command**
 ```bash
-$ makedoc --output docs/api bin/commands
+$ makedoc answer ask
 ```
 
-**3. Forcing an Update (CI/CD Workflow)**
-Use `--force` in automated pipelines to ensure documentation is always kept up-to-date with every commit during the build process:
+**Add extra pre-reading context**
 ```bash
-# Automatically update all command docs without manual confirmation
-$ makedoc --output doc/commands bin/commands/*.sh --force
+$ export MAKEDOC_PREREADING="doc/plan/overview.md"
+$ makedoc help
 ```
 
-**4. Using a Custom Design Template**
-Apply specialized formatting (like adding headers or specific warning blocks) using a custom template file:
+**Regenerate a single doc without overwriting the original**
+If `doc/commands/help.md` exists, the new output is written to `doc/commands/help.md.new`. Remove or rename the `.new` file to replace the published doc after review.
 ```bash
-$ makedoc --template templates/professional_style.md bin/commands/model.sh
+$ makedoc help
 ```

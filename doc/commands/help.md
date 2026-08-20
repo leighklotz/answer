@@ -1,3 +1,4 @@
+```markdown
 # help
 
 **`help`** is a specialized wrapper for the `ask` command, pre-configured with a system prompt optimized for high-precision technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering. 
@@ -16,18 +17,25 @@ The first non-flag argument begins the prompt.
 
 `help` is a convenience command that automatically injects a specialized `SYSTEM_MESSAGE` into the LLM context to ensure highly technical, concise, and executable responses. While `ask` is a general-purpose state builder for any conversation type, `help` is tuned for efficiency: it is configured to provide direct answers and actionable code while **avoiding unnecessary exposition** (minimizing conversational "fluff").
 
-Because of how `help` is implemented in the shell environment, all arguments passed to it are forwarded directly to the underlying engine. This ensures that every query benefits from a "Technical Assistant" persona by default.
+The implementation sets `SYSTEM_MESSAGE` to a Linux-focused assistant prompt unless the environment variable `SYSTEM_MESSAGE` is already defined, and then invokes:
+
+```bash
+ask --use-system-message "$@"
+```
+
+Because of this, all arguments passed to `help` are forwarded directly to the underlying `ask` engine with `--use-system-message` applied automatically. This ensures that every query benefits from a "Technical Assistant" persona by default.
 
 When used in a pipeline, `help` behaves exactly like `ask`, managing conversational history and allowing for complex, stateful technical workflows through JSON objects.
 
 ## Options
 
-Since `help` is an optimized interface built upon the logic of `ask`, it supports all its operational flags:
+`help` forwards all flags to `ask`. The following flags are supported:
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
 | `-i` | `--input` | **Attachment Mode:** Treats `stdin` (from a pipe or TTY) as raw text to be appended with an `ATTACHMENT:` label. In a terminal, this enables multi-line input via Ctrl+D. |
 | `-t` | `--tee`   | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated JSON conversation history through **stdout**. This is essential for mid-pipeline inspection without breaking chains. |
+| `--help` | | Print usage information and exit. |
 
 ## Input Modes
 
@@ -92,4 +100,5 @@ $ hx describe
 Use `-t` when you want to see the LLM's technical reasoning in your terminal, but need the resulting JSON state to be passed to a tool like `unfence`:
 ```bash
 $ help "write a bash script to check disk space" --tee | unfence | bash
+```
 ```

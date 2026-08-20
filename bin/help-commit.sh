@@ -16,9 +16,11 @@ Your goal is to generate a single bash code fence containing commands to stage a
 
 ### OUTPUT SCHEMA:
 - If no changes exist $\rightarrow$ `echo "no changes"`
-- Otherwise, provide one or commit sets, following this pattern:
+- Otherwise, provide one or more commit sets, following this pattern:
   git add <paths> (if there are unstaged/new files)
-  git commit -m "<Imperative summary>" -m "- <Detailed description line 1>"
+  git commit -m '<Imperative summary>' \
+             -m '- <Detailed description line 1>' \
+             -m '- <Detailed description line 2>'
 
 ### LOGIC RULES:
 1. TARGETING: Always provide `git add` and `git commit` targets as paths relative to the current PWD. If a diff argument is a range (e.g., `main..HEAD`), use it ONLY for context to write the commit message; NEVER include ranges in `git add` or `git commit` targets.
@@ -28,7 +30,6 @@ Your goal is to generate a single bash code fence containing commands to stage a
    - Detail: Include a bulleted list (- ) describing changes, specifically mentioning new executable modes or significant file creations if present.
 4. SHELL SAFETY:
    - Ensure all strings are properly quoted and special characters escaped for bash execution and bash string interpolation and quoting rules.
-   - Note the backquote character which introduces code in markdown actually *executes* code in double-quote strings inside bash so it must be quoted inside double quoted strings.
    - No commentary outside the code fence.
 EOF
 
@@ -40,7 +41,7 @@ fi
 
 function usage() {
     local p=$(basename "$0")
-    echo "$p: [--help] | [--quiet] [git diff options] [--] [ask options]"
+    echo "$p: [--help] | [--quiet] [--dry-run | -n] [git diff options] [--] [ask options]"
     echo $'- --quiet: suppress introductory message'
     echo $'- any next arguments until `--` are given to `git diff`'
     echo $'- all after a `--` is given as parameters for the LLM context (e.g., main..HEAD)'

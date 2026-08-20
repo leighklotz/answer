@@ -16,19 +16,18 @@ source "${SCRIPT_DIR}/functions.sh"
 : "${TOOLS_FLAGS:=}"
 
 if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
-    echo "Usage: tools <module> [<module...>] [--keep-reasoning]" >&2
+    echo "Usage: tools <module> [<module...>]" >&2
     exit 1
 fi
 
 if [ -t 0 ]; then
-    log_error "expected JSON conversation array on stdin"
-    exit 1
+    log_and_exit 1 "expected JSON conversation array on stdin"
 fi
 
 if [ -t 1 ]; then
     log_trace "Calling ${TOOLEX_SH} $TOOLS_FLAGS --tools $@"
     if [ -n "$TRACE" ]; then
-        tee /dev/fd/2 | "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@" | "${SCRIPT_DIR}/answer"
+        tee /dev/stderr | "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@" | "${SCRIPT_DIR}/answer"
     else
         "${TOOLEX_SH}" $TOOLS_FLAGS --tools "$@" | "${SCRIPT_DIR}/answer"
     fi

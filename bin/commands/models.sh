@@ -5,14 +5,30 @@ source "${SCRIPT_DIR}/../env.sh"
 source "${SCRIPT_DIR}/../logging.sh"
 source "${SCRIPT_DIR}/../functions.sh"
 
-# Fetch all loaded models into a variable (each model is one line of JSON)
-MODEL_DATA=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -c ".data[] | select(.status.value == \"loaded\")")
+CMD="$1"
+
+# Determine mode: 'all' or default to 'loaded'
+if [[ "$CMD" == "all" ]]; then
+    MODE="all"
+elif [[ "$CMD" == "loaded" ]] || [[ -z "$CMD" ]]; then
+    MODE="loaded"
+else
+  echo "Usage: hx models [all|loaded]" >&2
+  exit 1
+fi
+
+# Fetch model data based on mode
+if [[ "$MODE" == "all" ]]; then
+    MODEL_DATA=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -c ".data[]")
+else
+    MODEL_DATA=$(curl -fsS "${VIA_API_CHAT_BASE}/models" | jq -c ".data[] | select(.status.value == \"loaded\")")
+fi
 
 if [[ -n "$MODEL_DATA" ]]; then
     # Wrap everything in a group to pipe the whole stream into 'column' at once
     {
         # Print the Header Row first (using tabs)
-        printf "Name\tSize(GB)\tReasoning\n"
+        printf "Name\tSize(GB)\tReasoning\tContext\n"
 
         # Loop through each model object line by line
         while read -r row; do
@@ -34,12 +50,23 @@ if [[ -n "$MODEL_DATA" ]]; then
             else
                 REASONING="No"
             fi
-            # Output current model row: Name [TAB] Size_GB [TAB] Reasoning
-            printf "%s\t%s\t%s\n" "$NAME" "$SIZE_GB" "$REASONING"
+
+            # Context length per model - llama.cpp reports it in meta.n_ctx
+            CTX=$(echo "$row" | jq -r '.meta.n_ctx // .n_ctx // empty')
+            if [[ -z "$CTX" || "$CTX" == "null" ]]; then
+                CTX="?"
+            fi
+
+            # Output current model row: Name [TAB] Size_GB [TAB] Reasoning [TAB] Context
+            printf "%s\t%s\t%s\t%s\n" "$NAME" "$SIZE_GB" "$REASONING" "$CTX"
 
         done <<< "$(echo "$MODEL_DATA")"
     } | column -t  # <--- This handles the alignment for everything above it
 else
-    echo "Error: No loaded models found or metadata unavailable." >&2
+    if [[ "$MODE" == "all" ]]; then
+       echo "No models available." >&2
+    else
+       echo "Error: No loaded models found or metadata unavailable." >&2
+    fi
     exit 1
 fi
