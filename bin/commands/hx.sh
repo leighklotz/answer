@@ -18,7 +18,6 @@ case "$cmd" in
         ;;
     model|load|unload)   "$SCRIPT_DIR/model.sh" "$@" ;;
     models)  "$SCRIPT_DIR/models.sh" "$@" ;;
-    cache)   _hx_cache "$@" ;;
     provenance) "$SCRIPT_DIR/provenance.sh" "$@" ;;
     again)   _hx_again ;;
     why|what|cat|describe|stats)
