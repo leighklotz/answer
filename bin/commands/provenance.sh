@@ -7,8 +7,7 @@ function _provenance_add() {
             last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
             prompt_str="${PS1@P}"
 
-            local emoji
-            declare -A emoji=([what]="💭" [why]="🧠" [response]="↩️" [describe]="📜" [-]="➡️️")
+            declare -A emoji=([what]="💭" [why]="🧠" [response]="↩️" [describe]="📜" [-]="➡️")
             declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [response]="$PIPELINE_MAGIC_HEADER" [describe]="$PIPELINE_TEXT_PLAIN_HEADER" [-]="$PIPELINE_TEXT_PLAIN_HEADER")
 
             local subcmd_emoji
