@@ -35,12 +35,7 @@ case "$cmd" in
             [[ -n "$latest_f" && -f "$latest_f" ]] && cat "$latest_f" | "$SCRIPT_DIR/${cmd}.sh" || echo "No cache" >&2
         fi
         ;;
-    context) "$SCRIPT_DIR/${cmd}.sh" ;;
-    --help)
-        usage
-        ;;
-    *|--help)
-        printf "hx '%s' unknown\n" "${cmd}" >& 2
-        usage
-        ;;
+    context|cache) "$SCRIPT_DIR/${cmd}.sh" "$@" ;;
+    --help|help) usage ;;
+    *|--help) printf "hx '%s' unknown\n" "${cmd}" >&2; usage ;;
 esac
