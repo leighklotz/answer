@@ -4,13 +4,11 @@ TEST_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
 cd "${TEST_DIR}"
 source "../bin/logging.sh"
-source "../bin/commands/enable"
-
-export ENABLE_THINKING=false
+source "../bin/commands/hx-bootstrap.sh"
+hx core
 
 failures=0
-
-INFO=1g
+INFO=1
 
 echo "Checking scripts"
 for cmd in answer ask bx help-commit help tools unfence;
