@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ~/wip/answer/bin/commands/enable-core.sh
+source ~/wip/answer/bin/commands/hx-bootstrap.sh
 hx enable
 mdl="$(hx model)"
 
