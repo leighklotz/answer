@@ -16,10 +16,11 @@ Your goal is to generate a single bash code fence containing commands to stage a
 
 ### OUTPUT SCHEMA:
 - If no changes exist $\rightarrow$ `echo "no changes"`
-- Otherwise, provide one or commit sets, following this pattern:
+- Otherwise, provide one or more commit sets, following this pattern:
   git add <paths> (if there are unstaged/new files)
   git commit -m '<Imperative summary>' \
-             -m '- <Detailed description line 1>'
+             -m '- <Detailed description line 1>' \
+             -m '- <Detailed description line 2>'
 
 ### LOGIC RULES:
 1. TARGETING: Always provide `git add` and `git commit` targets as paths relative to the current PWD. If a diff argument is a range (e.g., `main..HEAD`), use it ONLY for context to write the commit message; NEVER include ranges in `git add` or `git commit` targets.
