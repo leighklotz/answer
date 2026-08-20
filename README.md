@@ -297,7 +297,8 @@ If you are on a Mac, you may wish to use [homebrew](https://brew.sh/) to install
 Here is a quickstart with a self-introduction you can try:
 
 ````bash
-$ hx enable
+$ hx
+👣 hallux enabled: model=gemma-4-26b-qat-batch
 $ lx README.md | help what can you do
 📥✨
 Based on the documentation provided, I am part of the **Answer** toolchain—a shell-based code assistant designed to treat LLMs as composable command-line filters for Linux and macOS.
