@@ -63,7 +63,8 @@ function log_info {
 function log_warn {
     local prog="$(basename "$0")"
     local message="${1:-}"
-    log_with_icon '⚠️' "${COLOR_YELLOW}WARN ${prog}:${NOCOLOR} ${message}"
+    # unicode warning sign is blighted in ghostty+emacs
+    log_with_icon $'\u26a0\ufe0f️' "${COLOR_YELLOW}WARN ${prog}:${NOCOLOR} ${message}"
 }
 
 function log_trace {
