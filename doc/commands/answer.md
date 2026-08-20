@@ -1,4 +1,3 @@
-```markdown
 # answer
 
 **`answer`** is an extractor and bridge between structured LLM conversation state (JSON) and standard shell execution (Pristine Plain Text). It acts as a **terminal converter**: it transforms heavy, metadata-rich JSON arrays into the raw text strings that standard command-line tools (`grep`, `python`, `bash`, `unfence`) expect.
@@ -101,5 +100,4 @@ Pass the entire updated conversation history (including the new assistant messag
 ```bash
 $ ask "Who won the Super Bowl in 2024?" | answer --json | next_structured_tool
 # Output: Content-Type: application/x-llm-history+json\n[{"role": "user", ...}, {"role": "assistant", ...}]
-```
 ```
