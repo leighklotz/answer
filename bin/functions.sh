@@ -313,4 +313,3 @@ function _unload_model() {
 
     echo "✅ $model unloaded" >&2
 }
-
