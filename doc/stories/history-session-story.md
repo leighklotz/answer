@@ -7,7 +7,7 @@ Here is an example where I flailed attempting to write a script to pass the sour
 I started by manually and incrementally executing a bash for loop based on my previous command, which I edited using Meta-P in Bash. Then once I was close enough and tired of failing, I did this:
 
 ````bash
-    klotz@tensor:~/wip/answer$ . commands/enable 
+    klotz@tensor:~/wip/answer$ hx enable
     klotz@tensor:~/wip/answer👣$ history 15 | help write the loop i am trying to write to document all the commands. some are foo.sh and some are function foo in functions.sh so better choose which file to send to help as the source.
     💭```bash
     for cmd in answer ask bx help-commit help unfence; do
