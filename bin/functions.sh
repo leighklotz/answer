@@ -166,11 +166,17 @@ function _infer () {
     
   log_info "model=$server_model"
 
+  # TODO: Should we map these for model agnosticism
+  # or let the user set them individually as needed.
+  # For qwen3.8-27b:
+  # - REASONING_EFFORT=LOW -> THINKING_BUDGET=2000
+  # - REASONING_EFFORT=MEDIUM -> THINKING_BUDGET=8000
+  # - REASONING_EFFORT=XHIGH -> THINKING_BUDGET=32768
   jq \
     --arg server_model "$server_model" \
     --argjson thinking "${ENABLE_THINKING:-true}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
-    --argjson thinking_budget "${THINKING_BUDGET:-500}" \
+    --argjson thinking_budget "${THINKING_BUDGET:-8000}" \
     --arg reasoning_effort "${REASONING_EFFORT:-medium}" \
     '{
       model: $server_model,
