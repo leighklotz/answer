@@ -143,6 +143,10 @@ error: |
 EOF
 )
 
+export REASONING_EFFORT=low
+export THINKING_BUDGET=0
+export ENABLE_THINKING="false"
+
 {
     printf 'Text of link %s\n\n---\n\n' "$LINK"
     "${FETCHER_COMMAND[@]}" "$LINK" | iconv -f utf-8 -t utf-8 -c | "${CAPTURE_COMMAND[@]}"
