@@ -15,7 +15,7 @@ function hx () {
 
     case "$cmd" in
         ""|enable)
-            hx core && hx PS1 && echo -n '👣 hallux enabled: `hx disable` to disable; model=' && hx model
+            hx core && hx PS1 && echo -n '👣 hallux ' && hx model
             ;;
         core)
             HX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
