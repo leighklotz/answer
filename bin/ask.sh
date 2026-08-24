@@ -10,6 +10,7 @@ source "${SCRIPT_DIR}/functions.sh"
 USE_SYSTEM_MSG=false
 PLAIN_INPUT=""
 TEE_MODE=""
+PLAIN_INPUT_ATTACHMENT_SEPARATOR="\n\n"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -62,7 +63,8 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
       messages=$(jq -n \
                     --arg p "$prompt" \
                     --rawfile c "$stdin_tmp" \
-                    '[{role: "user", content: ($p + "\n\nATTACHMENT:\n" + $c)}]')
+                    --arg separator "$PLAIN_INPUT_ATTACHMENT_SEPARATOR" \
+                    '[{role: "user", content: ($p + $separator + $c)}]')
   elif [[ "$is_history" == true ]]; then
     # MODE: Conversation History (JSON)
     _mktemp_reg "ask.XXXXXX.json" && clean_stdin_tmp="$MKTEMP_REG"
