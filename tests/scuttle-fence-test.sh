@@ -13,7 +13,19 @@ VERBOSE="${VERBOSE:-}"
 TRACE="${TRACE:-}"
 
 # Load only strip_markdown_fence from scuttle.sh (avoid running the full script).
-eval "$(sed -n '/^function strip_markdown_fence/,/^}/p' ../bin/scuttle.sh)"
+# Track brace depth so nested blocks do not truncate the function body.
+eval "$(awk '
+  /^function strip_markdown_fence/ { capturing=1 }
+  capturing {
+    print
+    for (i = 1; i <= length($0); i++) {
+      c = substr($0, i, 1)
+      if (c == "{") depth++
+      else if (c == "}") depth--
+    }
+    if (depth == 0) exit
+  }
+' ../bin/scuttle.sh)"
 if ! declare -F strip_markdown_fence >/dev/null; then
   log_error "strip_markdown_fence not defined"
   exit 1
