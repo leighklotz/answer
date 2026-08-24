@@ -92,8 +92,8 @@ if [ -n "$TARGET_LANG" ]; then
     elif [ "$num_matching" -eq 1 ]; then
         target_idx="${matching_indices[0]}"
         if [ "$NEEDS_CONFIRM" = true ]; then
-            read -r -p "🤖 Found targeted block (${TARGET_LANG}). Proceed with this command? (y/N): " reply < /dev/tty
-            [[ "${reply,,}" =~ ^y ]] || { printf "🚫 discarded\n" >&2; exit 0; }
+            read -r -p "${ROBOT_ICON}Found targeted block (${TARGET_LANG}). Proceed with this command? (y/N): " reply < /dev/tty
+            [[ "${reply,,}" =~ ^y ]] || { printf "%s discarded\n" "$CANCELLED_ICON" >&2; exit 0; }
         fi
     else
         # Multiple matching blocks found!
@@ -101,11 +101,11 @@ if [ -n "$TARGET_LANG" ]; then
         while true; do
             # Format the indices with commas for the prompt
             idx_list=$(IFS=, ; echo "${matching_indices[*]}")
-            read -r -p "🤖 Found $num_matching targeted blocks (${TARGET_LANG}). Extract which? ($idx_list, q): " reply < /dev/tty
+            read -r -p "${ROBOT_ICON}Found $num_matching targeted blocks (${TARGET_LANG}). Extract which? ($idx_list, q): " reply < /dev/tty
             reply="${reply,,}"
             
             if [[ "$reply" == "q" || "$reply" == "quit" ]]; then
-                printf "🚫 discarded\n" >&2
+                printf "%sdiscarded\n" "$CANCELLED_ICON" >&2
                 exit 0
             elif [[ " ${matching_indices[*]} " =~ " $reply " ]]; then
                 # Ensure the user picked one of the valid matching indices
@@ -122,19 +122,19 @@ elif [ "$num_blocks" -eq 1 ]; then
     target_idx=1
     
     if [ "$NEEDS_CONFIRM" = true ]; then
-        read -r -p "🤖 Proceed? (y/N): " reply < /dev/tty
-        [[ "${reply,,}" =~ ^y ]] || { printf "🚫 discarded\n" >&2; exit 0; }
+        read -r -p "${ROBOT_ICON}Proceed? (y/N): " reply < /dev/tty
+        [[ "${reply,,}" =~ ^y ]] || { printf "${CANCELLED_ICON}discarded\n" >&2; exit 0; }
     fi
 
 else
     # Path C: Un-targeted, Multiple Blocks
     # Always prompt here because we need a decision.
     while true; do
-        read -r -p "🤖 Found $num_blocks code blocks. Extract which? (e.g., bash, python, 1, 2, ..., n, q): " reply < /dev/tty
+        read -r -p "${ROBOT_ICON}Found $num_blocks code blocks. Extract which? (e.g., bash, python, 1, 2, ..., n, q): " reply < /dev/tty
         reply="${reply,,}"
         
         if [[ "$reply" == "q" || "$reply" == "quit" || "$reply" == "n" ]]; then
-            printf "🚫 discarded\n" >&2
+            printf "%sdiscarded\n" "$CANCELLED_ICON" >&2
             exit 0
         elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "$num_blocks" ]; then
             target_idx="$reply"

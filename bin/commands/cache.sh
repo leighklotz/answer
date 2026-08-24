@@ -10,22 +10,22 @@ case "$1" in
         cache_dir=$(_find_cache_dir)
 
         if [[ -z "$cache_dir" || ! -d "$cache_dir" ]]; then 
-            echo "❌ No valid cache directory found." >&2
+            echo "$ERROR_ICON No valid cache directory found." >&2
             return 1
         fi
 
         # Safety check: prevent accidental deletion of root or home if _find_cache_dir fails catastrophically
         if [[ "$cache_dir" == "/" || "$cache_dir" == "$HOME" ]]; then
-            echo "❌ Error: Cache directory is a protected system path." >&2
+            echo "$ERROR_ICON Error: Cache directory is a protected system path." >&2
             return 1
         fi
 
-        printf "⚠️ Are you sure you want to remove %s?\n" "$cache_dir" >&2
+        printf "%s Are you sure you want to remove %s?\n" "$WARNING_ICON" "$cache_dir" >&2
         read -r -p "Delete directory? (y/N): " reply < /dev/tty
         if [[ "$reply" =~ ^[Yy]$ ]]; then
-            rm -- "$cache_dir"/*.json && echo "🗑️ Cache cleared." || echo "❌ Deletion failed." >&2
+            rm -- "$cache_dir"/*.json && echo "${TRASH_ICON}Cache cleared." || echo "$ERROR_ICON Deletion failed." >&2
         else
-            echo "🚫 Cancelled."
+            echo "$CANCELLED_ICON Cancelled."
         fi
         ;;
 

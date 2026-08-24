@@ -34,7 +34,7 @@ if [[ ! -t 0 || "$PLAIN_INPUT" == "1" ]]; then
   
   # Prompt if we are in a TTY and -i was specified
   if [[ -t 0 && "$PLAIN_INPUT" == "1" ]]; then
-    printf "💬 Give input followed by Ctrl-D:\n" >&2
+    printf "%s Give input followed by Ctrl-D:\n" "$USER_INPUT_ICON" >&2
   fi
 
   # Read STDIN
@@ -138,6 +138,6 @@ elif [ -t 1 ] || [ -n "$ANSWER_MODE" ]; then
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
 else
   # Contract Rule: Inside a pipe, forward the updated full JSON history state
-  printf "💬" >&2
+  printf "%s" "$USER_INPUT_ICON" >&2
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
 fi

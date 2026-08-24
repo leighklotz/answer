@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/logging.sh"
+
 set -euo pipefail
 
 # lx.sh - minimal reliable wrapper: print files inside fenced code blocks.
@@ -98,5 +102,5 @@ for f in "${files[@]}"; do
   # print after block (default is closing fence + blank line)
   aft="${AFTER:-$DEFAULT_AFTER}"
   printf '%b' "$aft"
-  printf "📥" >&2
+  printf "%s" "$INBOX_ICON" >&2
 done

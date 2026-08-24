@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash
 
-SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
@@ -57,11 +57,11 @@ fi
 # --tee 
 # If --tee is active, always output the text preview to stderr for human readability.
 if [[ $TEE_MODE -eq 1 ]]; then
-    printf '\n👕%s\n' "$assistant_text" >&2
+    printf '\n%s%s\n' "TEE_ICON" "$assistant_text" >&2
 fi
 
 if [[ $MARKDOWN_TEE_MODE -eq 1 ]]; then
-    printf '\n👕%s\n' "$assistant_text" | $HX_LOWDOWN >&2
+    printf '\n%s%s\n' "$TEE_ICON" "$assistant_text" | $HX_LOWDOWN >&2
 fi
 
 # stdout text/json

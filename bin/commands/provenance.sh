@@ -1,4 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S bash -e
+
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+source "${SCRIPT_DIR}/../env.sh"
+source "${SCRIPT_DIR}/../logging.sh"
 
 function _provenance_add() {
     local subcmd="$1"
@@ -7,7 +11,7 @@ function _provenance_add() {
             last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
             prompt_str="${PS1@P}"
 
-            declare -A emoji=([what]="💭" [why]="🧠" [response]="↩️" [describe]="📜" [-]="➡️")
+            declare -A emoji=([what]=$CONVO_ICON [why]=$BRAIN_ICON [response]=$RESPONSE_ICON [describe]=$SCROLL_ICON [-]=$STDIN_ICON)
             declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [response]="$PIPELINE_MAGIC_HEADER" [describe]="$PIPELINE_TEXT_PLAIN_HEADER" [-]="$PIPELINE_TEXT_PLAIN_HEADER")
 
             local subcmd_emoji
@@ -15,7 +19,7 @@ function _provenance_add() {
             subcmd_emoji="${emoji[$subcmd]}"
             content_type_header="${ctype[$subcmd]}"                    
 
-            printf "💾 hx provenance %s %s | git notes --ref=provenance/hallux append 📌\n" "$subcmd" "$subcmd_emoji" >&2
+            printf "%shx provenance %s %s | git notes --ref=provenance/hallux append %s\n" "$SAVE_ICON" "$subcmd" "$subcmd_emoji" "$PIN_ICON" >&2
 
             local hx_out
             if [ "$subcmd" == "-" ]; then
@@ -59,7 +63,7 @@ function _provenance_list() {
 
         local color_cyan='\x1b[36m'
         local nc='\x1b[0m'
-        printf "%s 📌${color_cyan}%s${nc}\n" "$log_line" "$preview"
+        printf "%s %s${color_cyan}%s${nc}\n" "$log_line" "$PIN_ICON" "$preview"
     done
 }
   
@@ -92,6 +96,3 @@ case "$1" in
         exit 1
         ;;
 esac
-
-
-

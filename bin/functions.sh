@@ -4,13 +4,13 @@
 
 # Require bash 4+
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
-    echo "👣 ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
+    echo "${HALLUX_ICON} ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
     return 1 2>/dev/null
 fi
 
 # Check if ask.sh is available
 if ! command -v ask.sh &> /dev/null; then
-    echo "👣 $0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
+    echo "${HALLUX_ICON} $0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
 # Source env.sh if variables are not already defined
@@ -202,11 +202,11 @@ function _infer () {
 
   if  [ -n "$cache_dir" ] && [ -f "$cache_file" ]; then
     log_trace "cache_file=$cache_file"
-    printf "🎯" >&2
+    printf "$CACHE_HIT_ICON" >&2
     response_json=$(cat "$cache_file")
   else
     [ -n "$LOG_QUERIES" ] && log_trace "request=$(cat "$tmp_req")"
-    printf "✨" >&2
+    printf "%s" "$INFERENCE_ICON" >&2
     local auth_flags
     if [ -n "$api_key" ]; then
         printf -v auth_flags '-H "Authorization: Bearer %s"' "${api_key}"
@@ -221,7 +221,7 @@ function _infer () {
     }
     [ -n "$LOG_QUERIES" ] && log_trace "response_json=$response_json"
     if jq -e '.choices[0]?.message?.reasoning_content != null' <<< "$response_json" >/dev/null 2>&1; then
-        printf "🧠" >&2
+        printf "%s" "$THINK_ICON" >&2
     fi
   fi
 
@@ -297,7 +297,7 @@ function _load_model() {
             return 1
         }
 
-    echo "✅ $model loaded" >&2
+    echo "$GREEN_CHECK_ICON $model loaded" >&2
 }
 
 function _unload_model() {
@@ -317,5 +317,5 @@ function _unload_model() {
             return 1
         }
 
-    echo "✅ $model unloaded" >&2
+    echo "${GREEN_CHECK_ICON} $model unloaded" >&2
 }
