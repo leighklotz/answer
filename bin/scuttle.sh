@@ -62,10 +62,15 @@ readonly OUTPUT_MODE
 [[ -z "${LINK:-}" ]] && usage "NOLINK"
 [[ "${LINK}" =~ ^https?://[^[:space:]]+$ ]] || usage "BAD LINK"
 
+# Models sometimes wrap machine-readable YAML in markdown fences despite prompts.
+function strip_markdown_fence() {
+    sed -e '1{/^```[A-Za-z0-9_-]*[[:space:]]*$/d;}' -e '${/^```[[:space:]]*$/d;}'
+}
+
 function extract_output() {
     case "$OUTPUT_MODE" in
-        YAML) cat ;;
-        LINK) to_link ;;
+        YAML) strip_markdown_fence ;;
+        LINK) strip_markdown_fence | to_link ;;
         *) usage "BAD OUTPUT_MODE=$OUTPUT_MODE" ;;
     esac
 }
