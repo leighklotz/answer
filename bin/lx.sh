@@ -57,7 +57,7 @@ if [ ${#files[@]} -eq 0 ]; then
   exit 1
 fi
 
-DEFAULT_AFTER=$'```\n---\n'
+DEFAULT_AFTER=$'````\n---\n'
 
 for f in "${files[@]}"; do
   if [ -z "$f" ]; then
@@ -89,7 +89,7 @@ for f in "${files[@]}"; do
   fi
 
   # build and print before block (with placeholders)
-  DEFAULT_BEFORE="# file ${f}\n\`\`\`${lang}\n"
+  DEFAULT_BEFORE=$"# file ${f}\n\`\`\`\`${lang}\n"
   bf="${BEFORE:-$DEFAULT_BEFORE}"
   # safe placeholder replacements
   bf="${bf//\{filename\}/$f}"
