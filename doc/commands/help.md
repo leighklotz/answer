@@ -1,4 +1,3 @@
-```markdown
 # help
 
 **`help`** is a specialized wrapper for the `ask` command, pre-configured with a system prompt optimized for high-precision technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering. 
@@ -101,4 +100,4 @@ Use `-t` when you want to see the LLM's technical reasoning in your terminal, bu
 ```bash
 $ help "write a bash script to check disk space" --tee | unfence | bash
 ```
-```
+

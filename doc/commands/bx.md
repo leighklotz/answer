@@ -1,4 +1,3 @@
-```markdown
 # bx
 
 **`bx`** is a command-execution bridge that executes shell commands and wraps their stdout within Markdown code fences. It is designed as an "injection" utility, transforming raw terminal output into structured, LLM-ready context that can be seamlessly consumed by the Answer toolchain.
@@ -88,5 +87,4 @@ Provide structured system context to a subsequent `ask` query via the pipeline:
 ```bash
 # Use bx to capture dmesg, then ask an LLM to interpret it
 bx sudo dmesg | tail -n 20 | help "Are there any hardware disconnect events?" | answer
-```
 ```

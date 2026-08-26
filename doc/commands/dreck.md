@@ -1,4 +1,3 @@
-```markdown
 # dreck
 
 **`dreck`** is a comparison utility for auditing LLM rewrites. It performs a rigorous side-by-side analysis of two versions of a file — typically an original source and a rewritten version produced by an LLM — and reports on conversational boilerplate, lazy elisions, and substantive quality changes.
@@ -73,4 +72,4 @@ $ git diff -U10 file1.md file2.md | dreck -- "Highlight any missing code blocks"
 ```bash
 $ cat diff.txt | dreck -- "Check for lazy elisions only"
 ```
-```
+

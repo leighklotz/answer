@@ -1,4 +1,3 @@
-```markdown
 # lx
 
 **`lx`** is the **Context Ingestor** of the Answer framework. It streams target files into a pipeline, automatically wrapping their content in Markdown code fences with appropriate language tags and metadata headers. This ensures that when multiple files are piped into an `ask`, `help`, or `bx` command, they arrive as structured, machine-readable context rather than raw text blocks, allowing the LLM to distinguish between different file contents easily.
@@ -95,4 +94,4 @@ Include line numbers for easier reference in LLM analysis.
 ```bash
 $ lx -n src/main.py | help "Find off-by-one errors"
 ```
-```
+

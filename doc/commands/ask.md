@@ -1,4 +1,3 @@
-```markdown
 # ask
 
 **ask** is the "State Builder" in the Answer framework. It is responsible for building user prompts into a JSON conversation payload, managing the conversational history, and ensuring the conversation state flows correctly through Unix pipes.
@@ -114,4 +113,4 @@ Use `-t` to see what the model is thinking or generating while allowing JSON sta
 $ ask "Write a complex bash script" | ask -t "Now add error handling" | answer --tee > final_script.sh
 # The preview appears in your terminal via stderr; stdout sends clean text/JSON as requested.
 ```
-```
+
