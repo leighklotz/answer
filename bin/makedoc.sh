@@ -60,7 +60,10 @@ for cmd in $CMDS; do
         echo
         log_and_exit 1 "$dest was empty"
     fi
-    if [[ "$first_line" == "NO CHANGES" ]] || { [ -f "$doc_md" ] && cmp -s "$doc_md" "$dest"; }; then
+    if [[ "$first_line" == "NO CHANGES" && "$doc_md" != "$dest" ]]; then
+        cp "$doc_md" "$dest"
+        printf "=\n"
+    elif [[ "$first_line" == "NO CHANGES" ]] || { [ -f "$doc_md" ] && cmp -s "$doc_md" "$dest"; }; then
         printf "=\n"
     elif [ -s "$doc_md" ] && [ -s "$dest" ] && command -v diffstat &> /dev/null; then
         diff "$doc_md" "$dest" | diffstat | awk -F'|' '$2{gsub(/^[ \t]+/, "", $2); print $2}'
