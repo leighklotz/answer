@@ -15,5 +15,5 @@ input_data=$(cat)
 # Extract strictly the text string of the reasoning_content of the final assistant response.
 assistant_text=$(jq -r '.choices[0].message.content           | select (. != null)' <<< "$input_data")
 
-printf "%s\n" "$CONVO_ICON' >&2
+printf "%s\n" "$CONVO_ICON" >&2
 printf "%s\n" "$assistant_text"

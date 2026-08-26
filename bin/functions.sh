@@ -320,3 +320,7 @@ function _unload_model() {
 
     echo "${GREEN_CHECK_ICON} $model unloaded" >&2
 }
+
+function _strip_markdown_fence() {
+    sed -e '1{/^```[A-Za-z0-9_-]*[[:space:]]*$/d;}' -e '${/^```[[:space:]]*$/d;}'
+}

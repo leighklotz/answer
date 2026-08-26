@@ -17,27 +17,30 @@ if [ -n "$1" ]; then
     CMDS=$@
 fi
 
-echo "CMDS=$CMDS"
-echo "MAKEDOC_PREREADING=$MAKEDOC_PREREADING"
+printf "CMDS=%s\n" "$CMDS"
+printf "MAKEDOC_PREREADING=%s\n" "$MAKEDOC_PREREADING"
+
+printf "%-16s%-32s%-32s%-32s%s\n" "cmd" "bin" "new doc" "Δ"
 
 for cmd in $CMDS; do
-    echo -n "cmd=$cmd"
+    printf "%-16s" "$cmd"
     doc_md="doc/commands/${cmd}.md"
     doc_md_new="doc/commands/${cmd}.md.new"
     dest=""
-    if [ -f "$doc_md_new" ]; then
-      echo -e "\n* Skipping $doc_md because $doc_md_new exists; consider this:"
-      echo -e "dreck $doc_md $doc_md_new"
+    if [ -f "${SCRIPT_DIR}/${cmd}.sh" ]; then
+        src="${SCRIPT_DIR}/${cmd}.sh"
+    elif [ -f "${SCRIPT_DIR}/commands/${cmd}.sh" ]; then
+        src="${SCRIPT_DIR}/commands/${cmd}.sh"
     else
-        if [ -f "${SCRIPT_DIR}/${cmd}.sh" ]; then
-            src="${SCRIPT_DIR}/${cmd}.sh"
-        elif [ -f "${SCRIPT_DIR}/commands/${cmd}.sh" ]; then
-            src="${SCRIPT_DIR}/commands/${cmd}.sh"
-        else
-            log_and_exit 1 "cannot find ${SCRIPT_DIR}/${cmd}.sh for doc_md_new=$doc_md_new "
-        fi
-        echo -ne "->${src}\t" >&2
+        log_and_exit 1 "cannot find ${SCRIPT_DIR}/${cmd}.sh for doc_md_new=$doc_md_new "
+    fi
+    
+    printf -- "%-32s%-32s" "$(sed "s|${SCRIPT_DIR}/||" <<< "$src")" "$doc_md_new" >&2
 
+    if [ -f "$doc_md_new" ]; then
+        # printf "%s already exists" "$doc_md_new"
+        dest="$doc_md_new"
+    else
         context=($MAKEDOC_PREREADING)
         [ -n "$src" ] && context+=("$src")
 
@@ -50,20 +53,18 @@ for cmd in $CMDS; do
         fi
 
         context+=(README.md tests/story-test.sh doc/commands/*.md)
-        lx "${context[@]}" | ask "$prompt" | answer > "$dest"
-        first_line="$(head -n1 "$dest")"
-        if [[ "$first_line" == "NO CHANGES" ]] \
-           || { [ -f "$doc_md" ] && cmp -s "$doc_md" "$dest"; }; then
-            echo "unchanged"
-            rm -f -- "$dest"
-            continue
-        fi
-        if [ ! -s "$dest" ]; then
-            log_and_exit 1 "$dest was empty"
-        fi
-        if [ -f "$doc_md" ] && command -v diffstat &> /dev/null; then
-            diff "$doc_md" "$dest" | diffstat | awk -F'|' '$2{print $2}'
-        fi
-        echo >&2
+        lx "${context[@]}" | ask "$prompt" | answer | _strip_markdown_fence > "$dest"
+    fi
+    first_line="$(head -n1 "$dest")"
+    if [ ! -s "$dest" ]; then
+        echo
+        log_and_exit 1 "$dest was empty"
+    fi
+    if [[ "$first_line" == "NO CHANGES" ]] || { [ -f "$doc_md" ] && cmp -s "$doc_md" "$dest"; }; then
+        printf "=\n"
+    elif [ -s "$doc_md" ] && [ -s "$dest" ] && command -v diffstat &> /dev/null; then
+        diff "$doc_md" "$dest" | diffstat | awk -F'|' '$2{gsub(/^[ \t]+/, "", $2); print $2}'
+    else
+        printf "? $doc_md $dest ?"
     fi
 done
