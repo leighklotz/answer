@@ -42,7 +42,7 @@ for cmd in $CMDS; do
         [ -n "$src" ] && context+=("$src")
 
         if [ -f $doc_md ]; then
-            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions. Bias towards making small changes based on correspondence with given command script. AVOID EDITORIAL CHANGES. If the usage document does not largely correspond to the implementation, note that fact do not output the new file."
+            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions. Bias towards making small changes based on correspondence with given command script. AVOID EDITORIAL CHANGES. If the usage document does not largely correspond to the implementation, note that fact do not output the new file. If the file should be unchanged, output an empty file."
             dest="${doc_md_new}"
         else
             prompt="Create the usage document \`doc/commands/${cmd}.md\` for the $cmd command for $src"
@@ -51,7 +51,10 @@ for cmd in $CMDS; do
 
         context+=(README.md tests/story-test.sh doc/commands/*.md)
         lx "${context[@]}" | ask "$prompt" | answer > "$dest"
-        if [ -f "$doc_md" ] && command -v diffstat &> /dev/null; then
+        if [ -z "$dest" ]; then
+            echo "unchanged"
+            rm -- "$dest"
+        elif [ -f "$doc_md" ] && command -v diffstat &> /dev/null; then
             diff "$doc_md" "$dest" | diffstat | awk -F'|' '$2{print $2}'
         fi
         echo >&2
