@@ -169,9 +169,9 @@ function _infer () {
   # TODO: Should we map these for model agnosticism
   # or let the user set them individually as needed.
   # For qwen3.8-27b:
-  # - REASONING_EFFORT=LOW -> THINKING_BUDGET=2000
-  # - REASONING_EFFORT=MEDIUM -> THINKING_BUDGET=8000
-  # - REASONING_EFFORT=XHIGH -> THINKING_BUDGET=32768
+  # - REASONING_EFFORT=low -> THINKING_BUDGET=2000
+  # - REASONING_EFFORT=medium -> THINKING_BUDGET=8000
+  # - REASONING_EFFORT=xhigh -> THINKING_BUDGET=32768
   jq \
     --arg server_model "$server_model" \
     --argjson thinking "${ENABLE_THINKING:-true}" \
