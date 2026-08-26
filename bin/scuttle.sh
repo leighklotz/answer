@@ -9,7 +9,7 @@ readonly SCRIPT_DIR FETCHER_COMMAND
 source "${SCRIPT_DIR}/commands/hx-bootstrap.sh" && hx core
 source "${SCRIPT_DIR}/logging.sh"
 
-trap 'log_error "error in ${BASH_SOURCE[0]}:${BASH_LINENO[1]:-?} while running: ${BASH_COMMAND:-}"; exit 1' ERR
+# trap 'log_error "error in ${BASH_SOURCE[0]}:${BASH_LINENO[1]:-?} while running: ${BASH_COMMAND:-}"; exit 1' ERR
 
 # Requires snap/golang yq for yaml->json, and regular jq to extract
 command -v yq >/dev/null || log_and_exit 1 "yq missing"

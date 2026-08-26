@@ -4,9 +4,6 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 CAPTURE_COMMAND="cat"
 FETCHER_COMMAND="${SCRIPT_DIR}/fetcher.sh"
 
-source "${SCRIPT_DIR}/commands/enable"
-source "${SCRIPT_DIR}/logging.sh"
-
 function usage() {
     echo "Usage: $(basename "$0") [--capture-file file] <LINK>|- [llm.sh options]"
     exit 1

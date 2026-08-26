@@ -7,6 +7,12 @@ source "${SCRIPT_DIR}/functions.sh"
 
 TARGET_LANG="${1:-}"
 
+function discard_exit() {
+    printf "%s discarded\n" "$CANCELLED_ICON" >&2
+    exit 1
+}
+
+
 # 1. Read stdin into tmp_raw immediately
 _mktemp_reg 'unfence.XXXXXX.md' && tmp_raw="$MKTEMP_REG"
 cat > "$tmp_raw"
@@ -93,7 +99,7 @@ if [ -n "$TARGET_LANG" ]; then
         target_idx="${matching_indices[0]}"
         if [ "$NEEDS_CONFIRM" = true ]; then
             read -r -p "${ROBOT_ICON}Found targeted block (${TARGET_LANG}). Proceed with this command? (y/N): " reply < /dev/tty
-            [[ "${reply,,}" =~ ^y ]] || { printf "%s discarded\n" "$CANCELLED_ICON" >&2; exit 0; }
+            [[ "${reply,,}" =~ ^y ]] || discard_exit
         fi
     else
         # Multiple matching blocks found!
@@ -105,8 +111,7 @@ if [ -n "$TARGET_LANG" ]; then
             reply="${reply,,}"
             
             if [[ "$reply" == "q" || "$reply" == "quit" ]]; then
-                printf "%sdiscarded\n" "$CANCELLED_ICON" >&2
-                exit 0
+                discard_exit
             elif [[ " ${matching_indices[*]} " =~ " $reply " ]]; then
                 # Ensure the user picked one of the valid matching indices
                 target_idx="$reply"
@@ -123,7 +128,7 @@ elif [ "$num_blocks" -eq 1 ]; then
     
     if [ "$NEEDS_CONFIRM" = true ]; then
         read -r -p "${ROBOT_ICON}Proceed? (y/N): " reply < /dev/tty
-        [[ "${reply,,}" =~ ^y ]] || { printf "${CANCELLED_ICON}discarded\n" >&2; exit 0; }
+        [[ "${reply,,}" =~ ^y ]] || discard_exit
     fi
 
 else
@@ -134,8 +139,7 @@ else
         reply="${reply,,}"
         
         if [[ "$reply" == "q" || "$reply" == "quit" || "$reply" == "n" ]]; then
-            printf "%sdiscarded\n" "$CANCELLED_ICON" >&2
-            exit 0
+            discard_exit
         elif [[ "$reply" =~ ^[0-9]+$ ]] && [ "$reply" -ge 1 ] && [ "$reply" -le "$num_blocks" ]; then
             target_idx="$reply"
             break
