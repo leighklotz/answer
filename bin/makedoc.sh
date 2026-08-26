@@ -51,8 +51,8 @@ for cmd in $CMDS; do
 
         context+=(README.md tests/story-test.sh doc/commands/*.md)
         lx "${context[@]}" | ask "$prompt" | answer > "$dest"
-        if [ -f "$doc_md" ]; then
-            diff "$doc_md" "$destg" | diffstat | awk -F'|' '$2{print $2}'
+        if [ -f "$doc_md" ] && [ command -v diffstat &> /dev/null ]; then
+            diff "$doc_md" "$dest" | diffstat | awk -F'|' '$2{print $2}'
         fi
         echo >&2
         if [ ! -s "$dest" ]; then
