@@ -163,4 +163,6 @@ fi
 
 # 6. Surgical Extraction
 read -r _ _ start_line end_line < <(awk -v idx="$target_idx" '$1 == idx {print}' "$tmp_meta")
-sed -n "${start_line},${end_line}p" "$tmp_raw"
+if [ "$start_line" -le "$end_line" ]; then
+    sed -n "${start_line},${end_line}p" "$tmp_raw"
+fi
