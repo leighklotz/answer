@@ -42,7 +42,7 @@ for cmd in $CMDS; do
         [ -n "$src" ] && context+=("$src")
 
         if [ -f $doc_md ]; then
-            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions. Bias towards making small changes based on script code changes, and avoid editorial changes unless necessary. If the usage document does not largely correspond to the implementation, note that fact do not output the new file."
+            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions. Bias towards making small changes based on correspondence with given command script. AVOID EDITORIAL CHANGES. If the usage document does not largely correspond to the implementation, note that fact do not output the new file."
             dest="${doc_md_new}"
         else
             prompt="Create the usage document \`doc/commands/${cmd}.md\` for the $cmd command for $src"
