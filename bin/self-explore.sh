@@ -2,6 +2,7 @@
 
 source ~/wip/answer/bin/commands/hx-bootstrap.sh && hx enable
 mdl="$(hx model)"
+mdl="${mdl/\//_}"
 
 ask 'This is you: ~/wip/answer and ~/wip/toolex/. Feel free to explore. Goal: Read the python and bash code and give an assessment of the harness.
 Restrictions:
