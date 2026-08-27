@@ -22,6 +22,8 @@ When executed, `systype` prints a self-documenting Markdown block suitable for i
 
 The output is intentionally formatted as a bash fenced block so that downstream tools such as `lx`, `help` and `ask` treat the system data as structured context rather than raw text.
 
+A `$COMPUTER_ICON` status icon is printed to **stderr** before the Markdown block, providing a visual cue in the terminal without interfering with the piped `stdout` stream.
+
 ## Output format
 
 ```markdown

@@ -1,7 +1,6 @@
-```markdown
 # help
 
-**`help`** is a specialized wrapper for the `ask` command, pre-configured with a system prompt optimized for high-precision technical assistance. It is designed for rapid, concise queries regarding Linux administration, Bash scripting, Python programming, and general software engineering. 
+**`help`** is a specialized wrapper for the `ask` command, pre-configured with a system prompt for one-shot, question-and-response assistance. It is designed for rapid, concise queries regarding Linux, Bash, Python, general programming, and other subjects. 
 
 *Note: This function shadows the standard Bash built-in `help` command. If you need to use the native shell help in your current session, use `builtin help`.*
 
@@ -100,5 +99,3 @@ $ hx describe
 Use `-t` when you want to see the LLM's technical reasoning in your terminal, but need the resulting JSON state to be passed to a tool like `unfence`:
 ```bash
 $ help "write a bash script to check disk space" --tee | unfence | bash
-```
-```

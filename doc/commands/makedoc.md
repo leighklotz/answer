@@ -1,6 +1,6 @@
 # makedoc
 
-**`makedoc`** is a documentation orchestration utility that uses the Answer toolchain LLM pipeline to generate or update Markdown usage documents for commands. It builds a context bundle from source scripts, `README.md`, tests and existing docs, then runs `lx ... | ask "..." | answer` to produce `doc/commands/<cmd>.md`.
+**`makedoc`** is a documentation orchestration utility that uses the Answer toolchain LLM pipeline to generate or update Markdown usage documents for commands. It builds a context bundle from source scripts, `README.md`, tests and existing docs, then runs `lx ... | ask "..." | answer | _strip_markdown_fence` to produce `doc/commands/<cmd>.md`.
 
 It is not a parser. Documentation is produced by prompting the model with the command implementation and project context.
 
@@ -18,7 +18,8 @@ If no COMMANDS are given, a default set is processed. If one or more COMMANDS ar
 
 1. Determines the source file:
    * `${SCRIPT_DIR}/${cmd}.sh` if it exists
-   * otherwise `${SCRIPT_DIR}/enable-core.sh`
+   * otherwise `${SCRIPT_DIR}/commands/${cmd}.sh`
+   * If neither exists, the script exits with an error.
 2. Builds a context array:
    * Files from `$MAKEDOC_PREREADING` if set
    * The source file determined above
@@ -77,4 +78,3 @@ $ makedoc help
 If `doc/commands/help.md` exists, the new output is written to `doc/commands/help.md.new`. Remove or rename the `.new` file to replace the published doc after review.
 ```bash
 $ makedoc help
-```

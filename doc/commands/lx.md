@@ -1,4 +1,3 @@
-```markdown
 # lx
 
 **`lx`** is the **Context Ingestor** of the Answer framework. It streams target files into a pipeline, automatically wrapping their content in Markdown code fences with appropriate language tags and metadata headers. This ensures that when multiple files are piped into an `ask`, `help`, or `bx` command, they arrive as structured, machine-readable context rather than raw text blocks, allowing the LLM to distinguish between different file contents easily.
@@ -42,20 +41,6 @@ Placeholders are expanded only in `--before`. `--after` is printed verbatim apar
 
 If no options are provided, **`lx`** wraps every file in a standard Markdown block to ensure clean parsing by downstream tools like `unfence`:
 
-**Default `--before`:**
-```markdown
-# file <filename>
-```{language}
-```
-*Implemented as:* `# file ${f}\n\`\`\`${lang}\n`
-
-**Default `--after`:**
-```markdown
-```
----
-```
-*Implemented as:* ```$'```\n---\n'```
-
 ## Input Modes
 
 | Condition | Behavior | Target |
@@ -74,7 +59,7 @@ $ lx config.yaml database.py logic.sh | help "Explain how these three files inte
 **2. Custom Header Injection (Highly Structured)**
 Use placeholders to create a professional, highly readable context format for complex code reviews.
 ```bash
-$ lx --before="📂 **Source:** `{filename}`\n**Language:** `{language}`\n---\n```{language}" script.py main.js | help "Identify potential bugs"
+$ lx --before="**Source:** `{filename}`\n**Language:** `{language}`\n---\n```{language}" script.py main.js | help "Identify potential bugs"
 ```
 
 **3. Piping from Shell Utilities**
@@ -94,5 +79,3 @@ $ lx script.js utils.py | help "Refactor these" --after="\n\`\`\`\n--- \n"
 Include line numbers for easier reference in LLM analysis.
 ```bash
 $ lx -n src/main.py | help "Find off-by-one errors"
-```
-```

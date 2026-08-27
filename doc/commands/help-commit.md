@@ -1,18 +1,18 @@
 # help-commit
 
-**help-commit** is a specialized utility in the Answer framework that automates the generation and execution of `git commit` commands by analyzing your current Git state. It uses an LLM to interpret staged changes, unstaged modifications, and provided context (via pipes or arguments) to produce descriptive messages following the Conventional Commits specification.
+**help-commit** is a specialized utility in the Answer framework that automates the generation and execution of `git commit` commands by analyzing your current Git state. It uses an LLM to interpret staged changes, unstaged modifications, and provided context (via arguments) to produce descriptive commit messages using imperative-mood summaries and bulleted detail lines.
 
 ## Synopsis
 
 ```bash
-help-commit [OPTIONS] [[git diff options]] [-- ASK_ARGUMENTS ]
+help-commit [--help] | [--quiet] [--dry-run | -n] [git diff options] [--] [ask options]
 ```
 
 The command performs a high-precision workflow:
 1.  **Environment Check:** Verifies that you are inside a Git repository; exits if not.
-2.  **Context Synthesis:** Gathers comprehensive project state—including the current branch, `pwd`, and detailed diffs of staged/unstaged changes using the `bx` wrapper to ensure structured Markdown context is provided to the LLM. If piped input is detected (e.g., via a file or command), it incorporates that as additional semantic context.
-3.  **Inference:** Passes this synthesized payload through a specialized prompt to an LLM via the `ask` engine. 
-4.  **Safety-Gated Execution:** Parses the response for generated git commands, extracts them using `unfence`, and presents the proposed command(s) in an interactive safety gate (via a pager/confirmation prompt). The user must confirm (`y`) before the commands are executed in the shell.
+2.  **Context Synthesis:** Gathers comprehensive project state—including the current PWD, repository root, branch, and detailed diffs of staged/unstaged changes using the `bx` wrapper to ensure structured Markdown context is provided to the LLM.
+3.  **Inference:** Passes this synthesized payload through a specialized prompt to an LLM via the `ask` engine.
+4.  **Safety-Gated Execution:** Parses the response for generated git commands, extracts them using `unfence`, and presents the proposed command(s) in an interactive safety gate (via a pager/confirmation prompt). The user must confirm (`y`) before the commands are executed in the shell. In `--dry-run` mode, the raw output is displayed without extraction or execution.
 
 ## Options
 
@@ -20,17 +20,18 @@ The command performs a high-precision workflow:
 |------|-----------|-------------|
 | `--help` | | Print usage information and exit. |
 | `-q` | `--quiet` | Suppress introductory messages (sets internal quiet mode). |
-| `--` | **Separator:** Everything following this separator is passed as arguments to the underlying `ask` command, allowing you to provide additional instructions or constraints for the LLM prompt. |
+| `-n` | `--dry-run` | Display the generated output without executing the git commands (skips `unfence` and `bash`). |
+| `--` | **Separator:** Everything following this separator is given as parameters for the LLM context (e.g., `main..HEAD`). |
 
 ### Positional Arguments
 
 *   **[git diff options]**: Any flags provided *before* the `--` separator are appended as arguments to the internal `git diff` commands (e.g., targeting specific file paths).
-*   **[ask arguments/options]**: Any text following the `--` is passed directly into the context for the LLM via `ask`. Use this to refine style, tone, or detail level. Note that if you wish to pass flags intended for `ask` (such as `-t` for Observation Mode), they must be placed after the `--` separator.
+*   **[ask options]**: Any text following the `--` is passed directly as parameters for the LLM context via `ask`. Use this to provide range references or additional context (e.g., `main..HEAD`).
 
 ## Examples
 
 **1. Standard Usage (Autonomous)**
-Analyze all current changes in the repository and suggest a conventional commit:
+Analyze all current changes in the repository and generate commit commands:
 ```bash
 $ help-commit
 ```
@@ -41,24 +42,17 @@ Only analyze changes within a specific directory to limit the diff context provi
 $ help-commit src/
 ```
 
-**3. Refining with Custom Instructions (via `--`)**
-Use the separator to pass instructions that refine how the model structures or writes the message:
+**3. Providing Context via `--`**
+Use the separator to pass context parameters to the LLM:
 ```bash
-# Instructs the LLM via additional prompt parameters to use a specific tone
-$ help-commit -- "-i Use a very descriptive, professional tone and follow Conventional Commits"
-
-# Pass flags for 'ask' after the separator (e.g., using Observation Mode with -t)
-$ help-commit -- -t "Should I include a summary of technical changes in the body?"
+# Provide a diff range for context
+$ help-commit -- main..HEAD
 ```
 
-**4. Contextualized Commit (Piped Input)**
-Pipe specific text or logs into `help-commit` to provide extra information that isn't visible in a standard `git diff`:
+**4. Dry Run**
+Preview the generated commands without executing them:
 ```bash
-# Use a task list from a file as additional context for why changes were made
-$ cat TODO.md | help-commit
-
-# Combine current git status with recent system logs to guide the commit message
-$ tail -n 20 /var/log/syslog | help-commit -- -i Contextualize based on these log events
+$ help-commit --dry-run
 ```
 
 **5. Quiet Mode**
@@ -71,6 +65,5 @@ $ help-commit --quiet
 
 | Code | Meaning |
 | :--- | :--- |
-| **0** | Success (The command was generated, presented for confirmation, and/or executed). |
-| **1** | Failure (Not in a Git repository, an error occurred during execution, or arguments were invalid). |
-
+| **0** | Success (commands generated and executed, or no changes detected). |
+| **1** | Failure (not in a Git repository, an error occurred during execution, or arguments were invalid). |

@@ -178,6 +178,7 @@ function _infer () {
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     --argjson thinking_budget "${THINKING_BUDGET:-8000}" \
     --arg reasoning_effort "${REASONING_EFFORT:-medium}" \
+    --arg reasoning_budget: $'\n[Budget reached. Transitioning to final response...]\n' \
     '{
       model: $server_model,
       messages: .,
@@ -318,4 +319,8 @@ function _unload_model() {
         }
 
     echo "${GREEN_CHECK_ICON} $model unloaded" >&2
+}
+
+function _strip_markdown_fence() {
+    sed -e '1{/^```[A-Za-z0-9_-]*[[:space:]]*$/d;}' -e '${/^```[[:space:]]*$/d;}'
 }

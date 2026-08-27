@@ -57,7 +57,7 @@ if [ ${#files[@]} -eq 0 ]; then
   exit 1
 fi
 
-DEFAULT_AFTER=$'```\n---\n'
+DEFAULT_AFTER=$'````\n---\n'
 
 for f in "${files[@]}"; do
   if [ -z "$f" ]; then
@@ -66,18 +66,18 @@ for f in "${files[@]}"; do
   fi
 
   if [ ! -e "$f" ]; then
-    echo "lx: stat $f: no such file" >&2
-    continue
+      echo "lx: stat $f: no such file" >&2
+      exit 1
   fi
 
   if [ ! -f "$f" ]; then
     echo "lx: $f is not a regular file; skipping" >&2
-    continue
+    exit 1
   fi
 
   if [ ! -r "$f" ]; then
     echo "lx: cannot read $f" >&2
-    continue
+    exit 1
   fi
 
   # determine language from extension, only if extension part is non-empty
@@ -89,7 +89,7 @@ for f in "${files[@]}"; do
   fi
 
   # build and print before block (with placeholders)
-  DEFAULT_BEFORE="# file ${f}\n\`\`\`${lang}\n"
+  DEFAULT_BEFORE=$"# file ${f}\n\`\`\`\`${lang}\n"
   bf="${BEFORE:-$DEFAULT_BEFORE}"
   # safe placeholder replacements
   bf="${bf//\{filename\}/$f}"
