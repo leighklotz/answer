@@ -17,7 +17,7 @@ When using models that support **Function Calling**, an LLM may return a request
 The `tools` command acts as the bridge for these requests within an Answer pipeline:
 1.  **Intercepts:** It reads the conversation JSON history from `stdin`.
 2.  **Identifies:** It scans the latest message in the array for pending `tool_calls`.
-3.  **Executes:** For each call, it uses a specified module (via `toolex.py`) to run the requested function on your local system.
+3.  **Executes:** For each call, it uses a specified module (via `toolex.sh`) to run the requested function on your local system.
 4.  **Updates State:** It appends the execution results back into the conversation array as new messages with the role of `tool`, preserving the conversational flow for downstream components that support structured JSON history.
 
 ## Input & Output
@@ -25,18 +25,28 @@ The `tools` command acts as the bridge for these requests within an Answer pipel
 | Component | Format | Description |
 | :--- | :--- | :--- |
 | **Input (`stdin`)** | JSON Conversation Array | Must be formatted as an Answer pipeline history (prefixed with the `PIPELINE_MAGIC_HEADER`). |
-| **Output (`stdout`)** | Updated JSON Conversation Array | The original conversation, augmented with new messages containing the tool execution results. |
+| **Output (`stdout`)** | Updated JSON Conversation Array | The original conversation, augmented with new messages containing the tool execution results. When `stdout` is a TTY, the output is automatically piped through `answer` to produce plain text. |
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TOOLEX_SH` | `$HOME/wip/toolex/toolex.sh` | Path to the `toolex.sh` execution engine. |
+| `TOOLS_FLAGS` | _(empty)_ | Additional flags passed to `toolex.sh` before the `--tools` argument. |
+| `TRACE` | _(empty)_ | When set and `stdout` is a TTY, the toolex output is teed to `stderr` for observation while still being piped to `answer`. |
 
 ## Requirements
 
-*   `toolex.py` must be installed and available on your `$PATH`.
-*   The modules you intend to use (e.g., `git`, `linux_tools`) must be compatible with `toolex.py`.
+*   `toolex.sh` must be installed and its path set via `$TOOLEX_SH` (or the default location must exist).
+*   The modules you intend to use (e.g., `git`, `linux_tools`) must be compatible with `toolex.sh`.
 
 ## Visual Feedback (`stderr`)
 
-When running in a terminal or using `--tee`, `tools` provides feedback via emojis and prompts on **stderr** so that it does not interfere with the JSON data stream:
+When running in a terminal, `tools` provides feedback via emojis and prompts on **stderr** so that it does not interfere with the JSON data stream:
 * 🤖 **Confirmation Prompt:** Indicates an execution is being requested (often accompanied by confirmation requirements).
 * ✨ / 🎯 / 🧠 : Standard inference status icons indicating fresh request, cache hit, or reasoning content.
+
+When `TRACE` is set and `stdout` is a TTY, the raw toolex output is also written to `stderr` via `tee`.
 
 ## Examples
 

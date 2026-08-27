@@ -48,17 +48,11 @@ To prevent the accidental execution of incorrect or dangerous code in a pipeline
 2. Multiple blocks are detected, requiring user selection to resolve ambiguity.
 
 **The Workflow:**
-* **Preview:** The extracted content (or the list of options) is displayed to **stderr** via a pager so that it does not interfere with the pipe. Pager priority: `batcat` $\rightarrow$ `bat` $\rightarrow$ `less`/`more` $\rightarrow$ `cat`. 
+* **Preview:** The extracted content (or the list of options) is displayed to **stderr** via a pager so that it does not interfere with the pipe. Pager priority: `batcat` → `bat` → `cat`. 
 * **Confirmation Prompt:** You are prompted in your terminal (reading from `/dev/tty`) : `🤖 Proceed with this command? (y/N): `. This prompt appears on your screen but is *not* sent to the next command in the pipeline.
 * **Decision:** 
     * **`y`**: The selected content is sent to `stdout` for the next command.
     * **Any other key**: The process prints `🚫 discarded` to `stderr` and exits safely, preventing execution of potentially incorrect code.
-
-## Options
-
-| Flag | Long form | Description |
-|------|-----------|-------------|
-| `--help` | | Print usage information and exit. |
 
 ## Examples
 
@@ -88,4 +82,3 @@ Use it mid-pipeline to isolate code from a long conversational response before s
 ```bash
 # The extraction will resolve the JSON, show the preview on stderr, and save only the script to main.py
 ask "Write a C++ program that prints Hello World" | unfence cpp > main.cpp && g++ main.cpp -o hello && ./hello
-```

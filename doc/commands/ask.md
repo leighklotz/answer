@@ -25,7 +25,7 @@ Routing is mode dependent:
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
-| `-i` | `--input` | **Attachment Mode:** Forces `stdin` to be treated as a formal attachment. Content is appended to the end of the prompt with an `ATTACHMENT:` label. In interactive terminals, this enables multi-line input terminated with `Ctrl-D`. |
+| `-i` | `--input` | **Attachment Mode:** Forces `stdin` to be treated as a formal attachment. Content is appended after the prompt, separated by a blank line. In interactive terminals, this enables multi-line input terminated with `Ctrl-D`. |
 | `-t` | `--tee`   | **Observation Mode:** Resolves the turn via `_infer`, prints a human-readable preview of the assistant's response to **stderr** while passing the updated JSON conversation history through **stdout**. This allows you to monitor progress without breaking pipeline chains. |
 | `--use-system-message` | | Prepends the content of the `$SYSTEM_MESSAGE` environment variable as a `system` role message at the start of the session. |
 | `--answer` | | **Answer Mode:** Forces routing through `answer` even when stdout is not a TTY. The built message payload is piped to `answer` for immediate inference and plain-text output, equivalent to interactive terminal behavior. |
@@ -41,7 +41,7 @@ The behavior of `ask` changes based on whether it is extending an existing conve
 | **Piped (JSON History)** | `stdin` begins with `PIPELINE_MAGIC_HEADER` | Header is stripped, the JSON is resolved via `_infer`, and your new prompt is appended as a `user` role. If no prompt is given the resolved history is passed through unchanged. |
 | **Piped (Raw Text) + Prompt** | `stdin` is raw text and a prompt is provided, `-i` not set | A new JSON array is created with `{"role":"user","content": $prompt + "\n\nCONTEXT:\n" + $stdin}`. |
 | **Piped (Raw Text) + No Prompt** | `stdin` is raw text and no prompt provided | The input itself becomes the first message in a new conversation: `[{"role":"user","content": $stdin}]`. |
-| **Attachment Mode (`-i`)** | `stdin` provided via pipe or TTY | Your prompt is followed by an explicit `ATTACHMENT:` block containing the piped content: `{"role":"user","content": $prompt + "\n\nATTACHMENT:\n" + $stdin}`. |
+| **Attachment Mode (`-i`)** | `stdin` provided via pipe or TTY | Your prompt is followed by the piped content separated by a blank line: `{"role":"user","content": $prompt + "\n\n" + $stdin}`. |
 
 ## Output Modes
 
@@ -113,4 +113,3 @@ Use `-t` to see what the model is thinking or generating while allowing JSON sta
 $ ask "Write a complex bash script" | ask -t "Now add error handling" | answer --tee > final_script.sh
 # The preview appears in your terminal via stderr; stdout sends clean text/JSON as requested.
 ```
-
