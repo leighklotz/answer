@@ -8,25 +8,25 @@ CMD_DIR="${SCRIPT_DIR}/../doc/commands"
 
 cd "${CMD_DIR}" || log_and_exit 1 "${CMD_DIR} does not exist"
 
-for new_file in *.md.new
+for new_md in *.md.new
 do
-  old_md="${new_file%.new}"
-  out_file="checkdoc-${new_file}"
+  old_md="${new_md%.new}"
+  checkdoc_out="checkdoc-${new_md}"
   [[ ! -f "$old_md" ]] && log_warn "$old_md does not exist"
-  [[ -e "$out_file" ]] && log_warn "$out_file already exists"
+  [[ -e "$checkdoc_out" ]] && log_warn "$checkdoc_out already exists"
 done
 
-for new_file in *.md.new
+for new_md in *.md.new
 do
-  old_md="${new_file%.new}"
-  out_file="checkdoc-${new_file}"
+  old_md="${new_md%.new}"
+  checkdoc_out="checkdoc-${new_md}"
   [[ ! -f "$old_md" ]] && log_and_exit 1 "$old_md does not exist"
-  [[ -e "$out_file" ]] && log_and_exit 1 "$out_file already exists"
-  echo "=== Analysis of $old_md -> ${new_file} in ${out_file} ===" | tee "$out_file"
-  if ! lx "$old_md" "${new_file}" | dreck | answer -m >> "$out_file"; then
-    log_and_exit 1 "analysis pipeline failed for ${old_md} --> ${new_file}"
+  [[ -e "$checkdoc_out" ]] && log_and_exit 1 "$checkdoc_out already exists"
+  echo "=== Analysis of $old_md -> ${new_md} in ${checkdoc_out} ===" | tee "$checkdoc_out"
+  if ! dreck "${old_md}" "${new_md}" | answer -m >> "$checkdoc_out"; then
+    log_and_exit 1 "analysis pipeline failed for ${old_md} --> ${new_md}"
   fi
   # just for show
-  echo "== End Analysis ${old_md} -> ${new_file} in ${out_file} ==="
+  echo "== End Analysis ${old_md} -> ${new_md} in ${checkdoc_out} ==="
   echo
 done

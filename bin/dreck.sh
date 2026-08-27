@@ -16,7 +16,11 @@ PROMPT="Perform a rigorous comparison between these two files. 0) if the file is
 USER_PROMPT=""
 
 if [[ -n "$1" ]] && [[ -n "$2" ]]; then
-   lx "$1" "$2" | ask "$@" "${PROMPT}" "${USER_PROMPT}"
+    if cmp "$1" "$2"; then
+        ask "echo 'files are identical'" 
+        exit 0
+    fi
+    lx "$1" "$2" | ask "$@" "${PROMPT}" "${USER_PROMPT}"
 else
-   ask "$@" "${PROMPT}"
+    ask "$@" "${PROMPT}"
 fi
