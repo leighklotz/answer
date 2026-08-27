@@ -208,14 +208,14 @@ function _infer () {
   else
     [ -n "$LOG_QUERIES" ] && log_trace "request=$(cat "$tmp_req")"
     printf "%s" "$INFERENCE_ICON" >&2
-    local auth_flags
+    local -a auth_flags=()
     if [ -n "$api_key" ]; then
-        printf -v auth_flags '-H "Authorization: Bearer %s"' "${api_key}"
+        auth_flags=(-H "Authorization: Bearer ${api_key}")
     fi
     log_trace "endpoint=$endpoint"
     # shellcheck disable=SC2086
     response_json=$(curl -fsS -X POST "$endpoint" \
-                         $auth_flags \
+                         "${auth_flags[@]}" \
                          -H "Content-Type: application/json" \
                          -d @"$tmp_req") || {
       return 1
