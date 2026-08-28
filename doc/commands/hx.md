@@ -42,7 +42,7 @@ Leveraging Git notes (using the `provenance/hallux` reference), this subcommand 
 | :--- | :--- | :--- |
 | **`add [mode]`** | **Capture State:** Captures your last executed shell command, its context (prompt/history), and response into Git notes. Modes define the emoji and MIME type used to tag the data. | Stores structured content as a Git note via specialized headers. |
 | **`show [hash]`** | **View Note:** Instantly displays the full content of a specific provenance entry by its hash using standard Git notes output. | `git notes --ref=provenance/hallux show "$2"`. |
-| **`refs`** | **List Hashes:** Scans your repository to list all available hashes associated with the `provenance/halluzz` reference. | `git notes --ref=provenance/halluzz list`. |
+| **`refs`** | **List Hashes:** Scans your repository to list all available hashes associated with the `provenance/hallux` reference. | `git notes --ref=provenance/hallux list`. |
 | **`list`** | **Chronological Timeline:** Provides a colorized, decorated history showing recent Git log lines paired with short text previews from stored responses. | Human-readable audit trail (Log line + Preview). |
 
 #### `add` Subcommand Modes
