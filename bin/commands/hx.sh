@@ -21,7 +21,6 @@ case "$cmd" in
     provenance) "$SCRIPT_DIR/provenance.sh" "$@" ;;
     again)   _hx_again ;;
     why|what|cat|describe|stats)
-        # todo: document 'cat foo.json | hx what -'
         subcmd="$1"
         if [ "$subcmd" == "-" ]; then
             "$SCRIPT_DIR/${cmd}.sh"

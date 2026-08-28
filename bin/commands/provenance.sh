@@ -4,6 +4,9 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/../env.sh"
 source "${SCRIPT_DIR}/../logging.sh"
 
+source "${SCRIPT_DIR}/hx-bootstrap.sh"
+hx core
+
 function _provenance_add() {
     local subcmd="$1"
     case "$subcmd" in 
@@ -28,7 +31,7 @@ function _provenance_add() {
                 fi
                 hx_out="$(cat)"
             else
-                hx_out=$(hx $subcmd 2>/dev/null || echo "[hx $subcmd failed or missing]")
+                hx_out=$(hx $subcmd || echo "[hx $subcmd failed or missing]")
             fi
 
             printf "%s%s\n%s\n%s\n\n" \
