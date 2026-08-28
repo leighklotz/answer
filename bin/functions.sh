@@ -25,50 +25,57 @@ PIPELINE_REASONING_CONVO_HEADER="Content-Type: text/x-llm-reasoning+plain"
 PIPELINE_TEXT_PLAIN_HEADER="Content-Type: text/plain"
 
 # --- SHARED WORKSPACE SETUP ---
+# initialize a shared temporary workspace lazily, when a temp file is requested
 function _ensure_workspace() {
-    # Initialize a shared temporary workspace ONLY when a temp file is actually requested.
-    if [[ -z "$HALLUX_RUN_DIR" ]] || [[ ! -d "$HALLUX_RUN_DIR" ]]; then
-        export HALLUX_RUN_DIR
-        HALLUX_RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hallux_run.XXXXXX")"
-        # Track the process ID that created this directory
-        export HALLUX_RUN_OWNER_PID="$BASHPID"
-        log_trace "Creating $HALLUX_RUN_DIR pid=$HALLUX_RUN_OWNER_PID"
+  if [[ -z ${HALLUX_RUN_DIR:-} || ! -d $HALLUX_RUN_DIR ]]; then
+    local base=${RUNTIME_DIRECTORY:-${XDG_RUNTIME_DIR:-}}
+
+    if [[ -n $base ]]; then
+      base=${base%/}/hallux
+      mkdir -p -m 700 -- "$base"
+      HALLUX_RUN_DIR=$(mktemp -d "$base/XXXXXX")
+    else
+      base=${TMPDIR:-/tmp}
+      HALLUX_RUN_DIR=$(mktemp -d "${base%/}/hallux.XXXXXX")
     fi
-    
-    # Register the cleanup trap only in processes that are actually using temp files.
-    # (Setting this inside the function prevents hijacking interactive shell traps)
-    trap '_cleanup_run_dir' EXIT INT SIGINT TERM SIGTERM HUP SIGHUP
+
+    HALLUX_RUN_OWNER_PID=$BASHPID
+    export HALLUX_RUN_DIR HALLUX_RUN_OWNER_PID
+    log_trace "Creating $HALLUX_RUN_DIR pid=$HALLUX_RUN_OWNER_PID"
+  fi
+
+  trap '_cleanup_run_dir' EXIT
 }
 
 function _mktemp_reg() {
-    local template="$1"
-    local literal="$2"
-    local tmp
-    local prefix
-    if [ -z "$literal" ]; then
-        _ensure_workspace
-        prefix="$HALLUX_RUN_DIR/"
-    else
-        prefix=""
-    fi
+  local template="$1"
+  local literal="$2"
+  local tmp
+  local prefix
+  if [ -z "$literal" ]; then
+    _ensure_workspace
+    prefix="$HALLUX_RUN_DIR/"
+  else
+    prefix=""
+  fi
 
-    # macOS mktemp can fail when a path and complex template are passed together.
-    # The "cheapest fix" for cross-platform compatibility is to use -u (unsafe/dry-run) 
-    # with the full pattern, then create it using 'touch'. This avoids mkstemp errors.
-    if ! tmp=$(mktemp "${prefix}${template}" 2>/dev/null); then
-        # Fallback for macOS where mktemp is picky about templates:
-        # Generate a unique path via -u, then touch it to create the file safely.
-        tmp=$(mktemp -u "${prefix}${template%.*}XXXXXX.${1##*.}" 2>/dev/null || \
-               mktemp -u "${prefix}${template}" 2>/dev/null)
-    fi
+  # macOS mktemp can fail when a path and complex template are passed together.
+  # The "cheapest fix" for cross-platform compatibility is to use -u (unsafe/dry-run) 
+  # with the full pattern, then create it using 'touch'. This avoids mkstemp errors.
+  if ! tmp=$(mktemp "${prefix}${template}" 2>/dev/null); then
+    # Fallback for macOS where mktemp is picky about templates:
+    # Generate a unique path via -u, then touch it to create the file safely.
+    tmp=$(mktemp -u "${prefix}${template%.*}XXXXXX.${1##*.}" 2>/dev/null || \
+            mktemp -u "${prefix}${template}" 2>/dev/null)
+  fi
 
-    if [[ ! -f "$tmp" ]]; then
-        touch "$tmp" 2>/dev/null || log_and_exit 1 "failed to create temp file: $tmp"
-    fi
+  if [[ ! -f "$tmp" ]]; then
+    touch "$tmp" 2>/dev/null || log_and_exit 1 "failed to create temp file: $tmp"
+  fi
 
-    log_debug "mktemp $tmp"
-    MKTEMP_REG="$tmp"
-    return 0
+  log_debug "mktemp $tmp"
+  MKTEMP_REG="$tmp"
+  return 0
 }
 
 function _mktemp_reg_lit() {
@@ -251,6 +258,7 @@ function _infer () {
 
   # Combine the original array with the new assistant message
   jq -s -c '.[0] + .[1:]' <(cat "$tmp_json") <(printf "%s" "$assistant_msg_json")
+  return $?
 }
 
 # executes the previous bash command line again, but through bx and with stderr redirected.
