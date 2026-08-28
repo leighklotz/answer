@@ -24,19 +24,22 @@ PIPELINE_TEXT_CONVO_HEADER="Content-Type: text/x-llm-history+plain"
 PIPELINE_REASONING_CONVO_HEADER="Content-Type: text/x-llm-reasoning+plain"
 PIPELINE_TEXT_PLAIN_HEADER="Content-Type: text/plain"
 
+
 # --- SHARED WORKSPACE SETUP ---
 # initialize a shared temporary workspace lazily, when a temp file is requested
 function _ensure_workspace() {
   if [[ -z ${HALLUX_RUN_DIR:-} || ! -d $HALLUX_RUN_DIR ]]; then
     local base=${RUNTIME_DIRECTORY:-${XDG_RUNTIME_DIR:-}}
+    local prog=${0##*/}
 
     if [[ -n $base ]]; then
       base=${base%/}/hallux
-      mkdir -p -m 700 -- "$base"
-      HALLUX_RUN_DIR=$(mktemp -d "$base/XXXXXX")
+      mkdir -p -- "$base"
+      chmod 700 -- "$base"
+      HALLUX_RUN_DIR=$(mktemp -d "$base/$prog.XXXXXX")
     else
       base=${TMPDIR:-/tmp}
-      HALLUX_RUN_DIR=$(mktemp -d "${base%/}/hallux.XXXXXX")
+      HALLUX_RUN_DIR=$(mktemp -d "${base%/}/hallux.$prog.XXXXXX")
     fi
 
     HALLUX_RUN_OWNER_PID=$BASHPID
