@@ -5,78 +5,86 @@
 ## Synopsis
 
 ```bash
-<conversation-json> | tools [MODULE[:PERMISSION[,...]]...]
+<conversation-json> | tools [MODULE[:CAPABILITY[=PATTERN]]]...
 ```
 
-The arguments are one or more module names, optionally followed by a colon-separated list of permissions (e.g., `git:read`, `git:read:write`, `git:all`). These arguments are passed as `--tools` flags to the underlying execution engine (`toolex.py`). You can mix multiple modules with different permissions (e.g., `bash:read git:write`).
+The arguments specify which modules are available to the LLM and what restrictions apply. These arguments are passed as `--tools` flags to the underlying engine (`toolex.py`). You can mix multiple modules with different levels of permission (e.g., `file:read=*.txt git:all bash:run=*`).
 
 ## Description
 
-When using models that support **Function Calling**, an LLM may return a request to execute a specific function (e.g., `git_branch_list` or `get_system_uptime`) rather than returning plain text. 
+When using models that support **Function Calling**, an LLM may return a request to execute a specific function rather than returning plain text. 
 
 The `tools` command acts as the bridge for these requests within an Answer pipeline:
 1.  **Intercepts:** It reads the conversation JSON history from `stdin`.
 2.  **Identifies:** It scans the latest message in the array for pending `tool_calls`.
-3.  **Executes:** For each call, it uses a specified module (via `toolex.sh`) to run the requested function on your local system.
-4.  **Updates State:** It appends the execution results back into the conversation array as new messages with the role of `tool`, preserving the conversational flow for downstream components that support structured JSON history.
+3.  **Executes:** For each call, it uses a specified module to run the requested function on your local system while enforcing **Runtime Path/Resource Restriction**.
+4.  **Updates State:** It appends results back into the conversation as messages with the role of `tool`, preserving context for downstream components.
+
+## Permission & Restriction Syntax
+
+To maximize security, you can restrict tools not just by *module*, but also by specific *capabilities* and resource *patterns* (using shell-style globs). The engine enforces these restrictions during execution; if a tool attempts to access a file or resource that does not match the provided pattern, it will return an "Access Denied" error to the LLM.
+
+| Syntax | Meaning | Example | Effect |
+| :--- | :--- | :--- | :--- |
+| `module` | **Full Access** | `git` | Grants all capabilities (e.g., read/write) within that module. |
+| `mod:cap` | **Capability Scoping** | `file:read` | Allows the `read` capability for any resource in the file module, but denies `write`. |
+| `mod:cap=pat` | **Resource Restriction** | `file:read=*.py` | The LLM can only use `file:read` on files ending in `.py`. Accessing `README.md` will fail. |
+| `mod:cap=p1,p2` | **Multiple Patterns** | `file:read=docs/*.md,log/*.txt` | Allows reading any markdown file in `/docs/` or text files in `/logs/`. |
 
 ## Input & Output
 
 | Component | Format | Description |
 | :--- | :--- | :--- |
 | **Input (`stdin`)** | JSON Conversation Array | Must be formatted as an Answer pipeline history (prefixed with the `PIPELINE_MAGIC_HEADER`). |
-| **Output (`stdout`)** | Updated JSON Conversation Array | The original conversation, augmented with new messages containing the tool execution results. When `stdout` is a TTY, the output is automatically piped through `answer` to produce plain text. |
+| **Output (`stdout`)** | Updated JSON Conversation Array | The original conversation, augmented with new messages containing tool execution results. When `stdout` is a TTY, it is automatically piped through `answer`. |
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `TOOLEX_SH` | `$HOME/wip/toolex/toolex.sh` | Path to the `toolex.sh` execution engine. |
-| `TOOLS_FLAGS` | _(empty)_ | Additional flags passed to `toolex.sh` before the `--tools` argument. |
-| `TRACE` | _(empty)_ | When set and `stdout` is a TTY, the toolex output is teed to `stderr` for observation while still being piped to `answer`. |
-
-## Requirements
-
-*   `toolex.sh` must be installed and its path set via `$TOOLEX_SH` (or the default location must exist).
-*   The modules you intend to use (e.g., `git`, `linux_tools`) must be compatible with `toolex.sh`.
+| `TOOLS_FLAGS` | _(empty)_ | Additional flags passed to `toolex.sh`. |
+| `TRACE` | _(empty)_ | When set and `stdout` is a TTY, raw tool output is teed to `stderr` for debugging. |
 
 ## Visual Feedback (`stderr`)
 
-When running in a terminal, `tools` provides feedback via emojis and prompts on **stderr** so that it does not interfere with the JSON data stream:
-* 🤖 **Confirmation Prompt:** Indicates an execution is being requested (often accompanied by confirmation requirements).
-* ✨ / 🎯 / 🧠 : Standard inference status icons indicating fresh request, cache hit, or reasoning content.
-
-When `TRACE` is set and `stdout` is a TTY, the raw toolex output is also written to `stderr` via `tee`.
+When running in an interactive terminal:
+* 🤖 **Confirmation Prompt:** Indicates an execution request requiring user permission (if configured).
+* ✨ / 🎯 / 🧠 : Status icons indicating inference progress, cache hits, or reasoning content.
 
 ## Examples
 
 ### 1. Basic Git Integration
-Allow the LLM to inspect your local repository state by providing the `git` module:
+Allow the LLM to inspect your repository state with full access:
 ```bash
 $ ask "What branches are not merged into main?" | tools git | answer
-# Output is plain text (thanks to 'answer') of the tool's result via the model.
 ```
 
-### 2. Multiple Modules in a Pipeline
-Provide multiple capability sets at once by passing them as separate arguments:
+### 2. Granular File Access (Secure)
+Restrict the LLM so it can only read documentation files and cannot write anything, even if a `write` tool is present in the module:
 ```bash
-$ ask "Check for uncommitted changes and summarize my current system uptime" | tools git system_info
-# This expands to executing with --tools git --tools system_info
+# Only allows reading .md or .txt files; no access to source code/binaries.
+$ ask "Summarize README.md" | tools file:read=*.md,file:read=*.txt | answer
 ```
 
-### 3. Mid-Pipeline Observation (Maintaining Context)
-To observe the results of a tool call without breaking the JSON conversation chain, use `ask` or `help` with the `-t` (`--tee`) flag instead of `answer`. This ensures that subsequent commands in the pipeline still receive the full structured history including the new `tool` messages.
-
+### 3. Complex Multi-Module Restrictions
+Mix a highly restricted module with a broadly permitted one:
 ```bash
-# Use -t to see results via stderr; stdout carries JSON for the next 'ask' turn
-$ ask "Check my disk usage" | tools bash | help "How much space is left on /home?" --tee
-🤖 Proceed with this command? (y/N): y 📊🔍✨💭
-# The model uses the tool result from stdin to answer your follow-up.
+# Can run any bash command, can read any git status, but can only read .py files via the 'file' tool.
+$ ask "Check git log and find all python imports in main.py" | tools bash:run=* git system_info file:read=*.py | answer
 ```
 
-### 4. Final Extraction
-After a chain of tools has been resolved and processed, use `answer` at the very end of the pipeline to extract the final human-readable response:
+### 4. Mid-Pipeline Observation
+Use `-t` (tee) to see what is happening without breaking the JSON chain for subsequent commands:
 ```bash
-$ ask "Use git log to find the last three commits" | tools git | answer
-# [Output is plain text from the model's summary]
+$ ask "Check my disk usage" | tools bash -t | help "How much space is left?" --tee
+# stdout carries JSON; stderr shows terminal status and results.
 ```
+
+### 5. Final Extraction
+Always use `answer` at the end of a pipeline to convert the final tool-augmented JSON into human-readable text:
+```bash
+$ ask "Read config.json" | tools file:read=config.json | answer
+# [Plain text summary from the LLM]
+```
+
