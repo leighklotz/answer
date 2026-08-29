@@ -57,21 +57,21 @@ When running in an interactive terminal:
 ### 1. Basic Git Integration
 Allow the LLM to inspect your repository state with full access:
 ```bash
-$ ask "What branches are not merged into main?" | tools git | answer
+$ ask "What branches are not merged into main?" | tools git
 ```
 
 ### 2. Granular File Access (Secure)
 Restrict the LLM so it can only read documentation files and cannot write anything, even if a `write` tool is present in the module:
 ```bash
 # Only allows reading .md or .txt files; no access to source code/binaries.
-$ ask "Summarize README.md" | tools file:read=*.md,file:read=*.txt | answer
+$ ask "Summarize README.md" | tools file:read=*.md,file:read=*.txt
 ```
 
 ### 3. Complex Multi-Module Restrictions
 Mix a highly restricted module with a broadly permitted one:
 ```bash
 # Can run any bash command, can read any git status, but can only read .py files via the 'file' tool.
-$ ask "Check git log and find all python imports in main.py" | tools bash:run=* git system_info file:read=*.py | answer
+$ ask "Check git log and find all python imports in main.py" | tools bash:run=* git system_info file:read=*.py
 ```
 
 ### 4. Mid-Pipeline Observation
@@ -80,11 +80,12 @@ Use `-t` (tee) to see what is happening without breaking the JSON chain for subs
 $ ask "Check my disk usage" | tools bash -t | help "How much space is left?" --tee
 # stdout carries JSON; stderr shows terminal status and results.
 ```
-
-### 5. Final Extraction
-Always use `answer` at the end of a pipeline to convert the final tool-augmented JSON into human-readable text:
+### 5. Pipeline Extraction
+As with other `answer` pipeline commands, In a pipeline where stdout is not a terminal, you must `answer` 
 ```bash
-$ ask "Read config.json" | tools file:read=config.json | answer
+$ ask "Read config.json and comment on it." | tools file:read=config.json > comments.json
+$ cat comments.json | answer 
 # [Plain text summary from the LLM]
 ```
+
 
