@@ -4,14 +4,14 @@ If you are comfortable with a bash prompt, you are probably skeptical of tools t
 
 You do not need a tool that attempts to write your software for you; you want something that respects your existing workflow, gives you explicit control over the data loop, and behaves like a predictable utility. That is still the premise of **Answer**.
 
-The **Answer** toolchain is built for developers who prefer controlling the black box from a standard prompt. It does not replace your local environment or try to act as an all-knowing agent. Instead, it treats language models as standard command-line filters operating inside a POSIX shell environment, now with first-class support for native tool calling and provenance.
+The **Answer** toolchain is built for developers who prefer controlling the black box from a standard prompt. It does not replace your local environment or try to act as an all-knowing agent. Instead, it treats language models as standard command-line filters inside a bash environment (Linux and macOS, Bash 4+), with first-class support for native tool calling and provenance.
 
 You can still use a simple one-shot:
 ```bash
 help "what is the difference between '-t 0' and '-t 1' in bash tests?"
 ```
 
-Or pipe text in and out, keeping the model securely bound inside standard inputs and outputs alongside `grep`, `awk`, and `sed`. Crucially, you can pipe between tools in the Answer toolchain itself. When you extend a pipeline, unchanged earlier inference stages are served from a cache under `.hallux/cache`, while new stages are inferred normally. Cache hits are shown as 🎯, misses as ✨.
+Or pipe text in and out, keeping the model securely bound inside standard inputs and outputs alongside `grep`, `awk`, and `sed`. Crucially, you can pipe between tools in the Answer toolchain itself. Inference responses are cached under `.hallux/cache` (falling back to `~/.config/hallux/cache/` when no workspace is in play) — cache hits show 🎯, misses show ✨, and tool calls are never cached.
 
 ---
 
@@ -37,8 +37,9 @@ The conversation becomes just another data stream. With ad-hoc ingestion, you co
 ```bash
 help "What am I missing here?" < build.log
 ```
+For pasting text chunks by hand, `ask -i` reads multi-line input terminated with Ctrl-D.
 
-Provenance is now a first-class concern. `hx provenance add` bookmarks significant terminal interactions as Git notes under `provenance/hallux`, giving you an auditable trail of command + response without polluting your git log.
+Provenance is now a first-class concern. `hx provenance add` bookmarks significant terminal interactions as Git notes under `provenance/hallux`, giving you an auditable trail of command + response without polluting your git log. Nothing is recorded unless you call `hx provenance` directly, and the feature is still a work in progress.
 
 ---
 
@@ -47,13 +48,13 @@ Provenance is now a first-class concern. `hx provenance add` bookmarks significa
 The system is built from small, focused components:
 
 * **`ask`** constructs conversation state from prompts and `stdin`.
-* **`help`** `help` is a specialized `ask` wrapper for quick Python/Bash questions.
+* **`help`** is a specialized `ask` wrapper for quick Python/Bash questions.
 * **`answer`** extracts plain text from structured conversation history when you need to terminate a pipeline or redirect output. Usually auto-invoked at end of CLI, but you need to call it if you redirect output: Always use `| answer > file`, never `> file` directly.
 * **`unfence`** extracts executable code from markdown fences and inserts an interactive confirmation step before execution.
 * **`lx`** streams files into conversations as markdown blocks.
 * **`bx`** captures command output for later inference, with the command itself documented in the prompt.
-* **`tools`** resolves model tool calls via `toolex.py` while preserving pipeline semantics and permission caps.
-* **`hx`** manages workspace discovery `.hallux`, cache operations, model selection, and provenance.
+* **`tools`** routes the JSON conversation through `toolex.py` to resolve native model tool calls while preserving pipeline semantics and permission caps; at a terminal it passes the final response through `answer` for you.
+* **`hx`** manages workspace discovery `.hallux`, cache operations, model selection, and provenance. It can replay the last response (`hx what`, 💭) or reasoning trace (`hx why`, 🧠) from your most recent inference.
 * **`systype`** provides system profiling metadata so reasoning is grounded in your actual hardware.
 
 Status emoji are now part of normal output:
@@ -96,11 +97,13 @@ fc -l -40 | help "I've been resolving a merge conflict for the last 15 minutes. 
 ```
 
 ### Example 3: Safe Tool Calling
-With `toolex` you can expose a permissioned tool set to the model:
+With `tools` you can expose a permissioned tool set to the model:
 ```bash
-lx src/*.py | ask "Find unused imports" | tools read_only --capabilities read_anywhere
+ask "Find unused imports" | tools 'file:read=src/*.py'
 ```
-Host bash tools are separated from sandboxed Podman tools, and capabilities are declared per function.
+Tool specs are `module[:capability][=pattern]`: `tools git:read` exposes only the read-only git tools, `tools 'file:read=*.py'` restricts file access to matching globs, and a bare module name grants the whole module. Quote specs containing globs so your shell doesn't expand them first. Host bash tools (`bash`) are separated from sandboxed Podman tools (`podbash`), which run with no network and a read-only workspace mount unless write capabilities are granted, and capabilities are declared per function. Agentic runs are capped at 30 tool-call iterations.
+
+The `toolex` package also ships `help-commit`, a ready-made pipeline — `ask … | tools git | unfence | bash` — that inspects your working tree and drafts conventional commits behind `unfence`'s confirmation gate.
 
 ---
 
@@ -108,7 +111,7 @@ Host bash tools are separated from sandboxed Podman tools, and capabilities are 
 
 The toolchain intentionally avoids hidden state, background daemons, and proprietary interaction models. It integrates effortlessly into emacs via `shell-command-on-region`, scripts, cron jobs, and existing development workflows.
 
-`hx enable` adds a `👣` prompt marker and activates the `.hallux` workspace discovery. The cache lives under `.hallux/cache/` or falls back to `~/.config/hallux/cache/`. Model endpoints are configured per session with `hx set-model`.
+`hx enable` adds a `👣` prompt marker and activates the `.hallux` workspace discovery. The cache lives under `.hallux/cache/` or falls back to `~/.config/hallux/cache/`. The API endpoint and key are configured in `bin/commands/env.sh`; `hx model` manages model configuration, and `hx set-model` switches the active model for the current session.
 
 The **Answer** toolchain doesn't try to manage your project or dictate your workflow. It treats language models as predictable filters, giving developers a clean, scriptable way to manipulate code streams.
 
