@@ -54,7 +54,7 @@ The system is built from small, focused components:
 * **`lx`** streams files into conversations as markdown blocks.
 * **`bx`** captures command output for later inference, with the command itself documented in the prompt.
 * **`tools`** routes the JSON conversation through `toolex.py` to resolve native model tool calls while preserving pipeline semantics and permission caps; at a terminal it passes the final response through `answer` for you.
-* **`hx`** manages workspace discovery `.hallux`, cache operations, model selection, and provenance. It can replay the last response (`hx what`, 💭) or reasoning trace (`hx why`, 🧠) from your most recent inference.
+* **`hx`** manages workspace discovery `.hallux`, cache operations, model selection, and provenance. It can replay the last response (`hx what`, 💬) or reasoning trace (`hx why`, 🧠) from your most recent inference.
 * **`systype`** provides system profiling metadata so reasoning is grounded in your actual hardware.
 
 Status emoji are now part of normal output:
@@ -64,7 +64,7 @@ Status emoji are now part of normal output:
 | ✨ | Inference, cache miss |
 | 🎯 | Inference, cache hit |
 | 💬 | piped content input |
-| 🐚 | `bx` shell input |
+| 😺 | `bx` shell input |
 | 📥 | `lx` file input |
 
 ---
@@ -101,7 +101,7 @@ With `tools` you can expose a permissioned tool set to the model:
 ```bash
 ask "Find unused imports" | tools 'file:read=src/*.py'
 ```
-Tool specs are `module[:capability][=pattern]`: `tools git:read` exposes only the read-only git tools, `tools 'file:read=*.py'` restricts file access to matching globs, and a bare module name grants the whole module. Quote specs containing globs so your shell doesn't expand them first. Host bash tools (`bash`) are separated from sandboxed Podman tools (`podbash`), which run with no network and a read-only workspace mount unless write capabilities are granted, and capabilities are declared per function. Agentic runs are capped at 30 tool-call iterations.
+Tool specs are `module[:capability][=pattern]`, or multiple capabilities in one spec (`file:read=a.py:write=a.py.bak`): `tools git:read` exposes only the read-only git tools, `tools 'file:read=*.py'` restricts file access to matching globs, and a bare module name grants the whole module. Quote specs containing globs so your shell doesn't expand them first. Pass multiple specs by repeating `--tools` (e.g. `tools --tools git --tools 'file:read=*.py'`), since the flag no longer accepts a space-separated list. Host bash tools (`bash`) are separated from sandboxed Podman tools (`podbash`), which run with no network and a read-only workspace mount unless write capabilities are granted, and capabilities are declared per function. Agentic runs are capped at 30 tool-call iterations.
 
 The `toolex` package also ships `help-commit`, a ready-made pipeline — `ask … | tools git | unfence | bash` — that inspects your working tree and drafts conventional commits behind `unfence`'s confirmation gate.
 
@@ -111,7 +111,7 @@ The `toolex` package also ships `help-commit`, a ready-made pipeline — `ask �
 
 The toolchain intentionally avoids hidden state, background daemons, and proprietary interaction models. It integrates effortlessly into emacs via `shell-command-on-region`, scripts, cron jobs, and existing development workflows.
 
-`hx enable` adds a `👣` prompt marker and activates the `.hallux` workspace discovery. The cache lives under `.hallux/cache/` or falls back to `~/.config/hallux/cache/`. The API endpoint and key are configured in `bin/commands/env.sh`; `hx model` manages model configuration, and `hx set-model` switches the active model for the current session.
+`hx enable` adds a `🐣` prompt marker and activates the `.hallux` workspace discovery. The cache lives under `.hallux/cache/` or falls back to `~/.config/hallux/cache/`. The API endpoint and key are configured in `bin/commands/env.sh`; `hx model` manages model configuration, and `hx set-model` switches the active model for the current session.
 
 The **Answer** toolchain doesn't try to manage your project or dictate your workflow. It treats language models as predictable filters, giving developers a clean, scriptable way to manipulate code streams.
 
