@@ -96,7 +96,11 @@ function _cleanup_run_dir() {
         log_trace "Cleaning up workspace: $target"
         # 3. Use -- to prevent filenames starting with '-' from being treated as flags
         # and suppress errors in case another process beat us to it (the 'rm' race)
-        rm -rf -- "$target" 2>/dev/null || true
+        if [ -n "$HX_KEEP_TEMP_FILES" ]; then
+          log_warn "HX_KEEP_TEMP_FILES: $target"
+        else
+          rm -rf -- "$target" 2>/dev/null || true
+        fi
     fi
 
     # 4. Unset the variable so subsequent calls don't try to re-clean or find a non-existent dir
@@ -147,14 +151,17 @@ function _infer () {
          log_and_exit 2 "_infer: cancelled"
   fi
   if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
+    log_trace "_infer: saw magic header"
     cat > "$tmp_json"
   else
+    log_trace "_infer: no magic header"
     printf "%s\n" "$first_line" > "$tmp_json"
     cat >> "$tmp_json"
   fi
 
   # Contract: _infer takes a JSON array of chat messages.
   if ! jq -e 'type == "array"' < "$tmp_json" >/dev/null 2>&1; then
+    [ -n "$LOG_QUERIES" ] && log_trace "tmp_json=$(cat "$tmp_json")"
     log_and_exit 1 "_infer takes a JSON array of chat messages."
   fi
 
