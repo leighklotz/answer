@@ -11,7 +11,7 @@ if [ -t 0 ]; then
 fi
 
 HX_LOWDOWN='lowdown -t term'
-TEE_MODE=''
+RAW_TEE_MODE=''
 MARKDOWN_TEE_MODE=''
 JSON_MODE=''
 
@@ -19,7 +19,7 @@ JSON_MODE=''
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -t|--tee)
-            TEE_MODE=1
+            RAW_TEE_MODE=1
             shift
             ;;
         -m|--markdown-tee)
@@ -56,21 +56,24 @@ fi
 
 # --tee 
 # If --tee is active, always output the text preview to stderr for human readability.
-if [[ $TEE_MODE -eq 1 ]]; then
+if [[ $RAW_TEE_MODE -eq 1 ]]; then
+    # stderr: assistant text
     printf '\n%s%s\n' "TEE_ICON" "$assistant_text" >&2
 fi
 
 if [[ $MARKDOWN_TEE_MODE -eq 1 ]]; then
+    # stderr: assistant text piped through markdown viewer
     printf '\n%s%s\n' "$TEE_ICON" "$assistant_text" | $HX_LOWDOWN >&2
 fi
 
 # stdout text/json
 if [[ $JSON_MODE -eq 1 ]]; then
-    # Output the full JSON conversation array preceded by the magic header for pipeline continuity.
+    # stdout: the full JSON conversation array preceded by the magic header for pipeline continuity.
     printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "${resolved_history}"
 elif [[ -t 1 && -n "$HX_MD" ]]; then
+    # stdout: assistant response piped through markdown viewer
     printf '%s\n' "$assistant_text" | $HX_MD
 else
-    # Default: output only the raw plain text response to stdout.
+    # stdout: raw
     printf '%s\n' "$assistant_text"
 fi
