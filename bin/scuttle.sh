@@ -79,7 +79,7 @@ TO_LINK_JQ_FILTER=$(cat <<'EOF'
 def formenc:
   @uri
   | gsub("%20"; "+")
-  | gsub("%2C"; ",");
+  | gsub("%2C", ",");
 
 def csv_tags:
   if .keywords == null then ""
@@ -111,8 +111,10 @@ function to_link() {
 
 # remove smart quotes, as they cause parsing errors
 function replace_smart_quotes() {
-    # shellcheck disable=SC1111
-    LC_ALL=C sed -e "s/[‘’]/\'/g" -e "s/[“”‟]/\"/g" -e "s/[‚„]/,/g" -e "s/[‛]/\`/g"
+    sed -e "s/[‘’]/'/g" \
+        -e 's/[“”‟]/"/g' \
+        -e 's/[‚„]/,/g' \
+        -e 's/[‛]/`/g'
 }
 
 SCUTTLE_PROMPT=$(cat <<'EOF'
