@@ -7,7 +7,7 @@ source "$SCRIPT_DIR/../functions.sh"
 cmd="$1"; shift || true
 
 function usage() {
-    echo "usage: hx model|load|unload|models|cache|provenance|again|why|what|cat|describe|stats|context" >&2
+    echo "usage: hx model|server|load|unload|models|cache|provenance|again|why|what|cat|describe|stats|context" >&2
     exit 1
 }
 
@@ -34,7 +34,7 @@ case "$cmd" in
             [[ -n "$latest_f" && -f "$latest_f" ]] && cat "$latest_f" | "$SCRIPT_DIR/${cmd}.sh" || echo "No cache" >&2
         fi
         ;;
-    context|cache) "$SCRIPT_DIR/${cmd}.sh" "$@" ;;
+    context|cache|server) "$SCRIPT_DIR/${cmd}.sh" "$@" ;;
     --help|help) usage ;;
     *|--help) printf "hx '%s' unknown\n" "${cmd}" >&2; usage ;;
 esac
