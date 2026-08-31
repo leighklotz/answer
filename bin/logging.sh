@@ -37,6 +37,8 @@ CONVO_ICON="💭"
 RESPONSE_ICON="↩️"
 SAVE_ICON="💾"
 PIN_ICON="📌"
+#STREAMING_ICON="🚰"
+STREAMING_ICON="."
 
 
 # RWK: https://gist.github.com/akostadinov/33bb2606afe1b334169dfbf202991d36?permalink_comment_id=4962266#gistcomment-4962266
