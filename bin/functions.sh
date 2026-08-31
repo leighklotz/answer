@@ -140,6 +140,123 @@ function _get_newest_cache_file() {
     fi
 }
 
+# --- INFERENCE ---
+function _infer_request_post() {
+    local endpoint="$1"
+    local request_file="$2"
+    local api_key="$3"
+    local -a auth_flags=()
+
+    if [[ -n "$api_key" ]]; then
+        auth_flags=(-H "Authorization: Bearer ${api_key}")
+    fi
+
+    curl -fsS -X POST "$endpoint" \
+        "${auth_flags[@]}" \
+        -H "Content-Type: application/json" \
+        -d @"$request_file"
+}
+
+function _infer_request_streaming() {
+    local endpoint="$1" request_file="$2" api_key="$3"
+    local -a auth_flags=()
+    [[ -n "$api_key" ]] && auth_flags=(-H "Authorization: Bearer ${api_key}")
+
+    _mktemp_reg 'sse.XXXXXX'
+    local sse="$MKTEMP_REG"
+
+    # Phase 1: stream to file and show a progress pip every N SSE responses.
+    (
+        set -o pipefail
+
+        jq '
+            .stream = true
+            | .stream_options = ((.stream_options // {}) + {include_usage: true})
+        ' "$request_file" |
+        curl -fsS -N -X POST "$endpoint" "${auth_flags[@]}" \
+            -H "Content-Type: application/json" \
+            -d @- |
+        tee "$sse" |
+        awk -v every="${HX_STREAMING_PIP_EVERY:-100}" \
+            -v icon="${STREAMING_ICON}" '
+            /^data: / && !/\[DONE\]/ {
+                ++n
+                if (n % every == 0)
+                    printf "%s", icon > "/dev/stderr"
+            }
+        ' > /dev/null
+    ) || return 1
+
+    # Phase 2: reassemble SSE chunks into a normal chat completion object.
+    jq -R -s '
+        split("\n")
+        | map(sub("^data: "; "") | sub("\r$"; ""))
+        | map(select(. != "" and . != "[DONE]"))
+        | map(fromjson?)
+        | select(length > 0)
+        | . as $c
+
+        | (
+            [$c[].choices[]?.delta?.reasoning_content?
+             | select(type == "string")]
+            | join("")
+        ) as $reasoning
+
+        | {
+            id: (
+                [$c[].id? | select(. != null)]
+                | last
+            ),
+            created: (
+                [$c[].created? | select(. != null)]
+                | last
+            ),
+            model: (
+                [$c[].model? | select(. != null)]
+                | last
+            ),
+            system_fingerprint: (
+                [$c[].system_fingerprint? | select(. != null)]
+                | last
+            ),
+            choices: [{
+                index: 0,
+                message: (
+                    {
+                        role: "assistant",
+                        content: (
+                            [$c[].choices[]?.delta?.content?
+                             | select(type == "string")]
+                            | join("")
+                        )
+                    }
+                    +
+                    if $reasoning != "" then
+                        {reasoning_content: $reasoning}
+                    else
+                        {}
+                    end
+                ),
+                finish_reason: (
+                    [$c[].choices[]?.finish_reason?
+                     | select(. != null)]
+                    | last
+                )
+            }],
+            usage: (
+                [$c[].usage? | select(. != null)]
+                | last
+            ),
+            timings: (
+                [$c[].timings? | select(. != null)]
+                | last
+            ),
+            object: "chat.completion"
+        }
+        | with_entries(select(.value != null))
+    ' "$sse"
+}
+
 function _infer () {
   local tmp_json tmp_req last_role
   _mktemp_reg 'infer.XXXXXX.json' && tmp_json="$MKTEMP_REG"
@@ -150,6 +267,7 @@ function _infer () {
   if [[ ! -w "$tmp_json" ]]; then
          log_and_exit 2 "_infer: cancelled"
   fi
+
   if [[ "$first_line" == "${PIPELINE_MAGIC_HEADER}" ]]; then
     log_trace "_infer: saw magic header"
     cat > "$tmp_json"
@@ -172,15 +290,17 @@ function _infer () {
     return 0
   fi
 
-  local api_key="${OPENAI_API_KEY:-}"
-  local endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
-  local server_model="$(_get_model_name)"
+  local api_key endpoint server_model
+
+  api_key="${OPENAI_API_KEY:-}"
+  endpoint="${VIA_API_CHAT_BASE}/v1/chat/completions"
+  server_model="$(_get_model_name)"
 
   if [ -z "$server_model" ]; then
       log_warn "$VIA_API_CHAT_BASE has no default model loaded: using 'default'"
       server_model='default'
   fi
-    
+
   log_info "model=$server_model"
 
   # TODO: Should we map these for model agnosticism
@@ -203,7 +323,7 @@ function _infer () {
       enable_thinking: $thinking,
       thinking_budget_tokens: $thinking_budget,
       chat_template_kwargs: { reasoning_effort: $reasoning_effort }
-}' < "$tmp_json" > "$tmp_req"
+    }' < "$tmp_json" > "$tmp_req"
 
   local fingerprint request_hash cache_dir cache_file response_json
 
@@ -212,33 +332,37 @@ function _infer () {
 
   cache_dir=$(_find_cache_dir)
   cache_file=""
+
   if [ -n "$cache_dir" ]; then
       log_trace "Creating cache_dir=$cache_dir"
       mkdir -m 700 -p "$cache_dir"
       cache_file="${cache_dir}/${fingerprint}:${request_hash}.json"
   fi
 
-  if  [ -n "$cache_dir" ] && [ -f "$cache_file" ]; then
+  if [ -n "$cache_dir" ] && [ -f "$cache_file" ]; then
     log_trace "cache_file=$cache_file"
-    printf "$CACHE_HIT_ICON" >&2
+    printf "%s" "$CACHE_HIT_ICON" >&2
     response_json=$(cat "$cache_file")
   else
     [ -n "$LOG_QUERIES" ] && log_trace "request=$(cat "$tmp_req")"
     printf "%s" "$INFERENCE_ICON" >&2
-    local -a auth_flags=()
-    if [ -n "$api_key" ]; then
-        auth_flags=(-H "Authorization: Bearer ${api_key}")
-    fi
     log_trace "endpoint=$endpoint"
-    # shellcheck disable=SC2086
-    response_json=$(curl -fsS -X POST "$endpoint" \
-                         "${auth_flags[@]}" \
-                         -H "Content-Type: application/json" \
-                         -d @"$tmp_req") || {
-      return 1
+
+    response_json=$(
+      if [[ -n ${HX_STREAMING:-} ]]; then
+        _infer_request_streaming "$endpoint" "$tmp_req" "$api_key"
+      else
+        _infer_request_post "$endpoint" "$tmp_req" "$api_key"
+      fi
+    ) || {
+        return 1
     }
+
     [ -n "$LOG_QUERIES" ] && log_trace "response_json=$response_json"
-    if jq -e '.choices[0]?.message?.reasoning_content != null' <<< "$response_json" >/dev/null 2>&1; then
+
+    if jq -e '.choices[0]?.message?.reasoning_content != null' \
+        <<< "$response_json" >/dev/null 2>&1
+    then
         printf "%s" "$THINK_ICON" >&2
     fi
   fi
@@ -267,15 +391,20 @@ function _infer () {
   assistant_msg_json=$(printf "%s" "$assistant_content" | jq -R -s -c '{role: "assistant", content: .}')
 
   # Combine the original array with the new assistant message
-  jq -s -c '.[0] + .[1:]' <(cat "$tmp_json") <(printf "%s" "$assistant_msg_json")
+  jq -s -c '.[0] + .[1:]' \
+      <(cat "$tmp_json") \
+      <(printf "%s" "$assistant_msg_json")
+
   return $?
 }
+
 
 # executes the previous bash command line again, but through bx and with stderr redirected.
 # Use in a pipe such as `hx again | ask what went wrong`
 function _hx_again() {
     local cmd
     cmd=$(fc -ln -1)
+    # TODO: We need it to execute inside bx.
     bx ${cmd/#bx /} 2>&1
 }
 
