@@ -6,6 +6,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   exit 1
 fi
 
+HALLUX_ICON='👣'
+
 if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" || "$TERM" == "emacs" ]]; then
   WARNING_ICON='⚠️'
   VERBOSE_ICON='📣'
@@ -14,7 +16,6 @@ if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" || "$TERM" == "emacs" ]]; then
   EXIT_ICON='⛔'
   INFO_ICON='ℹ️'
   GREEN_CHECK_ICON='✅'
-  HALLUX_ICON='👣'
   TEE_ICON='👕'
   USER_INPUT_ICON='💬'
   INFERENCE_ICON='✨'
@@ -41,7 +42,6 @@ else
   EXIT_ICON=$'\u26d4\ufe0e'              # ⛔︎
   INFO_ICON=$'\u2139\ufe0e'              # ℹ︎
   GREEN_CHECK_ICON=$'\u2705\ufe0e'       # ✅︎
-  HALLUX_ICON=$'\U0001f463\ufe0e'        # 👣︎
   TEE_ICON=$'\U0001f455\ufe0e'           # 👕︎
   USER_INPUT_ICON=$'\U0001f4ac\ufe0e'    # 💬︎
   INFERENCE_ICON=$'\u2728\ufe0e'         # ✨︎
