@@ -4,5 +4,5 @@ printf '```bash\n$ %s\n' "${*}"
 "$@"
 s=$?
 printf '```\n'
-printf "🐚" >&2
+printf '%s' "${SHELL_ICON}" >&2
 exit $s

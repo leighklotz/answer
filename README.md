@@ -173,13 +173,15 @@ klotz@tensor:~/wip/answer👣$ help-commit
 ### Status Emoji
 The *answer* suite uses Unicode emoji icons to give status about the pipeline as it executes:
 
-| Icon | Meaning |
-| :--- | :--- |
-| ✨ | Inference (cache miss) |
-| 🎯 | Inference (cache hit) |
-| 💬 | piped content input |
-| 🐚 | `bx` shell input |
-| 📥 | `lx` file input |
+| Text | Icon | Meaning |
+| :--- | :--- | :--- |
+| ✨︎   | ✨ | Inference (cache miss) |
+| 🎯︎   | 🎯 | Inference (cache hit) |
+| 💬︎   | 💬 | piped content input |
+| 🐚   | 🐚 | `bx` shell input |
+| 📥   | 📥 | `lx` file input |
+
+The environment variable `$HX\_ICON\_STYLE` controls the icon style, `text` or `emoji`.
 
 ---
 
