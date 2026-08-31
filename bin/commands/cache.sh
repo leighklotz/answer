@@ -11,13 +11,13 @@ case "$1" in
 
         if [[ -z "$cache_dir" || ! -d "$cache_dir" ]]; then 
             echo "$ERROR_ICON No valid cache directory found." >&2
-            return 1
+            exit 1
         fi
 
         # Safety check: prevent accidental deletion of root or home if _find_cache_dir fails catastrophically
         if [[ "$cache_dir" == "/" || "$cache_dir" == "$HOME" ]]; then
             echo "$ERROR_ICON Error: Cache directory is a protected system path." >&2
-            return 1
+            exit 1
         fi
 
         printf "%s Are you sure you want to remove %s?\n" "$WARNING_ICON" "$cache_dir" >&2
@@ -28,9 +28,14 @@ case "$1" in
             echo "$CANCELLED_ICON Cancelled."
         fi
         ;;
-
-    show) printf "%s\n" "$(_find_cache_dir)" ;;
-    enable|disable) log_and_exit 1 "internal error: $1 must be handled by function, not script" ;;
-    *) echo "Unknown cache option '$1': (clear|show|enable|disable)" >&2; exit 1 ;;
+    show)
+      printf "%s\n" "$(_find_cache_dir)" ;;
+    enable|disable)
+      log_and_exit 1 "internal error: $1 must be handled by function, not script"
+      ;;
+    *)
+      echo "Unknown cache option '$1': (clear|show|enable|disable)" >&2
+      exit 1
+      ;;
 esac
 
