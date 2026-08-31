@@ -39,6 +39,13 @@ function hx () {
             HX_MODEL="$("$HX_ROOT/bin/commands/hx.sh" set-model "$@")"
             export HX_MODEL
             ;;
+        icons)
+          if [[ -n "$1" ]]; then
+            HX_ICON_STYLE="$1"
+          else
+            echo "${HX_ICON_STYLE:-emoji}"
+          fi
+          ;;
         cache)
             local subcmd="$1"
             shift
