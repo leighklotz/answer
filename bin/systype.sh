@@ -5,7 +5,7 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-echo "$COMPUTER_ICON" >&2
+printf "%s" "$COMPUTER_ICON" >&2
 printf '# Description of this system:\n'
 printf '```bash\n'
 printf '$ uname -a\n'
