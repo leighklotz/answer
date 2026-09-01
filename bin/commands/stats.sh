@@ -11,8 +11,8 @@ fi
 
 printf "%s\n" "$SCROLL_ICON" >&2
 
-jq -r '"***
-### 📊 Statistics
+jq -r --arg stats_icon "$STATS_ICON" '"***
+### \($stats_icon) Statistics
 **Model Information**
 * **Model ID:** \(.model)
 * **Completion ID:** \(.id)

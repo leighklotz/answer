@@ -39,22 +39,20 @@ elif [ -x "${DOWNLINK_COMMAND}" ]; then
 elif command -v lynx &> /dev/null; then
     FETCHER="lynx"
     fetch_version="$(lynx -version 2>&1 | head -1)"
+    if [ -z "${fetch_version}" ]; then
+        log_and_exit 2 "Could not find the Lynx/Links version number." 
+    fi
     if [[ $fetch_version =~ Lynx\ Version\ ([0-9a-zA-Z.]+) ]]; then
         fetch_version="Lynx/${BASH_REMATCH[1]}"
-    fi
-    if [ -e "${fetch_version}" ]; then
-        echo "Could not find the Lynx/Links version number."
-        exit 2
     fi
 elif command -v links &> /dev/null; then
     FETCHER="links"
     fetch_version="$(links -version 2>&1 | head -1)"
+    if [ -z "${fetch_version}" ]; then
+      log_and_exit 3 "Could not find the Lynx/Links version number."
+    fi
     if [[ $fetch_version =~ Links\ ([0-9a-zA-Z.]+) ]]; then
         fetch_version="Links/${BASH_REMATCH[1]}"
-    fi
-    if [ -e "${fetch_version}" ]; then
-        echo "Could not find the Lynx/Links version number."
-        exit 3
     fi
 
 else

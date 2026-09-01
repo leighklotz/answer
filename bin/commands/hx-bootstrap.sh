@@ -41,7 +41,7 @@ function hx () {
             ;;
         icons)
           if [[ -n "$1" ]]; then
-            HX_ICON_STYLE="$1"
+            export HX_ICON_STYLE="$1"
           else
             echo "${HX_ICON_STYLE:-emoji}"
           fi

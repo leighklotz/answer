@@ -9,6 +9,7 @@ fi
 HALLUX_ICON='👣'
 
 if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" || "$TERM" == "emacs" ]]; then
+  STATS_ICON="📊"
   WARNING_ICON='⚠️'
   VERBOSE_ICON='📣'
   TRACE_ICON='🔍'
@@ -35,6 +36,7 @@ if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" || "$TERM" == "emacs" ]]; then
   STREAMING_ICON='.'
   SHELL_ICON='🐚'
 else
+  STATS_ICON=$'\U0001f4ca\ufe0e'        # 📊︎
   WARNING_ICON=$'\u26a0\ufe0e'          # ⚠︎
   VERBOSE_ICON=$'\U0001f4e3\ufe0e'      # 📣︎
   TRACE_ICON=$'\U0001f50d\ufe0e'        # 🔍︎
@@ -140,3 +142,4 @@ function log_and_exit {
   [ -n "${PRINT_STACK_TRACE:-}" ] && printf "Error code %s %s\n" "$code" "$(stack_trace)" | tee > /dev/fd/2
   [[ "${code}" =~ ^[0-9]+$ ]] && exit "${code}" || exit 1
 }
+
