@@ -2,7 +2,7 @@
 
 **`hx`** is the central management utility of the Answer framework. It serves as a control plane for managing your shell environment (via integration scripts), controlling data persistence through local caching, and providing rapid access to recent LLM interactions via specialized parsing utilities or Git-backed provenance tracking.
 
-It operates in three distinct modes depending on how it is invoked: **Environment & Session Control** (top-level commands), **Interaction Provenance** (subcommands for recording history into Git metadata), or **Cache Management** (subcommands for controlling local storage).
+It operates in three distinct modes depending on how it is invoked: **Environment & Session Control** (top-level commands), **Interaction Provenance** (subcommands for recording history into Git metadata), or **Cache Management and Utilities** (subcommands for controlling local storage).
 
 ## Synopsis
 
@@ -13,9 +13,10 @@ hx [set-model | model | load | unload | models | again]
 # 2. Interaction Provenance Subcommand
 hx provenance {add [mode] | show [hash] | refs | list}
 
-# 3. Cache & Context Management / Recent Interaction Utilities
+# 3. Cache, Context & Server Management / Recent Interaction Utilities (why, what, etc.)
 hx cache [args...]
 hx context [args...]
+hx server [args...]
 hx [why | what | cat | describe | stats] [-]
 ```
 
@@ -56,19 +57,29 @@ When using `hx provenance add`, you can specify how the captured interaction is 
 | **`describe`** | 📜 | Records context as a plain-text descriptive note. |
 | **`-`** (dash) | `\|` | Reads content directly from `stdin`. Use this to pipe raw text or manual input into the provenance log without running an automatic command capture. |
 
-### 3. Cache & Context Management / Interaction Utilities (`hx cache`, `hx context`, `why`, etc.)
-The framework uses local JSON files for caching and provides utilities to inspect these cached interactions immediately.
+### Summary of logical alignment check:
+| hx provenance subcmd | Emoji | Meaning |
+| :--- | :--- | :--- |
+| `what` | 💭 | last text response |
+| `why` | 🧠 |  last reasoning trace |
+| `response`| ⬅️ | last convo JSON response |
+| `describe` | 📜 | describe last convo JSON response with inference |
+| `-` | ➡️ | direct stdin attached | 
 
-**Cache & Context Management:**
+### 3. Cache & Context Management / Interaction Utilities (`hx cache`, `hx context`, etc.)
+The framework uses local JSON files for caching and provides utilities to inspect these cached interactions immediately. It also provides access to specialized management scripts for servers, contexts, and caches.
+
+**Management:**
 * **`hx cache [args]`**: Manage storage settings (e.g., `clear`, `show`, `enable/disable`). Calls `cache.sh`.
 * **`hx context [args]`**: Manage context via `context.sh`.
+* **`hx server [args]`**: Interact with the specialized server implementation.
 
 **Interaction Inspection (Operates on the most recent interaction or piped stdin):**
-If a local cache exists, these commands extract specific components from your latest inference. Alternatively, pass `-` as the sole argument to read from `stdin` instead of the cache (e.g., `cat foo.json | hx what -`).
+If a local cache exists, these commands extract specific components from your latest interaction. Alternatively, pass `-` as the sole argument to read from `stdin` instead of the cache (e.g., `cat foo.json | hx what -`).
 
 | Command | Description | Output Type |
 | :--- | :--- | :--- |
-| **`hx why`** | Extracts and displays model "thinking" or reasoning blocks (🧠) from the most recent cached interaction. | Reasoning text/trace. |
+| **`hx why`** | Extracts and displays model "thinking" or reasoning blocks (🧠) from your most recent cached interaction. | Reasoning text/trace. |
 | **`hx what`** | Parses and formats the raw content of your most recent cached interaction for clean terminal viewing. | Formatted plain text response. |
 | **`hx cat`** | Passes the structured JSON data of the latest cache entry directly to a processing script (e.g., `cat.sh`). | Raw/Processed JSON stream. |
 | **`hx describe`** | Generates a formatted Markdown summary of the most recent interaction, including conversation and model metrics. | Formatted Markdown summary. |
