@@ -8,7 +8,7 @@ fi
 
 HALLUX_ICON='👣'
 
-if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" || "$TERM" == "emacs" ]]; then
+if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" ]]; then
   STATS_ICON="📊"
   WARNING_ICON='⚠️'
   VERBOSE_ICON='📣'
