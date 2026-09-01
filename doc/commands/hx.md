@@ -1,5 +1,10 @@
 # hx
 
+```bash
+👣$ hx help
+usage: hx model|server|load|unload|models|cache|provenance|again|why|what|cat|describe|stats|context
+```
+
 **`hx`** is the central management utility of the Answer framework. It serves as a control plane for managing your shell environment (via integration scripts), controlling data persistence through local caching, and providing rapid access to recent LLM interactions via specialized parsing utilities or Git-backed provenance tracking.
 
 It operates in three distinct modes depending on how it is invoked: **Environment & Session Control** (top-level commands), **Interaction Provenance** (subcommands for recording history into Git metadata), or **Cache Management and Utilities** (subcommands for controlling local storage).
@@ -8,7 +13,7 @@ It operates in three distinct modes depending on how it is invoked: **Environmen
 
 ```bash
 # 1. Environment & Session/Model Commands (Top-Level)
-hx [set-model | model | load | unload | models | again]
+hx [set-model | model | server | load | unload | models | cache | provenance | again]
 
 # 2. Interaction Provenance Subcommand
 hx provenance {add [mode] | show [hash] | refs | list}
@@ -30,7 +35,7 @@ These commands manage the active shell environment, LLM configurations, or repla
 
 | Command | Purpose | Implementation Note |
 | :--- | :--- | :--- |
-| **`hx enable / disable`** | **Activate/Deactivate Framework:** Integrates Answer into your current session (e.g., adding the `(👣)` icon to `$PS1`). *Note: Typically used via bootstrap.* | Sources integration scripts. |
+| **`hx enable / disable`** | **Activate/Deactivate Framework:** Integrates Answer into your current session (e.g., adding the `(👣)` icon to `$PS1`). *Note: Typically used via bootstrap.* | Sources integration scripts and modifies environment/path. |
 | **`hx set-model [args]`** | **Set Session Model:** Quickly updates your current session's `$HX_MODEL` environment variable using a specific model string or configuration. | Calls `model.sh`, captures output, and prints it. |
 | **`hx model / load / unload`** | **Model Management:** Configures API endpoints, switches models, or manages loaded LLM contexts. | Calls `model.sh`. |
 | **`hx models [args]`** | **Model List/Management:** Lists and manages available AI model endpoints in the system configuration. | Calls `models.sh`. |
@@ -57,15 +62,6 @@ When using `hx provenance add`, you can specify how the captured interaction is 
 | **`describe`** | 📜 | Records context as a plain-text descriptive note. |
 | **`-`** (dash) | `\|` | Reads content directly from `stdin`. Use this to pipe raw text or manual input into the provenance log without running an automatic command capture. |
 
-### Summary of logical alignment check:
-| hx provenance subcmd | Emoji | Meaning |
-| :--- | :--- | :--- |
-| `what` | 💭 | last text response |
-| `why` | 🧠 |  last reasoning trace |
-| `response`| ⬅️ | last convo JSON response |
-| `describe` | 📜 | describe last convo JSON response with inference |
-| `-` | ➡️ | direct stdin attached | 
-
 ### 3. Cache & Context Management / Interaction Utilities (`hx cache`, `hx context`, etc.)
 The framework uses local JSON files for caching and provides utilities to inspect these cached interactions immediately. It also provides access to specialized management scripts for servers, contexts, and caches.
 
@@ -75,7 +71,7 @@ The framework uses local JSON files for caching and provides utilities to inspec
 * **`hx server [args]`**: Interact with the specialized server implementation.
 
 **Interaction Inspection (Operates on the most recent interaction or piped stdin):**
-If a local cache exists, these commands extract specific components from your latest interaction. Alternatively, pass `-` as the sole argument to read from `stdin` instead of the cache (e.g., `cat foo.json | hx what -`).
+If a local cache exists, these commands extract specific components from your latest interaction. Alternatively, pass `-` as the sole argument to read from `stdin` instead of the latest [cache] via the sub-script defaults.
 
 | Command | Description | Output Type |
 | :--- | :--- | :--- |
@@ -124,3 +120,6 @@ $ hx stats
 
 # Provide a specific cache file via stdin instead of the latest
 $ cat some_cache.json | hx what -
+
+# Note:
+Some commands are provided by the `hx` function in `bin/commands/hx-bootstrap.sh`, while others call specialized scripts (like `model.sh`, `models.sh`, or `${cmd}.sh`) via the main `bin/commands/hx.sh` entry point.

@@ -44,14 +44,14 @@ for cmd in $CMDS; do
         [ -n "$src" ] && context+=("$src")
 
         if [ -f $doc_md ]; then
-            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions. Bias towards making small changes based on correspondence with given command script. AVOID EDITORIAL CHANGES. If the usage document does not largely correspond to the implementation, note that fact and do not output the new file. If the file should be unchanged, output the literal text \`NO CHANGES\`."
+            prompt="Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions. Bias towards making small changes based on correspondence with given command script. Source for the \`hx\` command is in bash functions in bin/commands/hx-bootstrap.sh and in the script bin/commands/hx.sh and implementation of \`hx\` subcommands is split across them.. AVOID EDITORIAL CHANGES. If the usage document does not largely correspond to the implementation, note that fact and do not output the new file. If the file should be unchanged, output the literal text \`NO CHANGES\`."
             dest="${doc_md_new}"
         else
             prompt="Create the usage document \`doc/commands/${cmd}.md\` for the $cmd command for $src"
             dest="${doc_md}"
         fi
 
-        context+=(README.md tests/story-test.sh doc/commands/*.md bin/logging.sh)
+        context+=(README.md tests/story-test.sh doc/commands/*.md bin/logging.sh bin/commands/hx-bootstrap.sh)
         lx "${context[@]}" | ask "$prompt" | answer | _strip_markdown_fence > "$dest" || log_and_exit 1 "pipeline failed"
     fi
     first_line="$(head -n1 "$dest")"
