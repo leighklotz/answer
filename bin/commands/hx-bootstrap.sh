@@ -14,9 +14,10 @@ function hx () {
     }
 
     case "$cmd" in
-        ""|enable)
-            hx core && hx PS1 && echo "👣 hallux $(hx server) $(hx model)"
-            ;;
+        ""|enable) hx core &&
+                   hx PS1 &&
+                   echo "👣 hallux $(hx server) $(hx model) $(hx root) $(hx provenance add bash_history)"
+          ;;
         core)
             HX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
             [[ ":$PATH:" != *":$HX_ROOT/bin:"* ]] && export PATH="$HX_ROOT/bin:$PATH"
@@ -26,7 +27,10 @@ function hx () {
                 "$HX_ROOT/bin/help.sh" "$@"
             }
             ;;
-        PS1) source "$HX_ROOT/bin/commands/PS1.sh" ;;
+        provenance)
+            "$HX_ROOT/bin/commands/${cmd}.sh" "${@}"
+            ;;
+        PS1) source "$HX_ROOT/bin/commands/${cmd}.sh" ;;
         disable)
             export PATH=$(echo "$PATH" | sed -e "s|:$HX_ROOT/bin:||g" -e "s|^$HX_ROOT/bin:||")
             if [ -n "${HX_OLD_PS1}" ]; then
