@@ -57,10 +57,12 @@ function hx () {
                 disable)
                     export HX_NO_CACHE=1
                     [ -z "${HX_QUIET}" ] && echo "⚠️ Cache disabled (session-wide)."
+                    true
                     ;;
                 enable)
                     unset HX_NO_CACHE
                     [ -z "${HX_QUIET}" ] && echo "⚠️ Cache enabled (session-wide)."
+                    true
                     ;;
                 *) "$HX_ROOT/bin/commands/hx.sh" "$cmd" "$subcmd" "${@}" ;;
             esac
