@@ -107,24 +107,31 @@ function _cleanup_run_dir() {
     unset HALLUX_RUN_DIR
 }
 
-function _find_cache_dir () {
-  if [ -n "$HX_NO_CACHE" ]; then
-    return 0
-  fi
+function _find_hallux_dir () {
   local current_dir
   current_dir="$(pwd)"
 
   # Traverse upward looking strictly for a .hallux workspace directory anchor.
   while [ "$current_dir" != "/" ]; do
     if [ -d "${current_dir}/.hallux" ]; then
-      printf "%s/.hallux/cache" "$current_dir"
+      printf "%s/.hallux" "$current_dir"
       return 0
     fi
     current_dir="$(dirname "$current_dir")"
   done
 
   # Ultimate system-standard fallback location.
-  printf "%s/.config/hallux/cache" "${HOME}"
+  echo "${HOME}/.config/hallux/"
+  return 0
+}
+
+
+function _find_cache_dir () {
+  if [ -n "$HX_NO_CACHE" ]; then
+    return 0
+  fi
+  hallux_dir="$(_find_hallux_dir)"
+  printf "%s/cache" "$hallux_dir"
 }
 
 function _get_newest_cache_file() {

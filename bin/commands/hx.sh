@@ -7,7 +7,7 @@ source "$SCRIPT_DIR/../functions.sh"
 cmd="$1"; shift || true
 
 function usage() {
-    echo "usage: hx model|server|load|unload|models|cache|provenance|again|why|what|cat|describe|stats|context" >&2
+    echo "usage: hx model|server|load|unload|models|cache|provenance|root|again|why|what|cat|describe|stats|context" >&2
     exit 1
 }
 
@@ -17,8 +17,8 @@ case "$cmd" in
         printf '%s\\n' "$m"
         ;;
     model|load|unload)   "$SCRIPT_DIR/model.sh" "$@" ;;
-    models)  "$SCRIPT_DIR/models.sh" "$@" ;;
-    provenance) "$SCRIPT_DIR/provenance.sh" "$@" ;;
+    models)  "$SCRIPT_DIR/${cmd}.sh" "$@" ;;
+    provenance|root) "$SCRIPT_DIR/${cmd}.sh" "$@" ;;
     again)   _hx_again ;;
     why|what|cat|describe|stats)
         subcmd="$1"

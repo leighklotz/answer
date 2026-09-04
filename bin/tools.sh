@@ -29,6 +29,8 @@ for spec in "$@"; do
     TOOLS_ARGS+=(--tools "$spec")
 done
 
+# $LOGLEVEL is unquoted so the empty-string case vanishes
+# TODO: there's some other better but more verbose bash odiom for this
 [[ -n "$DEBUG" ]] && LOGLEVEL="--log-level=DEBUG"
 
 if [ -t 1 ]; then

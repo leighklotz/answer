@@ -323,6 +323,14 @@ Here is what this toolchain can do:
     * **`unfence | [interpreter]`**: Automates the flow from generating code to executing it in a controlled environment.
 ````
 
+
+## Bash History setup (optional, but recommended)
+Integrates per-shell bash history files into Hallux's provenance system. When a user is configured with unique `HISTFILE` values (one per shell PID), `hx enable` now detects this and symlinks the active history file into the project's `.hallux/bash_history/` directory. This gives subsequent `ask` queries and other tools on-disk access to the commands you've actually run in the current session, which is useful for debugging and context enrichment.
+
+Optionally, customize and add [doc/bash-history-settings.sh](doc/bash-history-settings.sh) to your bash environment. It will give you a unique history file for each bash shell. When 'hx enable' notices you are using unique history files, it adds a symbolic link to the history file from your current project `.hallux` directory. You can explicitly use the files in subsequent `ask` queries to add context about the commands you have run, for example to aid in debugging.
+
+See [doc/bash-history.md](doc/bash-history.md) for more information.
+
 ## Tools setup (optional, but recommended)
 1. Visit [https://github.com/leighklotz/toolex](https://github.com/leighklotz/toolex) and install.
 ---

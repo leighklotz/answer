@@ -14,9 +14,10 @@ function hx () {
     }
 
     case "$cmd" in
-        ""|enable)
-            hx core && hx PS1 && echo "👣 hallux $(hx server) $(hx model)"
-            ;;
+        ""|enable) hx core &&
+                   hx PS1 &&
+                   echo "👣 hallux $(hx server 2>&1) $(hx model 2>&1) $(hx root 2>&1) $(hx provenance add bash_history 2>&1)"
+          ;;
         core)
             HX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
             [[ ":$PATH:" != *":$HX_ROOT/bin:"* ]] && export PATH="$HX_ROOT/bin:$PATH"
@@ -26,7 +27,10 @@ function hx () {
                 "$HX_ROOT/bin/help.sh" "$@"
             }
             ;;
-        PS1) source "$HX_ROOT/bin/commands/PS1.sh" ;;
+        provenance)
+            "$HX_ROOT/bin/commands/${cmd}.sh" "${@}"
+            ;;
+        PS1) source "$HX_ROOT/bin/commands/${cmd}.sh" ;;
         disable)
             export PATH=$(echo "$PATH" | sed -e "s|:$HX_ROOT/bin:||g" -e "s|^$HX_ROOT/bin:||")
             if [ -n "${HX_OLD_PS1}" ]; then
@@ -52,11 +56,13 @@ function hx () {
             case "$subcmd" in
                 disable)
                     export HX_NO_CACHE=1
-                    echo "⚠️ Cache disabled (session-wide)."
+                    [ -z "${HX_QUIET}" ] && echo "⚠️ Cache disabled (session-wide)."
+                    true
                     ;;
                 enable)
                     unset HX_NO_CACHE
-                    echo "⚠️ Cache enabled (session-wide)."
+                    [ -z "${HX_QUIET}" ] && echo "⚠️ Cache enabled (session-wide)."
+                    true
                     ;;
                 *) "$HX_ROOT/bin/commands/hx.sh" "$cmd" "$subcmd" "${@}" ;;
             esac

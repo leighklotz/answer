@@ -3,6 +3,8 @@
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/../env.sh"
 source "${SCRIPT_DIR}/../logging.sh"
+source "${SCRIPT_DIR}/../functions.sh"
+
 
 source "${SCRIPT_DIR}/hx-bootstrap.sh"
 hx core
@@ -10,6 +12,26 @@ hx core
 function _provenance_add() {
     local subcmd="$1"
     case "$subcmd" in 
+        bash_history)
+            if [[ ! -f "$HISTFILE" || "$HISTFILE" == ~/.bash_history ]]; then
+                log_info "bash history provenance disabled: HISTFILE is not unique"
+                return 0
+            fi
+            local hallux_dir
+            hallux_dir="$(_find_hallux_dir)"
+            if [ "$hallux_dir" != '' ]; then
+                local bash_history_dir="${hallux_dir}/bash_history/"
+
+                mkdir -p "${bash_history_dir}"
+                # strip leading dot on .bash_history_###
+                fn="${HISTFILE##*/}"
+                fn="${fn#.}"
+                if [ ! -e "${bash_history_dir}/$fn" ]; then
+                    ln -s "$HISTFILE" "${bash_history_dir}/$fn"
+                fi
+                printf "%s/%s\n" "$(realpath --relative-to="${hallux_dir}" "${bash_history_dir}")" "$fn"
+            fi
+            ;;
         what|why|response|describe|-)
             last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
             prompt_str="${PS1@P}"
@@ -43,7 +65,7 @@ function _provenance_add() {
             exit 0
             ;;
         "")
-            echo "usage: hx provenance add [ what | why| response | describe | -]" >&2
+            echo "usage: hx provenance add [ what | why| response | describe | bash_history | -]" >&2
             ;;
 
         *) echo "hx provenance add: unknown subcmd '$1'" >&2
