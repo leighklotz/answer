@@ -1,5 +1,11 @@
 #!/bin/bash
 
+source ~/.bash.d/hx-bootstrap.sh
+hx core
+
+echo cd "$(hx root)" >&2
+cd "$(hx root)"
+
 { bx ls -lF;
  for file in *.md *.txt *.sh;
  do echo "$ headtail $file";
@@ -12,6 +18,4 @@
 - Use explicit filenames.
 - Leave \*.json files alone.
 
-Output a bash script with mkdir and mv commands.'
-
-
+Output a bash script with mkdir and mv commands.' | answer
