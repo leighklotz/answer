@@ -29,13 +29,15 @@ for spec in "$@"; do
     TOOLS_ARGS+=(--tools "$spec")
 done
 
+[[ -n "$DEBUG" ]] && LOGLEVEL="--log-level=DEBUG"
+
 if [ -t 1 ]; then
     log_trace "Calling ${TOOLEX_SH} $TOOLS_FLAGS ${TOOLS_ARGS[*]}"
     if [ -n "$TRACE" ]; then
-        tee /dev/stderr | "${TOOLEX_SH}" $TOOLS_FLAGS "${TOOLS_ARGS[@]}" | "${SCRIPT_DIR}/answer"
+        tee /dev/stderr | "${TOOLEX_SH}" $TOOLS_FLAGS "${TOOLS_ARGS[@]}" $LOGLEVEL | "${SCRIPT_DIR}/answer"
     else
-        "${TOOLEX_SH}" $TOOLS_FLAGS "${TOOLS_ARGS[@]}" | "${SCRIPT_DIR}/answer"
+        "${TOOLEX_SH}" $TOOLS_FLAGS "${TOOLS_ARGS[@]}" $LOGLEVEL | "${SCRIPT_DIR}/answer"
     fi
 else
-    "${TOOLEX_SH}" $TOOLS_FLAGS "${TOOLS_ARGS[@]}"
+    "${TOOLEX_SH}" $TOOLS_FLAGS "${TOOLS_ARGS[@]}" $LOGLEVEL
 fi
