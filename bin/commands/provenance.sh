@@ -29,7 +29,7 @@ function _provenance_add() {
                 if [ ! -e "${bash_history_dir}/$fn" ]; then
                     ln -s "$HISTFILE" "${bash_history_dir}/$fn"
                 fi
-                printf "%s/%s" "$(realpath --relative-to="${hallux_dir}" "${bash_history_dir}")" "$fn"
+                printf "%s/%s\n" "$(realpath --relative-to="${hallux_dir}" "${bash_history_dir}")" "$fn"
             fi
             ;;
         what|why|response|describe|-)
