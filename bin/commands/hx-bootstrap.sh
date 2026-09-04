@@ -56,11 +56,11 @@ function hx () {
             case "$subcmd" in
                 disable)
                     export HX_NO_CACHE=1
-                    echo "⚠️ Cache disabled (session-wide)."
+                    [ -z "${HX_QUIET}" ] && echo "⚠️ Cache disabled (session-wide)."
                     ;;
                 enable)
                     unset HX_NO_CACHE
-                    echo "⚠️ Cache enabled (session-wide)."
+                    [ -z "${HX_QUIET}" ] && echo "⚠️ Cache enabled (session-wide)."
                     ;;
                 *) "$HX_ROOT/bin/commands/hx.sh" "$cmd" "$subcmd" "${@}" ;;
             esac
