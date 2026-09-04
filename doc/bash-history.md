@@ -66,7 +66,7 @@ $ source ~/.bash.d/hx-bootstrap.sh
 ```bash
 $ cd ~/wip/myproject
 $ hx enable
-👣 hallux localhost:8080 llama3 .hallux .hallux/bash_history/bash_history_41287
+👣 hallux localhost:8080 llama3 .hallux .hallux/.bash_history/bash_history_41287
 ```
 
 The last token in that line is the relative path of the symlink that was just created. If your `HISTFILE` is still the shared default, you'll see an info notice instead and no path.
@@ -77,7 +77,7 @@ You can invoke the symlink logic at any time, independently of `hx enable`:
 
 ```bash
 $ hx provenance add bash_history
-.hallux/bash_history/bash_history_41287
+.hallux/.bash_history/bash_history_41287
 ```
 
 The command is **idempotent**: if the symlink already exists and points to the correct target, it prints the path and does nothing else. It will not overwrite a symlink that points to a different file (you'd need to `rm` it manually first).
@@ -100,7 +100,7 @@ $ hx root
 The symlink is a plain file from the shell's perspective:
 
 ```bash
-$ cat .hallux/bash_history/bash_history_41287
+$ cat .hallux/.bash_history/bash_history_41287
   1  2025-07-11 09:14:02  cd ~/wip/myproject
   2  2025-07-11 09:14:05  hx enable
   3  2025-07-11 09:15:22  git log --oneline -5
@@ -113,19 +113,19 @@ $ cat .hallux/bash_history/bash_history_41287
 Because the file is just text on disk, you can stream it into any pipeline command:
 
 ```bash
-$ cat .hallux/bash_history/bash_history_41287 | help "What was I debugging, and what did I try?"
+$ cat .hallux/.bash_history/bash_history_41287 | help "What was I debugging, and what did I try?"
 ```
 
 Or pull only the recent window:
 
 ```bash
-$ tail -20 .hallux/bash_history/bash_history_41287 | ask "Summarize my last 20 commands as a short markdown checklist."
+$ tail -20 .hallux/.bash_history/bash_history_41287 | ask "Summarize my last 20 commands as a short markdown checklist."
 ```
 
 You can also combine it with other context sources:
 
 ```bash
-$ lx .hallux/bash_history/bash_history_41287 src/main.py \
+$ lx .hallux/.bash_history/bash_history_41287 src/main.py \
   | help "I was running these commands before the build broke. Which one likely introduced the regression?"
 ```
 
@@ -134,7 +134,7 @@ $ lx .hallux/bash_history/bash_history_41287 src/main.py \
 The history file can seed a conversation and then be followed by follow-up questions:
 
 ```bash
-$ tail -10 .hallux/bash_history/bash_history_41287 | ask "What am I working on?" \
+$ tail -10 .hallux/.bash_history/bash_history_41287 | ask "What am I working on?" \
   | ask "Suggest the next two commands I should run."
 ```
 
@@ -143,9 +143,9 @@ $ tail -10 .hallux/bash_history/bash_history_41287 | ask "What am I working on?"
 If you have two terminals open in the same project, you'll see two symlinks:
 
 ```
-.hallux/bash_history/
-├── bash_history_41287 -> /home/leigh/.bash_history_41287
-└── bash_history_41302 -> /home/leigh/.bash_history_41302
+.hallux/.bash_history/
+├── bash_history_41287 -> /home/klotz/.bash_history_41287
+└── bash_history_41302 -> /home/klotz/.bash_history_41302
 ```
 
 Each reflects a different session's commands. You can target either one explicitly by PID.
@@ -163,14 +163,14 @@ Nothing about the harness changes how bash itself works. You can still use `hist
 | Artifact | Location | Owner | Created by |
 |---|---|---|---|
 | **History file** (the real data) | `$HOME/.bash_history_<PID>` | bash (via `PROMPT_COMMAND`) | Bash's own `history -a` |
-| **Symlink** (a pointer) | `.hallux/bash_history/bash_history_<PID>` | `hx provenance add bash_history` | The harness bootstrap |
+| **Symlink** (a pointer) | `.hallux/.bash_history/bash_history_<PID>` | `hx provenance add bash_history` | The harness bootstrap |
 | **`.hallux/` workspace** | Project root (or `~/.config/hallux/` fallback) | User / harness | `hx enable` / `hx root` |
 
 The symlink does **not** copy, read, or transform the history file. It is a 60-byte filesystem entry. The history file continues to be written exclusively by your shell process. The harness never opens it for writing.
 
 ### What the harness reads (and when)
 
-The harness does **not** poll or tail the history file in the background. The file becomes readable by downstream pipeline commands **only** when you explicitly reference it in a query (e.g., `cat .hallux/bash_history/... | ask ...`) or when a tool like `lx` is pointed at it. There is no scheduled ingestion, no watcher, no hidden subprocess.
+The harness does **not** poll or tail the history file in the background. The file becomes readable by downstream pipeline commands **only** when you explicitly reference it in a query (e.g., `cat .hallux/.bash_history/... | ask ...`) or when a tool like `lx` is pointed at it. There is no scheduled ingestion, no watcher, no hidden subprocess.
 
 ### What is in the history file
 
@@ -179,7 +179,7 @@ Exactly what bash records: the command line you typed (after `HISTCONTROL` filte
 ### Visibility and git
 
 - The history files live in `$HOME`, outside any project tree. They are not in version control unless you put them there.
-- The `.hallux/bash_history/` directory contains only symlinks. If your `.hallux` directory is committed (which it typically is **not**—add it to `.gitignore`), the symlinks would appear as small text files containing an absolute path. The target data is never committed.
+- The `.hallux/.bash_history/` directory contains only symlinks. If your `.hallux` directory is committed (which it typically is **not**—add it to `.gitignore`), the symlinks would appear as small text files containing an absolute path. The target data is never committed.
 - The provenance Git notes (created by `hx provenance add what|why|...`) store a snapshot of the *last* command and response, not the full history file.
 
 ### Privacy considerations
@@ -194,10 +194,10 @@ To stop the integration:
 
 ```bash
 # Remove the symlink for this session
-rm .hallux/bash_history/bash_history_$$
+rm .hallux/.bash_history/bash_history_$$
 
 # Or remove the whole directory
-rm -rf .hallux/bash_history/
+rm -rf .hallux/.bash_history/
 ```
 
 To prevent it from being re-created on the next `hx enable`, simply don't set `HISTFILE` to a per-PID value (i.e., remove or comment out the `HISTFILE="$HOME/.bash_history_$$"` line in your `.bashrc`). The harness will detect the default and skip the symlink step.
@@ -217,7 +217,7 @@ rm ~/.bash_history_*
 | You type commands | Appended by bash | Unchanged (still valid pointer) |
 | Shell exits (`exit`) | Persists on disk | Persists (now a dangling link if file is cleaned up) |
 | You `rm` the history file | Gone | Dangling symlink (harmless, invisible to `ls -l` targets) |
-| You `rm -rf .hallux/bash_history/` | Unchanged | Gone |
+| You `rm -rf .hallux/.bash_history/` | Unchanged | Gone |
 | Next `hx enable` (new PID) | New file created by bash | New symlink for new PID; old dangling link remains until cleaned |
 
 ---
@@ -226,13 +226,13 @@ rm ~/.bash_history_*
 
 ```bash
 # See if the integration is active
-ls -l .hallux/bash_history/
+ls -l .hallux/.bash_history/
 
 # Read your current session's commands
-cat .hallux/bash_history/bash_history_$$
+cat .hallux/.bash_history/bash_history_$$
 
 # Ask a question about what you did
-tail -30 .hallux/bash_history/bash_history_$$ | help "What was I trying to fix?"
+tail -30 .hallux/.bash_history/bash_history_$$ | help "What was I trying to fix?"
 
 # Re-link (safe to run repeatedly)
 hx provenance add bash_history

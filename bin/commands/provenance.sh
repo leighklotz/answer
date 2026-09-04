@@ -20,8 +20,13 @@ function _provenance_add() {
             local hallux_dir
             hallux_dir="$(_find_hallux_dir)"
             if [ "$hallux_dir" != '' ]; then
-                local bash_history_dir="${hallux_dir}/bash_history/"
+                local old_bash_history_dir="${hallux_dir}/bash_history/"
+                local bash_history_dir="${hallux_dir}/.bash_history/"
 
+                if [[ -d ${old_bash_history_dir} && ! -d ${bash_history_dir} ]]; then
+                    echo; log_warn "migrating bash_history: mv ${old_bash_history_dir} ${bash_history_dir}"
+                    mv ${old_bash_history_dir} ${bash_history_dir}
+                fi
                 mkdir -p "${bash_history_dir}"
                 # strip leading dot on .bash_history_###
                 fn="${HISTFILE##*/}"

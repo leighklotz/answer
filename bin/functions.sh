@@ -131,6 +131,11 @@ function _find_cache_dir () {
     return 0
   fi
   hallux_dir="$(_find_hallux_dir)"
+  printf "%s/.cache" "$hallux_dir"
+}
+
+function _find_old_cache_dir () {
+  hallux_dir="$(_find_hallux_dir)"
   printf "%s/cache" "$hallux_dir"
 }
 
@@ -338,7 +343,13 @@ function _infer () {
   request_hash=$(openssl dgst -sha256 < "$tmp_req" | awk '{print $2}')
 
   cache_dir=$(_find_cache_dir)
+  old_cache_dir=$(_find_old_cache_dir)
   cache_file=""
+
+  if [ -n "$cache_dir" ] && [ -d "$old_cache_dir" ]; then
+      log_warn "migrating .hallux/cache -> .hallux/.cache: mv ${old_cache_dir} ${cache_dir}"
+      mv "${old_cache_dir}" "${cache_dir}"
+  fi
 
   if [ -n "$cache_dir" ]; then
       log_trace "Creating cache_dir=$cache_dir"

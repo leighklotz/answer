@@ -11,7 +11,7 @@ You can still use a simple one-shot:
 help "what is the difference between '-t 0' and '-t 1' in bash tests?"
 ```
 
-Or pipe text in and out, keeping the model securely bound inside standard inputs and outputs alongside `grep`, `awk`, and `sed`. Crucially, you can pipe between tools in the Answer toolchain itself. Inference responses are cached under `.hallux/cache` (falling back to `~/.config/hallux/cache/` when no workspace is in play) — cache hits show 🎯, misses show ✨, and tool calls are never cached.
+Or pipe text in and out, keeping the model securely bound inside standard inputs and outputs alongside `grep`, `awk`, and `sed`. Crucially, you can pipe between tools in the Answer toolchain itself. Inference responses are cached under `.hallux/.cache` (falling back to `~/.config/hallux/.cache/` when no workspace is in play) — cache hits show 🎯, misses show ✨, and tool calls are never cached.
 
 ---
 
@@ -111,7 +111,7 @@ The `toolex` package also ships `help-commit`, a ready-made pipeline — `ask �
 
 The toolchain intentionally avoids hidden state, background daemons, and proprietary interaction models. It integrates effortlessly into emacs via `shell-command-on-region`, scripts, cron jobs, and existing development workflows.
 
-`hx enable` adds a `🐣` prompt marker and activates the `.hallux` workspace discovery. The cache lives under `.hallux/cache/` or falls back to `~/.config/hallux/cache/`. The API endpoint and key are configured in `bin/commands/env.sh`; `hx model` manages model configuration, and `hx set-model` switches the active model for the current session.
+`hx enable` adds a `🐣` prompt marker and activates the `.hallux` workspace discovery. The cache lives under `.hallux/.cache/` or falls back to `~/.config/hallux/.cache/`. The API endpoint and key are configured in `bin/commands/env.sh`; `hx model` manages model configuration, and `hx set-model` switches the active model for the current session.
 
 The **Answer** toolchain doesn't try to manage your project or dictate your workflow. It treats language models as predictable filters, giving developers a clean, scriptable way to manipulate code streams.
 

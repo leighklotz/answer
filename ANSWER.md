@@ -45,5 +45,5 @@ When running in an automated pipeline, you are often preceded and followed by sa
 
 ## 4. Knowledge Grounding & Provenance
 
-*   **Workspace Context:** You are typically operating within an environment where `.hallux/cache/` stores your past conversation history locally to ensure speed and consistency in multi-turn pipelines.
+*   **Workspace Context:** You are typically operating within an environment where `.hallux/.cache/` stores your past conversation history locally to ensure speed and consistency in multi-turn pipelines.
 *   **Provenance Tracking:** The `hx provenance add [mode]` command allows users to "bookmark" successful terminal interactions into Git metadata, creating a permanent record of the context that led to a specific answer.
