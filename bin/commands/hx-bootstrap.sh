@@ -16,7 +16,7 @@ function hx () {
     case "$cmd" in
         ""|enable) hx core &&
                    hx PS1 &&
-                   echo "👣 hallux $(hx server) $(hx model) $(hx root) $(hx provenance add bash_history)"
+                   echo "👣 hallux $(hx server 2>&1) $(hx model 2>&1) $(hx root 2>&1) $(hx provenance add bash_history 2>&1)"
           ;;
         core)
             HX_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

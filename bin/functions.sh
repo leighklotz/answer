@@ -121,7 +121,7 @@ function _find_hallux_dir () {
   done
 
   # Ultimate system-standard fallback location.
-  echo "~/.config/hallux/"
+  echo "${HOME}/.config/hallux/"
   return 0
 }
 

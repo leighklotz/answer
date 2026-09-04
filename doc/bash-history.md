@@ -1,4 +1,3 @@
-```markdown
 # Bash History Integration
 
 The **answer** toolchain can wire your live shell history into the project workspace so that `ask`, `help`, and other pipeline tools can see the commands you actually ran. This page explains how to enable it, how to use it, and exactly where your data lives.
@@ -36,7 +35,7 @@ Similarly, if you use git worktrees, you should symlink the `.hallux` directory 
 
 ### 1. Configure per-PID history files
 
-The harness requires that each bash process writes to its own file. The reference configuration lives at [`doc/bash-history-settings.sh`](doc/bash-history-settings.sh). You can source it directly or adapt the relevant lines into your own `.bashrc`:
+The harness requires that each bash process writes to its own file. The reference configuration lives at [`bash-history-settings.sh`](bash-history-settings.sh). You can source it directly or adapt the relevant lines into your own `.bashrc`:
 
 ```bash
 # Core: one history file per shell PID
@@ -243,5 +242,4 @@ hx root
 
 # Check what the reference config looks like
 cat doc/bash-history-settings.sh
-```
 ```

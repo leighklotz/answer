@@ -25,8 +25,8 @@ function _provenance_add() {
                 mkdir -p "${bash_history_dir}"
                 # strip leading dot on .bash_history_###
                 fn="${HISTFILE##*/}"
-                fn="${fn#.}"     
-                if [ ! -w "${bash_history_dir}/$fn" ]; then
+                fn="${fn#.}"
+                if [ ! -e "${bash_history_dir}/$fn" ]; then
                     ln -s "$HISTFILE" "${bash_history_dir}/$fn"
                 fi
                 printf "%s/%s" "$(realpath --relative-to="${hallux_dir}" "${bash_history_dir}")" "$fn"
@@ -65,7 +65,7 @@ function _provenance_add() {
             exit 0
             ;;
         "")
-            echo "usage: hx provenance add [ what | why| response | describe | bash-history | -]" >&2
+            echo "usage: hx provenance add [ what | why| response | describe | bash_history | -]" >&2
             ;;
 
         *) echo "hx provenance add: unknown subcmd '$1'" >&2
