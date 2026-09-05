@@ -2,7 +2,7 @@
 
 ```bash
 👣$ hx help
-usage: hx model|server|load|unload|models|cache|provenance|again|why|what|cat|describe|stats|context
+usage: hx model|server|load|unload|models|cache|provenance|root|again|why|what|cat|describe|stats|context
 ```
 
 **`hx`** is the central management utility of the Answer framework. It serves as a control plane for managing your shell environment (via integration scripts), controlling data persistence through local caching, and providing rapid access to recent LLM interactions via specialized parsing utilities or Git-backed provenance tracking.
@@ -12,8 +12,8 @@ It operates in three distinct modes depending on how it is invoked: **Environmen
 ## Synopsis
 
 ```bash
-# 1. Environment & Session/Model Commands (Top-Level)
-hx [set-model | model | server | load | unload | models | cache | provenance | again]
+# 1. Environment & Session / Model Commands (Top-Level)
+hx [set-model | model | load | unload | models | provenance | root | again]
 
 # 2. Interaction Provenance Subcommand
 hx provenance {add [mode] | show [hash] | refs | list}
@@ -35,10 +35,10 @@ These commands manage the active shell environment, LLM configurations, or repla
 
 | Command | Purpose | Implementation Note |
 | :--- | :--- | :--- |
-| **`hx enable / disable`** | **Activate/Deactivate Framework:** Integrates Answer into your current session (e.g., adding the `(👣)` icon to `$PS1`). *Note: Typically used via bootstrap.* | Sources integration scripts and modifies environment/path. |
-| **`hx set-model [args]`** | **Set Session Model:** Quickly updates your current session's `$HX_MODEL` environment variable using a specific model string or configuration. | Calls `model.sh`, captures output, and prints it. |
-| **`hx model / load / unload`** | **Model Management:** Configures API endpoints, switches models, or manages loaded LLM contexts. | Calls `model.sh`. |
+| **`hx set-model [args]`** | **Set Session Model:** Quickly updates your current session's `$HX_MODEL` environment variable. | Calls `model.sh`, captures output, and prints it. |
+| **`hx model / load / unload`** | **Model Management:** Configures API endpoints or manages loaded LLM contexts via the `model.sh` script. | Calls `model.sh`. |
 | **`hx models [args]`** | **Model List/Management:** Lists and manages available AI model endpoints in the system configuration. | Calls `models.sh`. |
+| **`hx provenance / root`** | **Data & Metadata Management:** Interfaces with specialized scripts to manage interaction metadata (provenance) or workspace roots. | Calls `${cmd}.sh`. |
 | **`hx again`** | **Replay Previous Command:** Re-runs your last command automatically wrapped with `bx`, allowing for immediate follow-up queries. | Executes `_hx_again`. |
 
 ### 2. Interaction Provenance (`hx provenance ...`)
@@ -61,6 +61,15 @@ When using `hx provenance add`, you can specify how the captured interaction is 
 | **`response`** | `➡️` | Marks the interaction explicitly as an LLM/tool response JSON payload. |
 | **`describe`** | 📜 | Records context as a plain-text descriptive note. |
 | **`-`** (dash) | `\|` | Reads content directly from `stdin`. Use this to pipe raw text or manual input into the provenance log without running an automatic command capture. |
+
+### Summary of logical alignment check:
+| hx provenance subcmd | Emoji | Meaning |
+| :--- | :--- | :--- |
+| `what` | 💭 | last text response |
+| `why` | 🧠 |  last reasoning trace |
+| `response`| ⬅️ | last convo JSON response |
+| `describe` | 📜 | describe last convo JSON response with inference |
+| `-` | ➡️ | direct stdin attached | 
 
 ### 3. Cache & Context Management / Interaction Utilities (`hx cache`, `hx context`, etc.)
 The framework uses local JSON files for caching and provides utilities to inspect these cached interactions immediately. It also provides access to specialized management scripts for servers, contexts, and caches.
@@ -123,3 +132,4 @@ $ cat some_cache.json | hx what -
 
 # Note:
 Some commands are provided by the `hx` function in `bin/commands/hx-bootstrap.sh`, while others call specialized scripts (like `model.sh`, `models.sh`, or `${cmd}.sh`) via the main `bin/commands/hx.sh` entry point.
+
