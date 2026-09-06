@@ -35,6 +35,5 @@ do
      fi
   fi
   verdict="$(ask "summarize in one line, nothing else: NEW, OLD, IDENTICAL, NEITHER" < "$checkdoc_out" | answer)"
-  echo "== End Analysis ${old_md} -> ${new_md} in ${checkdoc_out}: ${verdict} ==="
-  echo
+  printf "\n== End Analysis %s -> %s: %s\n" "$old_md" "$new_md" "$verdict"
 done
