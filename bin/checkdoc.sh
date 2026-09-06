@@ -8,10 +8,16 @@ CMD_DIR="${SCRIPT_DIR}/../doc/commands"
 
 cd "${CMD_DIR}" || log_and_exit 1 "${CMD_DIR} does not exist"
 
+output_dir="${1:-}"
+if [ ! -n "$output_dir" ]; then
+    echo "usage; $0 output-dir"
+    exit 1
+fi
+
 for new_md in *.md.new
 do
   old_md="${new_md%.new}"
-  checkdoc_out="checkdoc-${new_md}"
+  checkdoc_out="${output_dir}/checkdoc-${new_md}"
   [[ ! -f "$old_md" ]] && log_warn "$old_md does not exist"
   [[ -e "$checkdoc_out" ]] && log_warn "$checkdoc_out already exists"
 done
@@ -19,7 +25,7 @@ done
 for new_md in *.md.new
 do
   old_md="${new_md%.new}"
-  checkdoc_out="checkdoc-${new_md}"
+  checkdoc_out="${output_dir}/checkdoc-${new_md}"
   [[ ! -f "$old_md" ]] && log_and_exit 1 "$old_md does not exist"
   [[ -e "$checkdoc_out" ]] && log_and_exit 1 "$checkdoc_out already exists"
   echo "=== Analysis of $old_md -> ${new_md} in ${checkdoc_out} ===" | tee "$checkdoc_out"
