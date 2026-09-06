@@ -34,7 +34,7 @@ do
 	 log_and_exit 1 "analysis pipeline failed for ${old_md} --> ${new_md}"
      fi
   fi
-  ask "summarize in one line, nothing else: NEW, OLD, IDENTICAL, NEITHER" < "$checkdoc_out" 
-  echo "== End Analysis ${old_md} -> ${new_md} in ${checkdoc_out} ==="
+  verdict="$(ask "summarize in one line, nothing else: NEW, OLD, IDENTICAL, NEITHER" < "$checkdoc_out" | answer)"
+  echo "== End Analysis ${old_md} -> ${new_md} in ${checkdoc_out}: ${verdict} ==="
   echo
 done
