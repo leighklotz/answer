@@ -8,6 +8,12 @@ fi
 
 HALLUX_ICON='👣'
 
+COLOR_RED='\e[1;31m'
+COLOR_YELLOW='\e[1;33m'
+COLOR_GREEN='\e[1;32m'
+COLOR_BLUE='\e[1;36m'
+NOCOLOR='\e[0m'
+
 if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" ]]; then
   STATS_ICON="📊"
   WARNING_ICON='⚠️'
