@@ -24,7 +24,8 @@ function _provenance_add() {
                 local bash_history_dir="${hallux_dir}/.bash_history/"
 
                 if [[ -d ${old_bash_history_dir} && ! -d ${bash_history_dir} ]]; then
-                    echo; log_warn "migrating bash_history: mv ${old_bash_history_dir} ${bash_history_dir}"
+                    echo >&2
+                    log_warn "migrating bash_history: mv ${old_bash_history_dir} ${bash_history_dir}"
                     mv ${old_bash_history_dir} ${bash_history_dir}
                 fi
                 mkdir -p "${bash_history_dir}"
