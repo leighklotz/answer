@@ -34,6 +34,23 @@ do
 	 log_and_exit 1 "analysis pipeline failed for ${old_md} --> ${new_md}"
      fi
   fi
-  verdict="$(ask "summarize in one line, nothing else: NEW, OLD, IDENTICAL, NEITHER" < "$checkdoc_out" | answer)"
+  verdict="$(ask "Sum up in one line: NEW, OLD, IDENTICAL, NEITHER" < "$checkdoc_out" | answer)"
+  printf "\n"
+  printf "Verdict: %s\n" "${verdict}"
+  printf "\n"
+  case "${verdict^^}" in
+      *NEW*)
+	  printf '```bash\nmv "%s" "%s"\n```\n' "${new_md}" "${old_md}"  | unfence bash | bash
+	  ;;
+      *OLD*)
+	  printf '```bash\nmv "%s" "%s"\n```\n' "${new_md}" "${new_md}.rej"  | unfence bash | bash
+	  ;;
+      *IDENTICAL*)
+	  printf '```bash\nmv "%s" "%s"\n```\n' "${new_md}" "${new_md}.id"  | unfence bash | bash
+	  ;;
+      *NEITHER*|*)
+	  printf '```bash\nfalse\n```\n' | unfence bash | bash
+	  ;;
+  esac
   printf "\n== End Analysis %s -> %s: %s\n" "$old_md" "$new_md" "$verdict"
 done
