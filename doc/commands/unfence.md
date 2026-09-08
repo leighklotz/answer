@@ -15,7 +15,7 @@ The optional `[LANGUAGE]` argument allows you to target a specific block type im
 When an LLM generates a response, it typically wraps code within Markdown fences (e.g., \`\`\`bash). **unfence** scans the input, identifies available fenced blocks, and extracts content for execution or further processing. 
 
 Unlike a simple parser that only finds the first block, **unfence** is context-aware:
-* **Adaptive Extraction:** If no language is provided and only one block exists, it extracts it directly (with an interactive safety prompt if piped). If multiple blocks exist, it enters **Selection Mode**.
+* **Adaptive Extraction:** If no language is provided and only one block exists, it extracts it directly (with an interactive safety prompt if piped). If multiple blocks exist, it enters **Selection Mode**. It also performs basic language inference from shebangs within the code block if a fence lacks a specific language tag (e.g., detecting `bash` or `python`).
 * **Language Sniping:** Providing a language argument (e.g., `unfence python`) filters the available blocks to those matching that specific language tag. 
 * **Auto-answer & Cache Integration:** If the input begins with the pipeline magic header (`Content-Type: application/x-llm-history+json`), it automatically invokes the `answer` command to resolve the conversation state into plain text before attempting extraction. Because this uses the Answer caching mechanism, subsequent extractions of identical prompts are instantaneous and do not require new API calls.
 * **Pipeline Safety Gate:** To prevent accidental execution of dangerous code in a pipeline, it provides an interactive safety gate via `/dev/tty` whenever its output is being redirected or when multiple choices are available. This ensures that the prompt does not corrupt your data stream (`stdout`).
@@ -48,7 +48,7 @@ To prevent the accidental execution of incorrect or dangerous code in a pipeline
 2. Multiple blocks are detected, requiring user selection to resolve ambiguity.
 
 **The Workflow:**
-* **Preview:** The extracted content (or the list of options) is displayed to **stderr** via a pager so that it does not interfere with the pipe. Pager priority: `batcat` → `bat` → `cat`. 
+* **Preview:** The extracted content (or the list of options) is displayed to **stderr** via a pager so that it does not interfere with the pipe. Pager priority: `batcat` $\rightarrow$ `bat` $\rightarrow$ `cat`. 
 * **Confirmation Prompt:** You are prompted in your terminal (reading from `/dev/tty`) : `🤖 Proceed with this command? (y/N): `. This prompt appears on your screen but is *not* sent to the next command in the pipeline.
 * **Decision:** 
     * **`y`**: The selected content is sent to `stdout` for the next command.
@@ -60,7 +60,7 @@ To prevent the accidental execution of incorrect or dangerous code in a pipeline
 If an LLM provides a Bash setup script followed by a Python test script, you can pick only the Python part:
 ```bash
 # This will prompt which python block to use if multiple exist
-ask "Write a bash setup and a python validator" | unfence python | unfreeze bash? # (Wait for selection) -> python3
+ask "Write a bash setup and a python validator" | unfence python # -> (Wait for selection)
 ```
 
 **2. Direct Execution (The "Code-to-Shell" Pattern)**
@@ -81,4 +81,4 @@ ask "Give me three different ways to list files in bash" | unfence | bash
 Use it mid-pipeline to isolate code from a long conversational response before saving it to a file:
 ```bash
 # The extraction will resolve the JSON, show the preview on stderr, and save only the script to main.py
-ask "Write a C++ program that prints Hello World" | unfence cpp > main.cpp && g++ main.cpp -o hello && ./hello
+ask "Write a C++ program that prints Hello World" | unfence > main.cpp && g++ main.cpp -o hello && ./hello

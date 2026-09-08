@@ -1,6 +1,6 @@
 # -*-bash-*-
-# bootstrap hx -- runs in user shell, runs in scripts
-#
+# bootstrap hx -- sourced directly by shell and sourced directly by scripts
+# supports the 'hx' user-level function, which allows you to onboard and use hx commands.
 HX_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../" && pwd -P)"
 
 ### user-level Functions and aliases

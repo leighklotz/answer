@@ -5,7 +5,7 @@
 ## Synopsis
 
 ```bash
-<conversation-json> | tools [MODULE[:CAPABILITY[=PATTERN]]]...
+<conversation-json> | tools <module>[:<capability[=pattern]]] [<module>...]
 ```
 
 The arguments specify which modules are available to the LLM and what restrictions apply. These arguments are passed as `--tools` flags to the underlying engine (`toolex.py`). You can mix multiple modules with different levels of permission (e.g., `file:read=*.txt git:all bash:run=*`).
@@ -74,18 +74,10 @@ Mix a highly restricted module with a broadly permitted one:
 $ ask "Check git log and find all python imports in main.py" | tools bash:run=* git system_info file:read=*.py
 ```
 
-### 4. Mid-Pipeline Observation
-Use `-t` (tee) to see what is happening without breaking the JSON chain for subsequent commands:
-```bash
-$ ask "Check my disk usage" | tools bash -t | help "How much space is left?" --tee
-# stdout carries JSON; stderr shows terminal status and results.
-```
-### 5. Pipeline Extraction
-As with other `answer` pipeline commands, In a pipeline where stdout is not a terminal, you must `answer` 
+### 4. Pipeline Extraction
+As with other `answer` pipeline commands, in a pipeline where stdout is not a terminal, you must pipe the result to `answer` if you want plain text output instead of JSON history:
 ```bash
 $ ask "Read config.json and comment on it." | tools file:read=config.json > comments.json
 $ cat comments.json | answer 
 # [Plain text summary from the LLM]
 ```
-
-

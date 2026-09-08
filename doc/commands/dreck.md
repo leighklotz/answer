@@ -10,14 +10,16 @@ The command ingests the two inputs with `lx` and runs them through `ask` with a 
 dreck [FILE1 FILE2] [-- [EXTRA_PROMPT...]]
 ```
 
-If `FILE1` and `FILE2` are supplied, they are ingested via `lx` and piped to `ask`.
-If no files are supplied, `dreck` reads two entities from stdin — e.g. the output of `lx`, `git diff`, or any other pipeline — and compares them in the same way.
+If `FILE1` and `FILE2` are supplied, they are ingested via `lx` and piped to `ask`. 
+If no files are supplied (e.g., when reading from a pipeline), it compares two entities arriving on stdin — e.g., the output of an existing command or any other stream — using the same comparison logic.
 
-The `--` separator is used to pass additional user prompt words that are appended to the built-in comparison prompt.
+The `--` separator is used to pass additional user prompt words that are appended to the built-in comparison prompt via `ask`.
 
 ## Description
 
-`dreck` sources `env.sh`, `logging.sh` and `functions.sh` and then builds a conversation with `ask`.
+`dreck` sources `env.sh`, `logging.sh` and `functions.sh` and then builds a conversation with `ask`. 
+
+If two positional arguments are provided, it first performs an equality check using `cmp`; if the files are identical, it reports this fact via `ask` and exits immediately without triggering an LLM inference. If they differ, it proceeds to comparison.
 
 The fixed system prompt used for every comparison is:
 
@@ -43,8 +45,8 @@ ask "$@" "${PROMPT}"
 |-----------|-----------|
 | `dreck FILE1 FILE2` | Ingests both files with `lx` and compares them. |
 | `dreck FILE1 FILE2 -- EXTRA...` | Same as above, with additional prompt words forwarded to `ask`. |
-| `dreck` with piped input | Compares two entities arriving on stdin, e.g. `lx a b | dreck` or `git diff | dreck`. |
-| `dreck -- EXTRA...` with piped input | Same as above with an extra user prompt extension. |
+| `dreck` with piped input | Compares two entities arriving on stdin (e.g., a single block of text from an LLM or the output of a command) and passes them through `ask`. |
+| `dreck -- EXTRA...` with piped input | Same as above with an extra user prompt extension passed to `ask`. |
 
 ## Examples
 
@@ -63,14 +65,8 @@ $ dreck original.md rewritten.md -- "Focus on factual accuracy and citation pres
 **Compare pipeline inputs**
 
 ```bash
-$ lx v1.txt v2.txt | dreck
+# Comparing a single stream of text/diffs against the comparison prompt
 $ git diff -U10 file1.md file2.md | dreck -- "Highlight any missing code blocks"
-```
-
-**Compare with a custom prompt extension on stdin**
-
-```bash
-$ cat diff.txt | dreck -- "Check for lazy elisions only"
 ```
 
 ## Comparing Git Versions
@@ -78,7 +74,3 @@ $ cat diff.txt | dreck -- "Check for lazy elisions only"
 Use `gx` to compare the current working-tree version of a file with the version in `HEAD`:
 
     gx start-llama-server.sh | dreck
-
-To reduce the resulting assessment to a simple verdict:
-
-    gx start-llama-server.sh | dreck | ask 'YES, NO, or MIXED'

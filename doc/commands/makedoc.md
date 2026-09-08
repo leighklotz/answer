@@ -1,56 +1,68 @@
 # makedoc
 
-**`makedoc`** is a documentation orchestration utility that uses the Answer toolchain LLM pipeline to generate or update Markdown usage documents for commands. It builds a context bundle from source scripts, `README.md`, tests and existing docs, then runs `lx ... | ask "..." | answer | _strip_markdown_fence` to produce `doc/commands/<cmd>.md`.
+**`makedoc`** is a documentation orchestration utility that uses an LLM-driven pipeline to generate or update Markdown usage documents for commands within this suite. It aggregates source code, project context, and existing documentation into a single bundle, then processes it through the Answer toolchain (`lx`, `ask`, `answer`) to produce human-readable guides in `doc/commands/`.
 
-It is not a parser. Documentation is produced by prompting the model with the command implementation and project context.
+It is not a static parser; rather, it uses LLM reasoning to interpret implementation logic.
 
-## Synopsis
+## Usage
+
+Run the script from the project root:
 
 ```bash
-makedoc [COMMANDS...]
+# Generate or update documentation for all default commands
+makedoc
+
+# Process only specific selected commands
+makedoc command_name1 command_name2 ...
 ```
 
-If no COMMANDS are given, a default set is processed. If one or more COMMANDS are supplied, only those commands are processed.
+### Default Commands
+If no arguments are provided, `makedoc` processes the following set:
+`answer`, `ask`, `bx`, `dreck`, `gx`, `help-commit`, `help`, `hx`, `lx`, `makedoc`, `systype`, `tools`, and `unfence`.
 
-## Description
+## How It Works
 
-`makedoc` iterates over the target commands and for each command:
+### 1. Source Discovery
+For every requested command, the script locates its implementation file in this order:
+1. `${SCRIPT_DIR}/${cmd}.sh`
+2. `${SCRIPT_DIR}/commands/${cmd}.sh`
 
-1. Determines the source file:
-   * `${SCRIPT_DIR}/${cmd}.sh` if it exists
-   * otherwise `${SCRIPT_DIR}/commands/${cmd}.sh`
-   * If neither exists, the script exits with an error.
-2. Builds a context array:
-   * Files from `$MAKEDOC_PREREADING` if set
-   * The source file determined above
-   * `README.md tests/story-test.sh doc/commands/*.md`
-3. Ingests the context with `lx`
-4. Prompts the model via `ask`:
-   * If `doc/commands/${cmd}.md` exists:  
-     `Check and update the usage document \`doc/commands/${cmd}.md\` for the $cmd command implemented in $src. Output the new usage file, not delta instructions.`
-     Output is written to `doc/commands/${cmd}.md.new`
-   * If the doc does not exist:  
-     `Create the usage document \`doc/commands/${cmd}.md\` for the $cmd command for $src`
-     Output is written to `doc/commands/${cmd}.md`
-5. Fails if the destination file is empty.
+If no source file is found for a specified command, the process terminates with an error.
 
-The script creates `doc` if needed, uses `shopt -s nullglob`, and skips a command if `doc/commands/${cmd}.md.new` already exists.
+### 2. Context Construction & Logic Modes
+The script builds a context bundle based on whether it is creating a new document or updating an existing one:
 
-Diagnostic information such as `CMDS=...` and `MAKEDOC_PREREADING=...` is printed to stdout; per-command progress is written to stderr.
+* **New Creation:** If `doc/commands/${cmd}.md` does **not** exist, the script uses a "Create Prompt" to instruct the LLM to write documentation from scratch using the source file and global project context.
+* **Update Mode:** If `doc/commands/${cmd}.md` **already exists**, the script uses an "Update Prompt." This instructs the LLM to perform minimal, non-editorial changes focused strictly on aligning the docs with implementation updates in the source code.
+
+**The Context Bundle includes:**
+* Any files specified via the `$MAKEDOC_PREREADING` environment variable.
+* The identified command's source file.
+* **Global Project Context:** `README.md`, `tests/story-test.sh`, all existing documents in `doc/commands/*.md`, `bin/logging.sh`, `bin/commands/hx-bootstrap.sh`, `bin/commands/hx.sh`, and `bin/functions.sh`.
+
+### 3. The AI Pipeline
+The generation follows a specific data pipeline:  
+`lx (Context Loader)` $\rightarrow$ `ask (Prompting Engine)` $\rightarrow$ `answer (Response Handler)` $\rightarrow$ `_strip_markdown_fence (Sanitization)`.
+
+This ensures the output is raw Markdown, stripped of any conversational LLM "wrapper" text or markdown code fences. The pipeline executes: 
+`lx ... | ask "..." | answer | _strip_markdown_fence`
+
+### 4. Output and Verification
+* **New Files:** Saved directly to `doc/commands/${cmd}.md`.
+* **Updates:** Written to a temporary file: `doc/commands/${cmd}.md.new`. This allows for manual review before overwriting the original. Remove or rename the `.new` file to replace the published doc after verification.
+* **Idempotency:** If no substantive changes are detected during an update, the script outputs `=` and leaves existing files untouched.
+* **Diffing:** If `diffstat` is installed on your system, the script prints a summary of changes between old and new versions to `stdout`.
 
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `MAKEDOC_PREREADING` | Optional space-separated list of additional files to prepend to the context for every command. |
+| `MAKEDOC_PREREADING` | (Optional) A space-separated list of additional files to be prepended to the context bundle for every command. |
 
-## Default Commands
-
-When invoked with no arguments the following commands are processed:
-
-```
-answer ask bx dreck help-commit help hx lx makedoc systype tools unfence
-```
+## Requirements & Environment
+The following must be present in your shell environment:
+* **Project Setup:** Valid `./bin/env.sh`, `logging.sh`, and `functions.sh`.
+* **AI Toolchain:** Access to the `lx`, `ask`, and `answer` utilities.
 
 ## Examples
 
@@ -63,18 +75,14 @@ cmd=answer->.../bin/answer.sh
 ...
 ```
 
-**Process a specific command**
-```bash
-$ makedoc answer ask
-```
-
 **Add extra pre-reading context**
 ```bash
 $ export MAKEDOC_PREREADING="doc/plan/overview.md"
 $ makedoc help
 ```
 
-**Regenerate a single doc without overwriting the original**
-If `doc/commands/help.md` exists, the new output is written to `doc/commands/help.md.new`. Remove or rename the `.new` file to replace the published doc after review.
-```bash
-$ makedoc help
+## Errors
+The script will exit with an error if:
+* A required source `.sh` file cannot be located for a requested command.
+* Any stage of the AI pipeline fails.
+* The resulting documentation output is empty.

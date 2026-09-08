@@ -9,7 +9,7 @@ fi
 
 mdl="${mdl/\//_}"
 
-lx /home/klotz/wip/answer/bin/{answer,ask,help,bx,lx,functions,help-commit,logging,lx,tools,unfence}.sh \
+lx /home/klotz/wip/answer/bin/{answer,ask,help,bx,gx,lx,functions,help-commit,logging,lx,tools,unfence}.sh \
    /home/klotz/wip/answer/bin/commands/{hx-bootstrap,hx,PS1,model,models,what,why,cat,stats,cache,context,describe,provenance}.sh \
    /home/klotz/wip/answer/{env.sh.sample,README.md} \
    /home/klotz/wip/answer/tests/{scuttle-fence-test,story-test}.sh \
