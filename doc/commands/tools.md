@@ -28,8 +28,10 @@ To maximize security, you can restrict tools not just by *module*, but also by s
 | :--- | :--- | :--- | :--- |
 | `module` | **Full Access** | `git` | Grants all capabilities (e.g., read/write) within that module. |
 | `mod:cap` | **Capability Scoping** | `file:read` | Allows the `read` capability for any resource in the file module, but denies `write`. |
-| `mod:cap=pat` | **Resource Restriction** | `file:read=*.py` | The LLM can only use `file:read` on files ending in `.py`. Accessing `README.md` will fail. |
-| `mod:cap=p1,p2` | **Multiple Patterns** | `file:read=docs/*.md,log/*.txt` | Allows reading any markdown file in `/docs/` or text files in `/logs/`. |
+| `mod:cap=pat` | **Resource Restriction** | `'file:read=*.py'` | The LLM can only use `file:read` on files ending in `.py`. Accessing `README.md` will fail. |
+| `mod:cap=p1,p2` | **Multiple Patterns** | `'file:read=docs/*.md,log/*.txt'` | Allows reading any markdown file in `/docs/` or text files in `/logs/`. |
+
+Note that you may need to use quoting on the module argument if it contains bsah wildcard characters.
 
 ## Input & Output
 
@@ -64,20 +66,20 @@ $ ask "What branches are not merged into main?" | tools git
 Restrict the LLM so it can only read documentation files and cannot write anything, even if a `write` tool is present in the module:
 ```bash
 # Only allows reading .md or .txt files; no access to source code/binaries.
-$ ask "Summarize README.md" | tools file:read=*.md,file:read=*.txt
+$ ask "Summarize README.md" | tools 'file:read=*.md,*.txt'
 ```
 
 ### 3. Complex Multi-Module Restrictions
 Mix a highly restricted module with a broadly permitted one:
 ```bash
 # Can run any bash command, can read any git status, but can only read .py files via the 'file' tool.
-$ ask "Check git log and find all python imports in main.py" | tools bash:run=* git system_info file:read=*.py
+$ ask "Check git log and find all python imports in main.py" | tools bash:run=* git system_info 'file:read=*.py'
 ```
 
 ### 4. Pipeline Extraction
 As with other `answer` pipeline commands, in a pipeline where stdout is not a terminal, you must pipe the result to `answer` if you want plain text output instead of JSON history:
 ```bash
-$ ask "Read config.json and comment on it." | tools file:read=config.json > comments.json
+$ ask "Read config.json and comment on it." | tools 'file:read=config.json' > comments.json
 $ cat comments.json | answer 
 # [Plain text summary from the LLM]
 ```
