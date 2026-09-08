@@ -73,3 +73,12 @@ $ git diff -U10 file1.md file2.md | dreck -- "Highlight any missing code blocks"
 $ cat diff.txt | dreck -- "Check for lazy elisions only"
 ```
 
+## Comparing Git Versions
+
+Use `gx` to compare the current working-tree version of a file with the version in `HEAD`:
+
+    gx start-llama-server.sh | dreck
+
+To reduce the resulting assessment to a simple verdict:
+
+    gx start-llama-server.sh | dreck | ask 'YES, NO, or MIXED'
