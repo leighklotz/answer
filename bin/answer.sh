@@ -58,7 +58,7 @@ fi
 # If --tee is active, always output the text preview to stderr for human readability.
 if [[ $RAW_TEE_MODE -eq 1 ]]; then
     # stderr: assistant text
-    printf '\n%s%s\n' "TEE_ICON" "$assistant_text" >&2
+    printf '\n%s%s\n' "$TEE_ICON" "$assistant_text" >&2
 fi
 
 if [[ $MARKDOWN_TEE_MODE -eq 1 ]]; then
