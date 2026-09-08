@@ -62,15 +62,6 @@ When using `hx provenance add`, you can specify how the captured interaction is 
 | **`describe`** | 📜 | Records context as a plain-text descriptive note. |
 | **`-`** (dash) | `\|` | Reads content directly from `stdin`. Use this to pipe raw text or manual input into the provenance log without running an automatic command capture. |
 
-### Summary of logical alignment check:
-| hx provenance subcmd | Emoji | Meaning |
-| :--- | :--- | :--- |
-| `what` | 💭 | last text response |
-| `why` | 🧠 |  last reasoning trace |
-| `response`| ⬅️ | last convo JSON response |
-| `describe` | 📜 | describe last convo JSON response with inference |
-| `-` | ➡️ | direct stdin attached | 
-
 ### 3. Cache & Context Management / Interaction Utilities (`hx cache`, `hx context`, etc.)
 The framework uses local JSON files for caching and provides utilities to inspect these cached interactions immediately. It also provides access to specialized management scripts for servers, contexts, and caches.
 
@@ -132,4 +123,3 @@ $ cat some_cache.json | hx what -
 
 # Note:
 Some commands are provided by the `hx` function in `bin/commands/hx-bootstrap.sh`, while others call specialized scripts (like `model.sh`, `models.sh`, or `${cmd}.sh`) via the main `bin/commands/hx.sh` entry point.
-

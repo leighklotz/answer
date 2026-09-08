@@ -61,9 +61,11 @@ for new_md in *.md.new; do
 
     # We now prompt the user. Because we just re-ran dreck, 
     # < "$checkdoc_out" is guaranteed to contain current comparison data.
-    verdict="$(ask "Sum up in one line: NEW, OLD, IDENTICAL, NEITHER" < "$checkdoc_out" | answer)"
+    verdict="$(ask "Sum up in one word: NEW, OLD, IDENTICAL, NEITHER. " < "$checkdoc_out" | answer)"
     
-    printf "\nVerdict: %s\n" "${verdict}"
+    echo
+    ls -l "${old_md}" "${new_md}"
+    printf "\n⚖️ Verdict: %s\n" "${verdict}"
     printf "\n"
 
     case "${verdict}" in

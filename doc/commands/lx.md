@@ -8,27 +8,27 @@
 lx [--line-numbers|-n] [--before=STR] [--after=STR] [files...]
 ```
 
-The command accepts file paths as positional arguments or reads a list of paths via standard input (`stdin`). It uses the 📥 icon in terminal output and pipeline headers to signify ingestion.
+The command accepts file paths as positional arguments or reads a list of paths via standard input (`stdin`). It uses the 📥 icon on `stderr` to signify ingestion status during multi-file processing.
 
 ## Description
 
 **`lx`** automates the preparation of source code, configuration files, and documentation for LLM consumption. By converting raw files into structured Markdown blocks, it solves the problem of "context collision," where an LLM might otherwise confuse multiple input files or fail to identify which programming language is being provided in a large stream.
 
 ### Key Features
-* **Automatic Language Detection:** Leverages file extensions to determine syntax highlighting tags (e.g., `.py` $\rightarrow$ `python`, `.sh` $\rightarrow$ `bash`). Mapping is performed via the internal `ext_langs` table with lower-cased extensions.
-* **Flexible Input Streams:** Supports direct command-line arguments, piping from other commands (`find | lx`), or reading filenames via `stdin`. Empty lines from stdin are skipped. Stdin is read only when it is not a TTY.
+* **Automatic Language Detection:** Leverages file extensions to determine syntax highlighting tags (e.g., `.py` $\rightarrow$ `python`, `.sh` $\rightarrow$ `bash`). Mapping is performed via an internal extension table with lower-cased keys.
+* **Flexible Input Streams:** Supports direct command-line arguments, piping from other commands (`find | lx`), or reading filenames via `stdin`. If running in a non-interactive TTY (e.g., in a pipe), it reads names line-by-line; empty lines are skipped.
 * **Dynamic Placeholders:** Uses `{filename}` and `{language}` placeholders in `--before` to inject real-time metadata into the stream. Escape sequences like `\n` are interpreted via `printf '%b'`.
-* **Line Numbers:** Optional `--line-numbers` / `-n` adds `cat -n` to file output.
-* **Markdown Orchestration:** Automatically handles fence opening/closing and provides customizable delimiters using `--before` and `--after` options.
-* **Resilient Processing:** Gracefully skips directories, special files, or unreadable files without breaking the pipeline execution. Prints `📥` to stderr per processed file.
+* **Line Numbers:** Optional `--line-numbers` / `-n` adds line numbers (`cat -n`) to file output.
+* **Markdown Orchestration:** Automatically handles fence opening/closing and provides customizable delimiters using `--before` and `--after` options. By default, it uses four backticks (```` ``` ````) for the starting block header and a standard triple-backtick separator with dashes (` ```\n---\n ``) for the ending block.
+* **Error Handling:** If an argument is not a regular file or is unreadable, `lx` will output an error to `stderr` and exit with status 1, terminating the pipeline.
 
 ## Options
 
 | Flag | Long form | Description |
-|------|------------------------|---------------------------------------------------------------------------------------------------|
+|------|-----------|-------------|
 | `-n` | `--line-numbers` | Prepend line numbers to file contents by passing `-n` to `cat`. |
 | `--before=STR` | | A custom string to print before each code block. Supports placeholders `{filename}` and `{language}`, and escape sequences (e.g., `\n`). Example: `### File: {filename} \n ```{language}` Placeholders are expanded only for `--before`. |
-| `--after=STR`  | | A custom string to print after each code block. Escape sequences are interpreted via `printf '%b'`. No placeholders are expanded. Useful for adding separators or manual closing fences if needed. Defaults to a standard Markdown close and separator. |
+| `--after=STR`  | | A custom string to print after each code block. Escape sequences are interpreted via `printf '%b'`. No placeholders are expanded. Useful for adding separators or manual closing fences if needed. Defaults to a standard Markdown close and separator (`` ```\n---\n ``). |
 | `--help`        | | Displays the usage information and exits. |
 
 ### Placeholders (for `--before`)
@@ -39,14 +39,25 @@ Placeholders are expanded only in `--before`. `--after` is printed verbatim apar
 
 ## Default Behavior
 
-If no options are provided, **`lx`** wraps every file in a standard Markdown block to ensure clean parsing by downstream tools like `unfence`:
+If no options are provided, **`lx`** wraps every file in a Markdown block using the current filename and detected language as headers:
+
+```bash
+# Example output for script.py (if default settings used):
+# file script.py
+````python
+def hello():
+    print("world")
+````
+---
+(Next file...)
+```
 
 ## Input Modes
 
 | Condition | Behavior | Target |
 |-----------|----------|-------------------|
 | **Arguments** | `lx file1.py file2.sh` treats each as a unique source to be wrapped. | Positional files. |
-| **Piped (`stdin`)** | Reads filenames from the pipe (e.g., `find . -name "*.js" | lx`). Each line is treated as a file path to process. | Filenames via stdin. |
+| **Piped (`stdin`)** | Reads filenames from the pipe (e.g., `find . -name "*.js" | lx`). Each line is treated as a file path to process. Empty lines are skipped; invalid paths cause an exit. | Filenames via stdin. |
 
 ## Examples
 
@@ -59,6 +70,7 @@ $ lx config.yaml database.py logic.sh | help "Explain how these three files inte
 **2. Custom Header Injection (Highly Structured)**
 Use placeholders to create a professional, highly readable context format for complex code reviews.
 ```bash
+# Note: Flags must come before positional file arguments
 $ lx --before="**Source:** `{filename}`\n**Language:** `{language}`\n---\n```{language}" script.py main.js | help "Identify potential bugs"
 ```
 
