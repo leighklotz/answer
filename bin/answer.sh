@@ -10,7 +10,7 @@ if [ -t 0 ]; then
   log_and_exit 1 "No stdin detected. Pipe conversation history or input text into answer."
 fi
 
-HX_LOWDOWN='lowdown -t term'
+ANSWER_MD_COMMAND='lowdown -t term'
 RAW_TEE_MODE=''
 MARKDOWN_TEE_MODE=''
 JSON_MODE=''
@@ -63,7 +63,7 @@ fi
 
 if [[ $MARKDOWN_TEE_MODE -eq 1 ]]; then
     # stderr: assistant text piped through markdown viewer
-    printf '\n%s%s\n' "$TEE_ICON" "$assistant_text" | $HX_LOWDOWN >&2
+    printf '\n%s%s\n' "$TEE_ICON" "$assistant_text" | $ANSWER_MD_COMMAND >&2
 fi
 
 # stdout text/json
