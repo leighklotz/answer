@@ -28,7 +28,7 @@ PIPELINE_TEXT_PLAIN_HEADER="Content-Type: text/plain"
 # --- SHARED WORKSPACE SETUP ---
 # initialize a shared temporary workspace lazily, when a temp file is requested
 function _ensure_workspace() {
-  if [[ -z ${HALLUX_RUN_DIR:-} || ! -d $HALLUX_RUN_DIR ]]; then
+  if [[ -z ${HALLUX_TMP_DIR:-} || ! -d $HALLUX_TMP_DIR ]]; then
     local base=${RUNTIME_DIRECTORY:-${XDG_RUNTIME_DIR:-}}
     local prog=${0##*/}
 
@@ -36,15 +36,15 @@ function _ensure_workspace() {
       base=${base%/}/hallux
       mkdir -p -- "$base"
       chmod 700 -- "$base"
-      HALLUX_RUN_DIR=$(mktemp -d "$base/$prog.XXXXXX")
+      HALLUX_TMP_DIR=$(mktemp -d "$base/$prog.XXXXXX")
     else
       base=${TMPDIR:-/tmp}
-      HALLUX_RUN_DIR=$(mktemp -d "${base%/}/hallux.$prog.XXXXXX")
+      HALLUX_TMP_DIR=$(mktemp -d "${base%/}/hallux.$prog.XXXXXX")
     fi
 
     HALLUX_RUN_OWNER_PID=$BASHPID
-    export HALLUX_RUN_DIR HALLUX_RUN_OWNER_PID
-    log_trace "Creating $HALLUX_RUN_DIR pid=$HALLUX_RUN_OWNER_PID"
+    export HALLUX_TMP_DIR HALLUX_RUN_OWNER_PID
+    log_trace "Creating $HALLUX_TMP_DIR pid=$HALLUX_RUN_OWNER_PID"
   fi
 
   trap '_cleanup_run_dir' EXIT
@@ -57,7 +57,7 @@ function _mktemp_reg() {
   local prefix
   if [ -z "$literal" ]; then
     _ensure_workspace
-    prefix="$HALLUX_RUN_DIR/"
+    prefix="$HALLUX_TMP_DIR/"
   else
     prefix=""
   fi
@@ -89,8 +89,8 @@ function _cleanup_run_dir() {
     # 1. Ensure we are in the owner process to prevent subshell interference
     [[ "$BASHPID" != "$HALLUX_RUN_OWNER_PID" ]] && return 0
     
-    # 2. Use a local variable for the dir to avoid issues if HALLUX_RUN_DIR is unset mid-flight
-    local target="$HALLUX_RUN_DIR"
+    # 2. Use a local variable for the dir to avoid issues if HALLUX_TMP_DIR is unset mid-flight
+    local target="$HALLUX_TMP_DIR"
 
     if [[ -n "$target" && -d "$target" ]]; then
         log_trace "Cleaning up workspace: $target"
@@ -104,7 +104,7 @@ function _cleanup_run_dir() {
     fi
 
     # 4. Unset the variable so subsequent calls don't try to re-clean or find a non-existent dir
-    unset HALLUX_RUN_DIR
+    unset HALLUX_TMP_DIR
 }
 
 function _find_hallux_dir () {
