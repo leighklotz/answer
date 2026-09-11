@@ -4,13 +4,13 @@
 
 # Require bash 4+
 if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
-    echo "${HALLUX_ICON} ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
+    echo "$0: ERROR: bash 4 or later is required (running ${BASH_VERSION})." >&2
     return 1 2>/dev/null
 fi
 
 # Check if ask.sh is available
 if ! command -v ask.sh &> /dev/null; then
-    echo "${HALLUX_ICON} $0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
+    echo "$0: WARN: ask.sh is not on the PATH.  Please add the directory containing ask.sh to your PATH environment variable." >&2
 fi
 
 # Source env.sh if variables are not already defined
@@ -108,6 +108,12 @@ function _cleanup_run_dir() {
 }
 
 function _find_hallux_dir () {
+  # Respect the user's preference first
+  if [[ -n "$HX_HOME" ]]; then
+    echo "${HX_HOME%/}"
+    return 0
+  fi
+
   local current_dir
   current_dir="$(pwd)"
 
