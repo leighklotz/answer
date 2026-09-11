@@ -42,9 +42,9 @@ function _ensure_workspace() {
       HALLUX_TMP_DIR=$(mktemp -d "${base%/}/hallux.$prog.XXXXXX")
     fi
 
-    HALLUX_RUN_OWNER_PID=$BASHPID
-    export HALLUX_TMP_DIR HALLUX_RUN_OWNER_PID
-    log_trace "Creating $HALLUX_TMP_DIR pid=$HALLUX_RUN_OWNER_PID"
+    HALLUX_RUNTIME_PID=$BASHPID
+    export HALLUX_TMP_DIR HALLUX_RUNTIME_PID
+    log_trace "Creating $HALLUX_TMP_DIR pid=$HALLUX_RUNTIME_PID"
   fi
 
   trap '_cleanup_run_dir' EXIT
@@ -87,7 +87,7 @@ function _mktemp_reg_lit() {
 
 function _cleanup_run_dir() {
     # 1. Ensure we are in the owner process to prevent subshell interference
-    [[ "$BASHPID" != "$HALLUX_RUN_OWNER_PID" ]] && return 0
+    [[ "$BASHPID" != "$HALLUX_RUNTIME_PID" ]] && return 0
     
     # 2. Use a local variable for the dir to avoid issues if HALLUX_TMP_DIR is unset mid-flight
     local target="$HALLUX_TMP_DIR"
