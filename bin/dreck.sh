@@ -17,8 +17,16 @@ USER_PROMPT=""
 
 if [[ -n "$1" ]] && [[ -n "$2" ]]; then
     if cmp --quiet "$1" "$2"; then
-        ask "echo 'files are identical'" 
+        echo "files are identical."
         exit 0
+    fi
+    if [[ "$(head -1 "$2")" == '```'* ]]; then
+       echo "file $2 starts with code fence; not going further."
+       exit 1
+    fi
+    if [[ "$(head -1 "$2")" == '# file '* ]]; then
+       echo "file $2 looks like it starts with an 'lx' file header; not going further."
+       exit 1
     fi
     lx "$1" "$2" | ask "$@" "${PROMPT}" "${USER_PROMPT}"
 else
