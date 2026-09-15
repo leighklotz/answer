@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash -x
+#!/usr/bin/env -S bash 
 
 # ---------------------
 # 📌 Overview
