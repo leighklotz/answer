@@ -48,18 +48,25 @@ ask "$@" "${PROMPT}"
 | `dreck` with piped input | Compares two entities arriving on stdin (e.g., a single block of text from an LLM or the output of a command) and passes them through `ask`. |
 | `dreck -- EXTRA...` with piped input | Same as above with an extra user prompt extension passed to `ask`. |
 
+
+
 ## Examples
+
 
 **Compare two files**
 
 ```bash
 $ dreck original.md rewritten.md
+$ dreck file1.txt file2.txt
+$ lx file1.txt file2.txt | dreck
+```
+$ dreck original.md rewritten.md
 ```
 
 **Compare two files with an additional instruction**
-
 ```bash
 $ dreck original.md rewritten.md -- "Focus on factual accuracy and citation preservation"
+$ lx file1.txt file2.txt | dreck -- "Please emphasize the technical accuracy of the summary."
 ```
 
 **Compare pipeline inputs**
@@ -69,8 +76,11 @@ $ dreck original.md rewritten.md -- "Focus on factual accuracy and citation pres
 $ git diff -U10 file1.md file2.md | dreck -- "Highlight any missing code blocks"
 ```
 
-## Comparing Git Versions
+**Comparing Git Versions**
 
-Use `gx` to compare the current working-tree version of a file with the version in `HEAD`:
+Use the git context command `gx` to use dreck to compare the current working-tree version of a file with the version in `HEAD`:
 
-    gx start-llama-server.sh | dreck
+```
+$ gx start-llama-server.sh | dreck
+$ gx start-llama-server.sh | dreck -- "Highlight any missing code blocks"
+```
