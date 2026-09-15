@@ -1,26 +1,34 @@
 #!/bin/bash
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
-# history-unfinished.sh — List bash history sessions for a date, flag unfinished work.
+# history-unfinished.sh — List bash history sessions with Hallux-enhanced title/note generation
 #
-# Usage: history-unfinished.sh [-d DATE] [-p] [-a] [-h]
-#   -d DATE   Date filter (default: today). Accepts 'Sep 13', '2026-09-13', etc.
-#   -p        Project-scoped:  $(hx root)/.bash_history/bash_history_*  (default)
-#   -a        All server:      $HOME/.bash_history_*
-#   -h        Help
+# Usage: history-unfinished.sh [-d DATE] [-p|--project] [-a|--all] [-h|--help]
 #
-# Output: markdown table  | Date/Time | Filename | Title | Notes |
-#   Title — compact summary of projects/scripts actually worked on.
-#   Notes — if the session ends mid-task, describes what looks unfinished.
+# Output: markdown table for glow
 #
-# Pure bash/grep/awk/sed. No LLM calls.
+# Requires: hallux (ask, lx, hx), jq, awk
 
 set -euo pipefail
 
 source "${SCRIPT_DIR}/hx-bootstrap.sh"
 hx core
 
-# ─── options ──────────────────────────────────────────────────────────────────
+# ─── Hallux Settings ────────────────────────────────────────────────────────────
+# Hallux agent binary — adjust if not on PATH
+
+# Prompt template for title/notes generation
+PROMPT='You are summarizing a bash session history file. Based on the file content below, produce EXACTLY two lines in this format:
+TITLE: <one-line title, max 80 chars, derived from git commits / dirs / edited files>
+NOTES: <one-line notes, max 120 chars, describe in-progress work or uncommitted state>
+
+Rules:
+- TITLE must be a noun phrase, not a sentence.
+- NOTES should mention "In progress:" if the session appears unfinished, or "uncommitted changes at end" if git status was last run.
+- If the session looks like a complete, clean wrap-up, NOTES should say "Completed."
+- Do NOT wrap in code fences. Output exactly two lines.'
+
+# ─── Options ────────────────────────────────────────────────────────────────────
 date_str=""
 path_flag="project"
 while getopts "d:pah" opt; do
@@ -29,21 +37,22 @@ while getopts "d:pah" opt; do
         p) path_flag="project" ;;
         a) path_flag="all" ;;
         h) grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed '1d'; exit 0 ;;
-        *) echo "Invalid option: -$opt" >&2; exit 1 ;;
+        *) echo "Invalid option: $opt" >&2; exit 1 ;;
     esac
 done
 
-# ─── date ─────────────────────────────────────────────────────────────────────
+# ─── Date Parsing ───────────────────────────────────────────────────────────────
 if [[ -n "$date_str" ]]; then
     parsed_date=$(date -d "$date_str" "+%Y-%m-%d" 2>/dev/null) || {
         echo "Invalid date: $date_str" >&2; exit 1; }
     date_str="$parsed_date"
+    next_day=$(date -d "${date_str} + 1 day" "+%Y-%m-%d")
 else
     date_str=$(date +%Y-%m-%d)
+    next_day=$(date -d "${date_str} + 1 day" "+%Y-%m-%d")
 fi
-next_day=$(date -d "$date_str + 1 day" "+%Y-%m-%d")
 
-# ─── path ─────────────────────────────────────────────────────────────────────
+# ─── Path Selection ─────────────────────────────────────────────────────────────
 case "$path_flag" in
     project)
         path="$(hx root)/.bash_history"
@@ -57,135 +66,64 @@ case "$path_flag" in
 esac
 [[ -d "$path" ]] || { echo "Path not found: $path" >&2; exit 1; }
 
-# ─── find files ───────────────────────────────────────────────────────────────
+# ─── Find Files ─────────────────────────────────────────────────────────────────
 mapfile -t files < <(
     find -L "$path" -maxdepth 1 -name "$name_pattern" \
         -newermt "${date_str} 00:00:00" \
-        ! -newermt "${next_day} 00:00:00" 2>/dev/null | sort -r
+        -not -newermt "${next_day} 00:00:00" 2>/dev/null | sort -r
 )
 if [[ ${#files[@]} -eq 0 ]]; then
     echo "No history files for $date_str in $path." >&2
     exit 0
 fi
 
-# ─── build_title: compact summary of what the session actually did ───────────
-build_title() {
-    local f="$1"
-    awk '
-    BEGIN { nd=0; ns=0; nc=0 }
-    {
-        line=$0
-        if (line ~ /^#/ || line ~ /^$/ || line ~ /^export /) next
+# ─── Generate Title & Notes via Hallux ──────────────────────────────────────────
+generate_title_notes() {
+    local file="$1"
+    local raw_output=""
 
-        # cd → project dirs
-        if (line ~ /^cd[[:space:]]+/) {
-            dir=line
-            sub(/^cd[[:space:]]+/, "", dir)
-            sub(/[[:space:]]+$/, "", dir)
-            sub(/\/+$/, "", dir)
-            if (dir ~ /^\//) sub(/^\//, "~", dir)
-            if (dir ~ /^~/) {
-                n=split(dir, P, "/")
-                if (n > 2) dir=P[n-1] "/" P[n]
-            }
-            if (dir !~ /^\.\.?$/ && dir != "~" && dir != "wip") {
-                if (!(dir in sd)) { sd[dir]=1; d[nd++]=dir }
-            }
-            next
-        }
-
-        # git commit -m"msg" or git commit -am "msg"
-        if (line ~ /^git commit /) {
-            msg=line
-            sub(/^git commit[[:space:]]+/, "", msg)
-            sub(/^-{1,2}[a-z]*[[:space:]]*/, "", msg)
-            gsub(/^["\x27]|["\x27]$/, "", msg)
-            if (length(msg) > 40) msg=substr(msg,1,37) "..."
-            if (msg != "" && !(msg in sc)) { sc[msg]=1; c[nc++]=msg }
-            next
-        }
-
-        # create / edit: cat >, nw, emacs, vi, vim, ed, ./script
-        if (line ~ /^(cat[[:space:]]*>|nw |emacs |vi |vim |ed |\.\/[a-z])/) {
-            if (match(line, /[a-zA-Z0-9_./-]+\.(sh|md|txt|py|conf|json|ya?ml)/)) {
-                fn=substr(line, RSTART, RLENGTH)
-                m=split(fn, FP, "/")
-                b=FP[m]
-                if (!(b in ss)) { ss[b]=1; s[ns++]=b }
-            }
-            next
-        }
+    # Pipe the prompt + file context through hallux
+    # lx wraps the file in a fenced markdown block with its filename
+    # ask --answer returns plain text on stdout
+    raw_output=$(lx "$file" | ask --answer "$PROMPT" 2>/dev/null) || {
+        echo "$0: FAIL: hallux pipeline error for: $file" >&2
+        return 1
     }
-    END {
-        out=""
-        for (i=0; i<nc && i<3; i++)  { if(out!="") out=out"; "; out=out c[i] }
-        for (i=0; i<ns && i<4; i++)  { if(out!="") out=out"; "; out=out s[i] }
-        for (i=0; i<nd && i<4; i++)  { if(out!="") out=out"; "; out=out d[i] }
-        if (out=="") out="(startup only)"
-        if (length(out)>120) out=substr(out,1,117) "..."
-        print out
-    }' "$f"
-}
 
-# ─── build_notes: describe unfinished work from session tail ─────────────────
-build_notes() {
-    local f="$1"
-    local tail25
-    tail25=$(grep -vE '^\s*(#|$)' "$f" | tail -n 25)
-
-    # Does the tail end with uncommitted git changes?
-    local uncommitted="" status_seen=0
+    # Parse the two-line response
+    local title="" notes=""
     while IFS= read -r line; do
-        if [[ "$line" =~ ^git[[:space:]]+status ]]; then
-            status_seen=1; continue
+        if [[ "$line" =~ ^TITLE:[[:space:]]*(.+)$ ]]; then
+            title="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^NOTES:[[:space:]]*(.+)$ ]]; then
+            notes="${BASH_REMATCH[1]}"
         fi
-        if [[ "$status_seen" -eq 1 ]]; then
-            if [[ "$line" =~ ^git[[:space:]]+(commit|push|add) ]]; then
-                status_seen=0; uncommitted=""
-            fi
-        fi
-    done <<< "$tail25"
-    [[ "$status_seen" -eq 1 ]] && uncommitted="uncommitted changes at end"
+    done <<< "$raw_output"
 
-    # Last 2 real actions (skip pure inspection)
-    local actions
-    actions=$(grep -vE '^\s*(#|$|ls[[:space:]]|cd[[:space:]]|git[[:space:]]+(status|log|branch)|pwd|history)' <<< "$tail25" | tail -n 5)
-    local last_cmd
-    last_cmd=$(echo "$actions" | tail -n 1 | sed 's/|.*//; s/^ *//')
-
-    local note="" in_progress=0
-    local total
-    total=$(grep -cvE '^\s*(#|$)' "$f")
-
-    # in-progress if last cmd is an edit/build/run, or long session without final commit
-    if [[ "$last_cmd" =~ (cat[[:space:]]*>|nw[[:space:]]|emacs[[:space:]]|vi[m]?[[:space:]]|\.sh|scripts/|build|compile|test) ]]; then
-        in_progress=1
-    elif [[ "$total" -gt 30 && "$last_cmd" != *"git commit"* && "$last_cmd" != *"git push"* ]]; then
-        in_progress=1
+    # If parsing yielded nothing, fail
+    if [[ -z "$title" || -z "$notes" ]]; then
+        echo "$0: FAIL: title='${title}' notes='${notes}' (file: $file)" >&2
+        return 1
     fi
 
-    if [[ "$in_progress" -eq 1 ]]; then
-        local short
-        short=$(echo "$actions" | tail -n 1 | sed 's/|.*//; s/^ *//')
-        [[ ${#short} -gt 60 ]] && short="${short:0:57}..."
-        note="In progress: $short"
-        [[ -n "$uncommitted" ]] && note="$note; $uncommitted"
-    elif [[ -n "$uncommitted" ]]; then
-        note="$uncommitted"
-    fi
-
-    # escape pipes for markdown
-    echo "$note" | sed 's/|/\\|/g'
+    printf '%s\t%s\n' "$title" "$notes"
 }
 
-# ─── table ────────────────────────────────────────────────────────────────────
+# ─── Output ─────────────────────────────────────────────────────────────────────
 echo "| Date/Time | Filename | Title | Notes |"
 echo "|-----------|----------|-------|-------|"
 
 for file in "${files[@]}"; do
     mod_time=$(date -r "$file" "+%Y-%m-%d %H:%M:%S")
     fname=$(basename "$file")
-    title=$(build_title "$file" | sed 's/|/\\|/g')
-    notes=$(build_notes "$file")
+
+    # generate_title_notes prints "title\tnotes"
+    result=$(generate_title_notes "$file") || {
+        echo "| $mod_time | $fname | ERROR | hallux generation failed |"
+        continue
+    }
+
+    IFS=$'\t' read -r title notes <<< "$result"
+
     echo "| $mod_time | $fname | $title | $notes |"
 done
