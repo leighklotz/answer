@@ -3,7 +3,7 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
 # history-unfinished.sh — List bash history sessions with Hallux-enhanced title/note generation
 #
-# Usage: history-unfinished.sh [-d DATE] [-p|--project] [-a|--all] [-h|--help]
+# Usage: history-unfinished.sh [-d DATE|all] [-p|--project] [-a|--all-projects] [-h|--help]
 #
 # Output: markdown table for glow
 #
@@ -35,14 +35,17 @@ while getopts "d:pah" opt; do
     case "$opt" in
         d) date_str="$OPTARG" ;;
         p) path_flag="project" ;;
-        a) path_flag="all" ;;
+        a) path_flag="all-projects" ;;
         h) grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed '1d'; exit 0 ;;
         *) echo "Invalid option: $opt" >&2; exit 1 ;;
     esac
 done
 
 # ─── Date Parsing ───────────────────────────────────────────────────────────────
-if [[ -n "$date_str" ]]; then
+if [[ "$date_str" == "all" ]]; then
+    date_str=""
+    next_day=""
+elif [[ -n "$date_str" ]]; then
     parsed_date=$(date -d "$date_str" "+%Y-%m-%d" 2>/dev/null) || {
         echo "Invalid date: $date_str" >&2; exit 1; }
     date_str="$parsed_date"
@@ -67,11 +70,18 @@ esac
 [[ -d "$path" ]] || { echo "Path not found: $path" >&2; exit 1; }
 
 # ─── Find Files ─────────────────────────────────────────────────────────────────
-mapfile -t files < <(
-    find -L "$path" -maxdepth 1 -name "$name_pattern" \
-        -newermt "${date_str} 00:00:00" \
-        -not -newermt "${next_day} 00:00:00" 2>/dev/null | sort -r
-)
+if [[ -n "$date_str" && -n "$next_day" ]]; then
+    mapfile -t files < <(
+        find -L "$path" -maxdepth 1 -name "$name_pattern" \
+            -newermt "${date_str} 00:00:00" \
+            -not -newermt "${next_day} 00:00:00" 2>/dev/null | sort -r
+    )
+else
+    mapfile -t files < <(
+        find -L "$path" -maxdepth 1 -name "$name_pattern" \
+             2>/dev/null | sort -r
+    )
+fi
 if [[ ${#files[@]} -eq 0 ]]; then
     echo "No history files for $date_str in $path." >&2
     exit 0
@@ -85,7 +95,7 @@ generate_title_notes() {
     # Pipe the prompt + file context through hallux
     # lx wraps the file in a fenced markdown block with its filename
     # ask --answer returns plain text on stdout
-    raw_output=$(lx "$file" | ask --answer "$PROMPT" 2>/dev/null) || {
+    raw_output=$(lx "$file" | ask --answer "$PROMPT" ) || {
         echo "$0: FAIL: hallux pipeline error for: $file" >&2
         return 1
     }
