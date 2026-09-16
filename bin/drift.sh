@@ -54,6 +54,7 @@ while (( INDEX < ARG_COUNT )); do
 done
 
 FILE_COUNT=${#FILES[@]}
+[[ "$FILE_COUNT" == 1 ]] && log_warn "$0: only one file input?"
 
 # ---------------------
 # 📌 File Comparison Logic
