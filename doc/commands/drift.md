@@ -21,7 +21,7 @@ If no positional file arguments are supplied, `drift` reads a single stream from
 
 `drift` sources `env.sh`, `logging.sh`, and `functions.sh` and then builds a conversation with `ask`.
 
-If at least two positional arguments are provided, it first performs an equality check using `cmp` between `FILE_A` and `FILE_B`; if they are identical, it reports this fact via `ask` and exits without triggering a full drift analysis. If they differ, it ingests all files (source, candidate, and context) via `lx` and runs the comparison.
+If at least two positional arguments are provided, it first performs an equality check using `cmp` between `FILE_A` and `FILE_B`; if they are identical, it reports this fact via `log_info` and exits without triggering a full drift analysis. If they differ, it ingests all files (source, candidate, and context) via `lx` and runs the comparison.
 
 When positional files are present, the pipeline is:
 
