@@ -13,7 +13,7 @@
 #
 # Usage:
 #   drift FILE_A FILE_B [CONTEXT_FILE...] [-- EXTRA_PROMPT...]
-#   drift [-- EXTRA_PROMPT...]  (reads from stdin/piped input)
+#   drift (reads from stdin)
 
 # ---------------------
 # 📌 Configuration
@@ -119,10 +119,17 @@ if (( FILE_COUNT >= 2 )); then
 
 elif (( FILE_COUNT == 0 )); then
     # Mode: Piped Input / Stream mode
-    # This occurs if no positional arguments were provided OR only '--' was used.
+    
+    # If stdin is a terminal (-t 0), it means the user ran 'drift' without 
+    # piping anything in. We should error out instead of hanging.
+    if [[ -t 0 ]]; then
+        log_error "$0: No positional arguments provided and no piped input detected (stdin is a TTY)."
+        exit 1
+    fi
+
     _ask
 else
-    # Error Case: Exactly one file or ambiguous argument pattern (e.g., 'drift -h' handled above)
+    # Error Case: Exactly one file or ambiguous argument pattern
     log_error "$0: expected at least 2 files (source + candidate); got ${FILE_COUNT}: ${FILES[0]}"
     exit 1
 fi
