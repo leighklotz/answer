@@ -36,6 +36,25 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
+usage() {
+    cat <<EOF
+Usage: drift FILE_A FILE_B [CONTEXT_FILE...] [-- [EXTRA_PROMPT...]]
+       drift (reads from stdin)
+
+Description:
+  Compares a candidate artifact against its source and ground-truth constraints.
+
+Arguments:
+  FILE_A          The original source or reference artifact.
+  FILE_B          The candidate version to be evaluated.
+  CONTEXT_FILES   (Optional) Zero or more files providing additional constraints.
+
+Options:
+  --              End of positional arguments; everything after is treated as extra prompt text for 'ask'.
+  -h, --help      Show this help message.
+EOF
+}
+
 # Run ask with or without an extra user prompt, avoiding an empty-string
 # argument when EXTRA_PROMPT is unset.
 _ask() {
@@ -55,30 +74,29 @@ INDEX=0
 FILES=()
 
 while (( INDEX < ARG_COUNT )); do
-    if [[ "${ARGS[$INDEX]}" == "--" ]]; then
-        EXTRA_PROMPT="${ARGS[@]:$((INDEX + 1))}"
-        break
-    fi
+    case "${ARGS[$INDEX]}" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            # Everything following '--' is part of the extra prompt.
+            EXTRA_PROMPT="${ARGS[@]:$((INDEX + 1))}"
+            break
+            ;;
+    esac
     FILES+=("${ARGS[$INDEX]}")
     INDEX=$(( INDEX + 1 ))
 done
 
 FILE_COUNT=${#FILES[@]}
 
-if (( FILE_COUNT == 1 )); then
-    log_error "$0: expected at least 2 files (source + candidate); got 1: ${FILES[0]}"
-    exit 1
-fi
-
-if (( FILE_COUNT > 1 )) && (( FILE_COUNT < 2 )); then
-    # Unreachable with the check above, but guards against odd arithmetic.
-    log_warn "$0: only one file input?"
-fi
-
 # ---------------------
-# 📌 File Comparison Logic
+# 📌 Execution Logic
 # ---------------------
+
 if (( FILE_COUNT >= 2 )); then
+    # Mode: File Comparison (Source, Candidate, and optional Contexts)
     FILE_A="${FILES[0]}"
     FILE_B="${FILES[1]}"
 
@@ -98,7 +116,13 @@ if (( FILE_COUNT >= 2 )); then
 
     # Ingest all files (source, candidate, and context) via lx, then run drift analysis
     lx "${FILES[@]}" | _ask
-else
-    # Piped input mode: no files (or zero files) on command line
+
+elif (( FILE_COUNT == 0 )); then
+    # Mode: Piped Input / Stream mode
+    # This occurs if no positional arguments were provided OR only '--' was used.
     _ask
+else
+    # Error Case: Exactly one file or ambiguous argument pattern (e.g., 'drift -h' handled above)
+    log_error "$0: expected at least 2 files (source + candidate); got ${FILE_COUNT}: ${FILES[0]}"
+    exit 1
 fi
