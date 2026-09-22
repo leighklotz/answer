@@ -11,72 +11,100 @@ hx core
 
 function _provenance_add() {
     local subcmd="$1"
-    case "$subcmd" in 
+
+    case "$subcmd" in
         bash_history)
             if [[ ! -f "$HISTFILE" || "$HISTFILE" == ~/.bash_history ]]; then
                 log_info "bash history provenance disabled: HISTFILE is not unique"
                 return 0
             fi
+
             local hallux_dir
             hallux_dir="$(_find_hallux_dir)"
-            if [ "$hallux_dir" != '' ]; then
+
+            if [[ -n "$hallux_dir" ]]; then
                 local old_bash_history_dir="${hallux_dir}/bash_history/"
                 local bash_history_dir="${hallux_dir}/.bash_history/"
 
-                if [[ -d ${old_bash_history_dir} && ! -d ${bash_history_dir} ]]; then
+                if [[ -d "$old_bash_history_dir" && ! -d "$bash_history_dir" ]]; then
                     echo >&2
                     log_warn "migrating bash_history: mv ${old_bash_history_dir} ${bash_history_dir}"
-                    mv ${old_bash_history_dir} ${bash_history_dir}
+                    mv "$old_bash_history_dir" "$bash_history_dir"
                 fi
-                mkdir -p "${bash_history_dir}"
+
+                mkdir -p "$bash_history_dir"
+
                 # strip leading dot on .bash_history_###
+                local fn
                 fn="${HISTFILE##*/}"
                 fn="${fn#.}"
-                if [ ! -e "${bash_history_dir}/$fn" ]; then
-                    ln -s "$HISTFILE" "${bash_history_dir}/$fn"
+
+                if [[ ! -e "${bash_history_dir}/${fn}" ]]; then
+                    ln -s "$HISTFILE" "${bash_history_dir}/${fn}"
                 fi
-                printf "%s/%s\n" "$(realpath --relative-to="${hallux_dir}" "${bash_history_dir}")" "$fn"
+
+                printf '.bash_history/%s\n' "$fn"
             fi
             ;;
+
         what|why|response|describe|-)
+            local last_cmd
+            local prompt_str
             last_cmd=$(fc -nl -2 | sed 's/^[[:space:]]*//')
             prompt_str="${PS1@P}"
 
-            declare -A emoji=([what]=$CONVO_ICON [why]=$BRAIN_ICON [response]=$RESPONSE_ICON [describe]=$SCROLL_ICON [-]=$STDIN_ICON)
-            declare -A ctype=([what]="$PIPELINE_TEXT_CONVO_HEADER" [why]="$PIPELINE_REASONING_CONVO_HEADER" [response]="$PIPELINE_MAGIC_HEADER" [describe]="$PIPELINE_TEXT_PLAIN_HEADER" [-]="$PIPELINE_TEXT_PLAIN_HEADER")
+            declare -A emoji=(
+                [what]="$CONVO_ICON"
+                [why]="$BRAIN_ICON"
+                [response]="$RESPONSE_ICON"
+                [describe]="$SCROLL_ICON"
+                [-]="$STDIN_ICON"
+            )
+
+            declare -A ctype=(
+                [what]="$PIPELINE_TEXT_CONVO_HEADER"
+                [why]="$PIPELINE_REASONING_CONVO_HEADER"
+                [response]="$PIPELINE_MAGIC_HEADER"
+                [describe]="$PIPELINE_TEXT_PLAIN_HEADER"
+                [-]="$PIPELINE_TEXT_PLAIN_HEADER"
+            )
 
             local subcmd_emoji
             local content_type_header
             subcmd_emoji="${emoji[$subcmd]}"
-            content_type_header="${ctype[$subcmd]}"                    
+            content_type_header="${ctype[$subcmd]}"
 
-            printf "%shx provenance %s %s | git notes --ref=provenance/hallux append %s\n" "$SAVE_ICON" "$subcmd" "$subcmd_emoji" "$PIN_ICON" >&2
+            printf "%shx provenance %s %s | git notes --ref=provenance/hallux append %s\n" \
+                "$SAVE_ICON" "$subcmd" "$subcmd_emoji" "$PIN_ICON" >&2
 
             local hx_out
-            if [ "$subcmd" == "-" ]; then
-                if [ -t 0 ]; then
+            if [[ "$subcmd" == "-" ]]; then
+                if [[ -t 0 ]]; then
                     echo "Provide hx provenance add input:" >&2
                 fi
                 hx_out="$(cat)"
             else
-                hx_out=$(hx $subcmd || echo "[hx $subcmd failed or missing]")
+                hx_out=$(hx "$subcmd" || echo "[hx $subcmd failed or missing]")
             fi
 
             printf "%s%s\n%s\n%s\n\n" \
-                   "$prompt_str" \
-                   "$last_cmd" \
-                   "${content_type_header}" \
-                   "$hx_out" \
+                "$prompt_str" \
+                "$last_cmd" \
+                "$content_type_header" \
+                "$hx_out" \
                 | git notes --ref=provenance/hallux append -F -
+
             exit 0
             ;;
+
         "")
-            echo "usage: hx provenance add [ what | why| response | describe | bash_history | -]" >&2
+            echo "usage: hx provenance add [ what | why | response | describe | bash_history | -]" >&2
             ;;
 
-        *) echo "hx provenance add: unknown subcmd '$1'" >&2
-           exit 1
-           ;;
+        *)
+            echo "hx provenance add: unknown subcmd '$1'" >&2
+            exit 1
+            ;;
     esac
 }
 
