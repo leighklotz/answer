@@ -10,7 +10,7 @@ cd "${SCRIPT_DIR}/.."
 shopt -s nullglob
 mkdir -p doc
 
-CMDS="answer ask bx dreck gx help-commit help hx lx makedoc systype tools unfence"
+CMDS="answer ask bx dreck drift gx help-commit help hx lx makedoc systype tools unfence"
 : "${MAKEDOC_PREREADING:=}"
 
 if [ -n "$1" ]; then
