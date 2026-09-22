@@ -31,10 +31,20 @@ EXTRA_PROMPT=""
 # ---------------------
 # 📌 Core Functions
 # ---------------------
-SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
+
+# Run ask with or without an extra user prompt, avoiding an empty-string
+# argument when EXTRA_PROMPT is unset.
+_ask() {
+    if [[ -n "$EXTRA_PROMPT" ]]; then
+        ask "$EXTRA_PROMPT" "$PROMPT"
+    else
+        ask "$PROMPT"
+    fi
+}
 
 # ---------------------
 # 📌 Argument Parsing
@@ -50,11 +60,20 @@ while (( INDEX < ARG_COUNT )); do
         break
     fi
     FILES+=("${ARGS[$INDEX]}")
-    ((INDEX++))
+    INDEX=$(( INDEX + 1 ))
 done
 
 FILE_COUNT=${#FILES[@]}
-[[ "$FILE_COUNT" == 1 ]] && log_warn "$0: only one file input?"
+
+if (( FILE_COUNT == 1 )); then
+    log_error "$0: expected at least 2 files (source + candidate); got 1: ${FILES[0]}"
+    exit 1
+fi
+
+if (( FILE_COUNT > 1 )) && (( FILE_COUNT < 2 )); then
+    # Unreachable with the check above, but guards against odd arithmetic.
+    log_warn "$0: only one file input?"
+fi
 
 # ---------------------
 # 📌 File Comparison Logic
@@ -78,8 +97,8 @@ if (( FILE_COUNT >= 2 )); then
     fi
 
     # Ingest all files (source, candidate, and context) via lx, then run drift analysis
-    lx "${FILES[@]}" | ask "${EXTRA_PROMPT}" "${PROMPT}"
+    lx "${FILES[@]}" | _ask
 else
-    # Piped input mode: no files (or insufficient files) on command line
-    ask "${EXTRA_PROMPT}" "${PROMPT}"
+    # Piped input mode: no files (or zero files) on command line
+    _ask
 fi

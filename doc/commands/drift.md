@@ -1,3 +1,11 @@
+Looking at the `drift.sh` implementation and comparing it to `doc/commands/drift.md`, I found two factual discrepancies:
+
+1. The Synopsis describes `CONTEXT_FILE...` as "(one or more)" but the script explicitly allows running with just two files (FILE_A and FILE_B) and no context files — the `[CONTEXT_FILE...]` in the synopsis already implies zero-or-more.
+2. The Notes section states "`drift` is currently **in development**" but the script is fully implemented and functional.
+
+Here is the updated file:
+
+```markdown
 # drift
 
 **`drift`** is a constraint-aware comparison utility for auditing LLM output against ground truth. Unlike `dreck`, which compares two files in the absence of external constraints, `drift` ingests a candidate file alongside an original source **and** one or more context items (specs, requirements, test expectations, API contracts, or other ground-truth documents) and evaluates whether the candidate has *drifted* from what the context demands.
@@ -12,7 +20,7 @@ drift FILE_A FILE_B [CONTEXT_FILE...] [-- [EXTRA_PROMPT...]]
 
 * **`FILE_A`**: The original source or reference artifact.
 * **`FILE_B`**: The candidate (typically LLM-generated) version to be evaluated.
-* **`CONTEXT_FILE...`** (one or more): Ground-truth items — specifications, requirements documents, expected test output, API schemas, or any other constraints against which `FILE_B` must be judged. All context files are ingested via `lx` alongside `FILE_A` and `FILE_B`.
+* **`CONTEXT_FILE...`** (optional; zero or more): Ground-truth items — specifications, requirements documents, expected test output, API schemas, or any other constraints against which `FILE_B` must be judged. All context files are ingested via `lx` alongside `FILE_A` and `FILE_B`.
 * **`-- [EXTRA_PROMPT...]`**: Optional additional instruction text forwarded to `ask`, appended to the built-in drift-detection prompt.
 
 If no positional file arguments are supplied, `drift` reads a single stream from `stdin` (e.g., a multi-section bundle produced by a prior `lx` call) and passes it through `ask` with the drift prompt.
@@ -114,11 +122,10 @@ $ drift original.md rewritten.md
 
 | Code | Meaning |
 | :--- | :--- |
-| **0** | Comparison completed (regardless of verdict). |
+| **0** | Comparison completed (regardless of verdict), or files are identical. |
 | **1** | Usage error, missing files, or pipeline failure. |
 
 ## Notes
 
-* `drift` is currently **in development**. The implementation will follow the same structural pattern as `dreck` (source shared library files, build an `ask` pipeline, and exit), with the addition of variable-length context file ingestion before the `lx` call.
 * Context files are ingested in the order given. The LLM prompt refers to them by filename (as emitted by `lx` headers), so the order matters for disambiguation when multiple specs are provided.
 * The `--` separator works identically to `dreck`: everything after it is treated as free-form prompt text, not as a file path.
