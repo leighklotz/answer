@@ -3,17 +3,9 @@
 # ---------------------
 # 📌 Overview
 # ---------------------
-#
 # This script performs a constraint-aware comparison of a candidate artifact
 # (FILE_B) against its original source (FILE_A) and one or more ground-truth
-# context items (specs, requirements, test expectations, API contracts, etc.).
-#
-# It detects LLM dreck, lazy elisions, constraint violations, and factual/code
-# drift, concluding with a categorical verdict: DRIFTED / ACCEPTABLE / NEEDS_REVISION.
-#
-# Usage:
-#   drift FILE_A FILE_B [CONTEXT_FILE...] [-- EXTRA_PROMPT...]
-#   drift (reads from stdin)
+# context items. It detects LLM dreck, lazy elisions, and substantive drift.
 
 # ---------------------
 # 📌 Configuration
@@ -43,6 +35,7 @@ Usage: drift FILE_A FILE_B [CONTEXT_FILE...] [-- [EXTRA_PROMPT...]]
 
 Description:
   Compares a candidate artifact against its source and ground-truth constraints.
+  If no files are provided, it expects a bundled stream via stdin (via 'lx').
 
 Arguments:
   FILE_A          The original source or reference artifact.
@@ -55,11 +48,10 @@ Options:
 EOF
 }
 
-# Run ask with or without an extra user prompt, avoiding an empty-string
-# argument when EXTRA_PROMPT is unset.
+# Run ask with the base prompt and optional user extension
 _ask() {
     if [[ -n "$EXTRA_PROMPT" ]]; then
-        ask "$EXTRA_PROMPT" "$PROMPT"
+        ask "$EXTRA_PROMPT $PROMPT"
     else
         ask "$PROMPT"
     fi
@@ -80,7 +72,6 @@ while (( INDEX < ARG_COUNT )); do
             exit 0
             ;;
         --)
-            # Everything following '--' is part of the extra prompt.
             EXTRA_PROMPT="${ARGS[@]:$((INDEX + 1))}"
             break
             ;;
@@ -96,42 +87,40 @@ FILE_COUNT=${#FILES[@]}
 # ---------------------
 
 if (( FILE_COUNT >= 2 )); then
-    # Mode: File Comparison (Source, Candidate, and optional Contexts)
+    # MODE: Positional Files (N >= 2)
+    # If N=2, they are treated as A and B.
     FILE_A="${FILES[0]}"
     FILE_B="${FILES[1]}"
 
-    # Validate that all provided files exist and are readable
     for f in "${FILES[@]}"; do
         if [[ ! -f "$f" ]]; then
             printf "%s: Error: File not found: %s\n" "$0" "$f" >&2
-            usage
             exit 1
         fi
     done
 
-    # Check if source and candidate are identical
+    # Optimization: If files are identical, no drift possible.
     if cmp --quiet "$FILE_A" "$FILE_B"; then
         log_info "Files are identical."
         exit 0
     fi
 
-    # Ingest all files (source, candidate, and context) via lx, then run drift analysis
+    # Ingest A, B, and optional Context Files via lx and pipe to ask
     lx "${FILES[@]}" | _ask
 
 elif (( FILE_COUNT == 0 )); then
-    # Mode: Piped Input / Stream mode
-    
-    # If stdin is a terminal (-t 0), it means the user ran 'drift' without 
-    # piping anything in. We should error out instead of hanging.
+    # MODE: Piped Input (N = 0)
+    # Expects stdin to contain a bundled stream (e.g., from 'lx')
     if [[ -t 0 ]]; then
-        printf "%s: Error: No arguments provided and no piped input detected (stdin is a TTY).\n" "$0" >&2
+        printf "%s: Error: No positional arguments provided and no piped input detected.\n" "$0" >&2
         usage
         exit 1
     fi
 
     _ask
+
 else
-    # Error Case: Exactly one file or ambiguous argument pattern
+    # MODE: Error Case (N = 1)
     printf "%s: Error: Expected at least 2 files (source + candidate); got %d\n" "$0" "${FILE_COUNT}" >&2
     usage
     exit 1
