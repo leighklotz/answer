@@ -37,7 +37,7 @@ source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
 usage() {
-    cat <<EOF
+    cat <<EOF >&2
 Usage: drift FILE_A FILE_B [CONTEXT_FILE...] [-- [EXTRA_PROMPT...]]
        drift (reads from stdin)
 
@@ -103,7 +103,8 @@ if (( FILE_COUNT >= 2 )); then
     # Validate that all provided files exist and are readable
     for f in "${FILES[@]}"; do
         if [[ ! -f "$f" ]]; then
-            log_error "File not found: $f"
+            printf "%s: Error: File not found: %s\n" "$0" "$f" >&2
+            usage
             exit 1
         fi
     done
@@ -123,13 +124,15 @@ elif (( FILE_COUNT == 0 )); then
     # If stdin is a terminal (-t 0), it means the user ran 'drift' without 
     # piping anything in. We should error out instead of hanging.
     if [[ -t 0 ]]; then
-        log_error "$0: No positional arguments provided and no piped input detected (stdin is a TTY)."
+        printf "%s: Error: No arguments provided and no piped input detected (stdin is a TTY).\n" "$0" >&2
+        usage
         exit 1
     fi
 
     _ask
 else
     # Error Case: Exactly one file or ambiguous argument pattern
-    log_error "$0: expected at least 2 files (source + candidate); got ${FILE_COUNT}: ${FILES[0]}"
+    printf "%s: Error: Expected at least 2 files (source + candidate); got %d\n" "$0" "${FILE_COUNT}" >&2
+    usage
     exit 1
 fi
