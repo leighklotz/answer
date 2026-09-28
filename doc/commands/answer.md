@@ -46,7 +46,7 @@ The behavior of `answer` depends on whether it receives a structured pipeline he
 ### 1. Standard Outputs
 | Mode | Context | stdout (Data stream) | stderr (Terminal Feedback) |
 |------|---------|-------------------|----------------------------|
-| **Extraction** (Default/Interactive) | Used as a terminal endpoint for reading or piping to tools like `unfence`. | Raw plain text of the assistant's response. If stdout is a TTY and `$HX_MD` is set, the text is rendered through `$HX_MD`. | Inference status icons + Errors. A blank line is printed to stderr before final output when stdout is a TTY. |
+| **Extraction** (Default/Interactive) | Used as a terminal endpoint for reading or piping to tools like `unfence`. | Raw plain text of the assistant's response. If stdout is a TTY and `$HX_MD` is set, the text is rendered through `$HX_MD`. | Inference status icons + Errors. A blank line is printed to stderr before final output when stdout is a TTY. Consider trying `innomd -P`, `glow`, `lowdown -t term`.|
 | **Observation** (`--tee` in a pipe) | Use this to see what is happening without breaking the pipeline structure. | Raw plain text of the assistant's response. | A visual "preview" (with 👕 emoji) of the extracted text. |
 | **Markdown Observation** (`--markdown-tee`) | Mid-pipeline inspection with rendered markdown. | Raw plain text of the assistant's response. | Markdown-rendered preview via `lowdown -t term` prefixed with 👕 emoji. |
 | **JSON Mode** (`--json`) | Used when continuing a structured conversation chain. | Full resolved JSON conversation array (+ magic header). | Inference status icons + Errors. |
