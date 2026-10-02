@@ -366,6 +366,7 @@ function _infer () {
   if [ -n "$cache_dir" ] && [ -f "$cache_file" ]; then
     log_trace "cache_file=$cache_file"
     printf "%s" "$CACHE_HIT_ICON" >&2
+    [ -n "$LOG_QUERIES" ] && log_trace "cached request==$(cat "$tmp_req")"
     response_json=$(cat "$cache_file")
   else
     [ -n "$LOG_QUERIES" ] && log_trace "request=$(cat "$tmp_req")"
