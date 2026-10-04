@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Structured decision: POST /v1/systemone — every question is evaluated in parallel and in
 # isolation against the same state, and comes back typed. No text generation, nothing to parse.
 # The answers{} map is keyed by your own question names; each answer holds its value under a
@@ -44,6 +45,3 @@ curl "$URL" \
       }
     }
   }'
-
-
-# https://aihubmix.com/model/decision-model-preview
