@@ -46,3 +46,89 @@ When running in an automated pipeline, you are often preceded and followed by sa
 
 *   **Workspace Context:** You are typically operating within an environment where `.hallux/.cache/` stores your past conversation history locally to ensure speed and consistency in multi-turn pipelines.
 *   **Provenance Tracking:** The `hx provenance add [mode]` command allows users to "bookmark" successful terminal interactions into Git metadata, creating a permanent record of the context that led to a specific answer.
+
+## 5. Sourcing & Script Integration
+
+The Hallux toolchain is **not** a set of installed binaries. All commands (`ask`, `help`, `answer`, `unfence`, `lx`, `bx`, `hx`) are **shell functions and wrapper scripts** that must be loaded into your current shell's namespace. The single entry point for this is:
+
+```
+bin/commands/hx-bootstrap.sh
+```
+
+This file **must be sourced**, never executed. Executing it runs the definitions in a subshell that exits immediately, leaving your prompt with no new commands.
+
+### CLI (Interactive Shell)
+
+Add one line to your `~/.bashrc` (or `~/.profile`):
+
+```bash
+source /path/to/hallux/bin/commands/hx-bootstrap.sh
+```
+
+Restart the terminal (or `source ~/.bashrc`). You then activate the session per-project:
+
+```bash
+$ hx enable
+👣 hallux enabled: model=gemma-4-26b-qat-batch  root=~/proj/.hallux  hist=…/bash_history
+
+$ ask "briefly, how do I strip a file extension in bash?"
+✨
+Use parameter expansion: `${var%.*}` removes the shortest `.*` suffix.
+```
+
+`hx enable` does three things in one call:
+
+1. Prepends the toolchain's `bin/commands/` directory to `$PATH`.
+2. Sources project-level env overrides (`bin/commands/env.sh`) so `$HX_MODEL`, `VIA_API_CHAT_BASE`, and `OPENAI_API_KEY` are set.
+3. Sets `$PS1` to include the `👣` indicator so you can see the harness is active.
+
+### Script (Non-Interactive / CI)
+
+Inside a `.sh` or Makefile target, source the bootstrap and enable the environment **before** calling any command:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 1. Load the toolchain into this shell's namespace
+source /path/to/hallux/bin/commands/hx-bootstrap.sh
+hx enable   # sets PATH, env vars; no-op on PS1 in non-TTY
+
+# 2. Plain-text one-shot (non-TTY → ask emits JSON, so pipe through answer)
+result="$(ask "Write a one-line awk to sum column 2 of a CSV" | answer)"
+
+# 3. Multi-turn pipeline, terminated by answer for plain text
+script="$(ask "Write a bash script that lists files over 10 MB" \
+       | ask "Add error handling and a --verbose flag" \
+       | unfence bash \
+       | cat)"          # unfence already strips fences; cat is a no-op safety
+# … or, if you want the raw JSON history for later replay:
+# history_json="$(ask "…" | ask "…")"
+
+# 4. File-ingestion context inside a script
+lx src/*.py | help "Find unused imports" | answer > report.txt
+```
+
+**Key script gotchas:**
+
+| Situation | What to do |
+|---|---|
+| You need **plain text** from `ask`/`help` in a script (non-TTY) | Always pipe through `\| answer` or use `ask --answer`. Without it, stdout is the full JSON conversation array. |
+| You need the **JSON history** for further piping or storage | Do **not** pipe through `answer`. Capture stdout directly: `hist="$(ask "…")"`. |
+| Redirecting to a file | `ask "write code" \| answer > out.txt` — omitting `answer` writes the JSON blob instead. |
+| Calling `hx enable` in a script that already has a custom `PATH` | It is idempotent; it only prepends the commands directory if not already present. |
+| You only need `unfence` or `lx` (no LLM call) | You still must source `hx-bootstrap.sh` first, because those are also functions/scripts resolved through the updated `PATH`. |
+
+### Minimal Sourcing Checklist
+
+```text
+What to source / run          Why
+─────────────────────────────  ───────────────────────────────────────────
+source …/hx-bootstrap.sh      Defines the `hx` function + all command
+                              wrappers in the current shell.
+hx enable                     Sets $PATH, loads env.sh, configures PS1.
+  (interactive only)          Safe to call in scripts; PS1 is a no-op.
+ask / help / answer / etc.    Now resolvable as shell functions.
+```
+
+There is no `make install`, no `pip install`, and no system-wide symlink step. Sourcing the single `hx-bootstrap.sh` file **is** the installation for a given shell session.
