@@ -56,19 +56,19 @@ done
 if [[ -n "$1" ]] && [[ -n "$2" ]]; then
     # Check if files are identical
     if cmp --quiet "$1" "$2"; then
-        log_info "Files are identical."
+        echo "Files are identical."
         exit 0
     fi
 
     # Skip files starting with code fences
     if [[ "$(head -1 "$2")" == '```'* ]]; then
-        log_info "File $2 starts with code fence; not going further."
+        echo "File $2 starts with code fence; not going further."
         exit 1
     fi
 
     # Skip files starting with an 'lx' header
     if [[ "$(head -1 "$2")" == '# file '* ]]; then
-        log_info "File $2 looks like it starts with an 'lx' file header; not going further."
+        echo "File $2 looks like it starts with an 'lx' file header; not going further."
         exit 1
     fi
 
