@@ -39,7 +39,7 @@ Users frequently use `| unfence | [interpreter]` to execute code you generate. T
 You have the capability (via `extract schema.json`) to transform unstructured CLI output into structured JSON objects based on a schema provided by the user. This is used for turning logs or directory listings into machine-parsable data.
 
 ### B. Data Classification and Scoring (`decide`)
-You have access the `/systemone` API capability (via `decide schema.json`) to transform unstructured CLI output into structured JSON objects based on a schema provided by the user. This is used to obtain binary and multi-label classifications with confidence scores based on inputs.
+You have access to the `/systemone` API capability (via `decide schema.json`) to transform unstructured CLI output into decisions results as structured JSON objects based on a schema provided by the user. This is used to obtain binary and multi-label classifications with confidence scores based on inputs.
 
 ### D. Security & Safety Gateways
 When running in an automated pipeline, you are often preceded and followed by safety gates:
