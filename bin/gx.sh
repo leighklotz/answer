@@ -1,6 +1,7 @@
 #!/usr/bin/env -S bash -e
 
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 
 set -o pipefail
@@ -31,8 +32,6 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 [[ -f "$FILE" ]] ||
     log_and_exit 1 "$FILE: not a regular file"
 
-printf "%s" "$INBOX_ICON" >&2
+# Send old and new file versions to stdout
 bx git show "$REV:./$FILE"
-
-printf "%s" "$INBOX_ICON" >&2
 bx cat -- "$FILE"
