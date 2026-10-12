@@ -21,7 +21,7 @@ printf '$ %s\n' "$*"
 exec 3>&1
 {
   "$@" 2>&1 1>&3 3>&-
-} | awk -v icon="${WARNING_ICON:-⚠️}" '{print icon " " $0}
+} | awk -v icon="${WARNING_ICON️}" '{print icon " " $0}'
 s=${PIPESTATUS[0]}
 exec 3>&-
 
