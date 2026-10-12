@@ -6,9 +6,16 @@
 #   choice -> { type, choice, probabilities, confidence }          choice is one of your criteria keys
 #   score  -> { type, score, legend, probabilities, confidence }   legend maps level index -> description
 # usage carries input_tokens / output_tokens.
-curl https://aihubmix.com/v1/systemone \
+
+#URL=https://aihubmix.com/v1/systemone
+#AUTH="-H \"Authorization: Bearer $AIHUBMIX_API_KEY\""
+
+URL=https://tensor-psy.klotz.me:5000/v1/systemone
+AUTH=""
+
+curl "$URL" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $AIHUBMIX_API_KEY" \
+  $AUTH \
   -d '{
     "model": "decision-model-preview",
     "state": "Hi, I have been trying to connect my Stripe account for 3 days and it keeps failing. I am losing sales. Please help ASAP.",
@@ -40,4 +47,3 @@ curl https://aihubmix.com/v1/systemone \
 
 
 # https://aihubmix.com/model/decision-model-preview
-example code

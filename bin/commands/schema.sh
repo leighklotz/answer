@@ -86,11 +86,11 @@ build_mode() {
                        '.questions[$k].criteria = ($opts | map({level: .}))' "$SCHEMA_TMP" > "${SCHEMA_TMP}.tmp" && mv "${SCHEMA_TMP}.tmp" "$SCHEMA_TMP"
                 else # Choice logic: key:val,key2:val2 or val1,val2
                     # Convert comma list to JSON object (for choice) 
-                    local json_opts=$(echo "$raw_options" | jq -R 'split(",") | map(if contains(":") then split(":") else . end | if length == 2 then {(.[0]): .[1]} else . end) | add' --argjson x '{}')
+                    local json_opts=$(echo "$raw_options" | jq -R 'split(",") | map(if contains(":") then split(":") else . end | if length == 2 then {(.[0]): .[1]} else . end) | add')
 
                     jq --arg k "$current_key" \
                        --argjson opt "$json_opts" \
-                       '.questions[$k].criteria = $opt' "$SCHEMA_TMP" > "${SCHEMA_TMP}.tmp" && mv "${SCHEMA_TMP}.tmp" "$SCHEMA_TSM" || {
+                       '.questions[$k].criteria = $opt' "$SCHEMA_TMP" > "${SCHEMA_TMP}.tmp" && mv "${SCHEMA_TMP}.tmp" "$SCHEMA_TMP" || {
                            # Fallback if the key:value parsing is too complex for one-pass jq, use simple array approach
                            jq --arg k "$current_key" \
                               --argjson opt "$(echo "$raw_options" | awk -F',' '{for(i=1;i<=NF;i++) printf "\"%s\",", $i}' | sed 's/,$//' | jq '[.]')" \
@@ -103,7 +103,7 @@ build_mode() {
                 ;;
 
             finish)
-                local target="${1:-schema.json}"
+                local target="${args:-schema.json}"
                 cp "$SCHEMA_TMP" "$target"
                 echo -e "${BLUE}Schema saved to $target${RESET}\n"
                 rm "$SCHEMA_TMP"
