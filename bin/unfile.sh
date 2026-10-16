@@ -30,6 +30,7 @@ BEGIN { in_fence = 0; want = 0 }
             printf "%s", buf
         }
         want = 0
+        buf = ""
     }
     next
 }
