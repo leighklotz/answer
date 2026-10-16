@@ -102,5 +102,5 @@ for f in "${files[@]}"; do
   # print after block (default is closing fence + blank line)
   aft="${AFTER:-$DEFAULT_AFTER}"
   printf '%b' "$aft"
-  emit_icon_tooltip "${INBOX_ICON}" "$f"
+  emit_icon_tooltip "${INBOX_ICON}" "file://{$f}"
 done

@@ -365,12 +365,12 @@ function _infer () {
 
   if [ -n "$cache_dir" ] && [ -f "$cache_file" ]; then
     log_trace "cache_file=$cache_file"
-    emit_icon_tooltip "$CACHE_HIT_ICON" "$cache_file"
+    emit_icon_tooltip "$CACHE_HIT_ICON" "file://${cache_file}"
     [ -n "$LOG_QUERIES" ] && log_trace "cached request==$(cat "$tmp_req")"
     response_json=$(cat "$cache_file")
   else
     [ -n "$LOG_QUERIES" ] && log_trace "request=$(cat "$tmp_req")"
-    emit_icon_tooltip "$INFERENCE_ICON" "$tmp_req"
+    emit_icon_tooltip "$INFERENCE_ICON" "file://${tmp_req}"
     log_trace "endpoint=$endpoint"
 
     response_json=$(
