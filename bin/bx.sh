@@ -26,6 +26,6 @@ s=${PIPESTATUS[0]}
 exec 3>&-
 
 [[ -z "$plain" ]] && printf '```\n'
-[[ -n "${SHELL_ICON}" ]] && printf '%s' "${SHELL_ICON}" >&2
+emit_icon_tooltip "${SHELL_ICON}" "$*"
 
 exit "$s"
