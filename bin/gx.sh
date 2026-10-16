@@ -34,4 +34,5 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 
 # Send old and new file versions to stdout
 bx git show "$REV:./$FILE"
+echo
 bx cat -- "$FILE"

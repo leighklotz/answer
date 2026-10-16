@@ -149,3 +149,50 @@ function log_and_exit {
   [[ "${code}" =~ ^[0-9]+$ ]] && exit "${code}" || exit 1
 }
 
+### OSC 8 Mouseover Protocol Configuration
+###
+### Formats and routes a mouseover tooltip sequence strictly to stderr (Descriptor 2).
+### Ensures the primary stdout data stream remains completely clean.
+###
+### Arguments:
+###   $1 - The visible text or icon printed directly to the terminal grid
+###   $2 - The descriptive text hidden inside the hover state
+###
+### Usage:
+###   emit_icon_tooltip "$WARNING_ICON" "Battery Low"
+emit_icon_tooltip() {
+    # External protocol variables defining the OSC 8 hyperlink boundaries.
+    # Ghostty interprets the destination parameter string as visual tooltip text.
+    local OSC8_START=$'\e]8;;'
+    local OSC8_DIV=$'\e\\'
+    local OSC8_CLOSE=$'\e]8;;\e\\'
+
+    # SGR (Select Graphic Rendition) codes for styling.
+    local SGR_UNDERLINE_ON=$'\e[4m'
+    local SGR_RESET=$'\e[0m'
+
+    local icon="$1"
+    local tooltip="${2//\'/}"
+    tooltip="${tooltip//;/}"
+    tooltip="${tooltip//$'\x1b'/}"
+
+    if [[ "$TERM" == "emacs" || "$TERM" == "dumb" || "$TERM" == "glass" ]]; then
+        printf '%s' "$icon" >&2
+    elif [[ "$icon" =~ [[:alnum:]] ]]; then
+        # Ghostty ignores text= and shows the URI on hover,
+        # so we use the tooltip text *as* the URI.
+        #
+        #   OSC8_START  uri  OSC8_DIV           -> open hyperlink
+        #   [SGR_UNDERLINE_ON] text [SGR_RESET] -> optional underline
+        #   OSC8_CLOSE                          -> close hyperlink
+        printf '%s%s%s%s%s%s%s' \
+            "$OSC8_START" "$tooltip" "$OSC8_DIV" \
+            "$SGR_UNDERLINE_ON" "$icon" "$SGR_RESET" \
+            "$OSC8_CLOSE" >&2
+    else
+        printf '%s%s%s%s%s' \
+            "$OSC8_START" "$tooltip" "$OSC8_DIV" \
+            "$icon" \
+            "$OSC8_CLOSE" >&2
+    fi
+}

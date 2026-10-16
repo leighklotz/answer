@@ -333,7 +333,7 @@ function _infer () {
     --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
     --argjson thinking_budget "${THINKING_BUDGET:-8000}" \
     --arg reasoning_effort "${REASONING_EFFORT:-medium}" \
-    --arg reasoning_budget: $'\n[Budget reached. Transitioning to final response...]\n' \
+    --arg reasoning_budget $'\n[Budget reached. Transitioning to final response...]\n' \
     '{
       model: $server_model,
       messages: .,
@@ -365,12 +365,12 @@ function _infer () {
 
   if [ -n "$cache_dir" ] && [ -f "$cache_file" ]; then
     log_trace "cache_file=$cache_file"
-    printf "%s" "$CACHE_HIT_ICON" >&2
+    emit_icon_tooltip "$CACHE_HIT_ICON" "$cache_file"
     [ -n "$LOG_QUERIES" ] && log_trace "cached request==$(cat "$tmp_req")"
     response_json=$(cat "$cache_file")
   else
     [ -n "$LOG_QUERIES" ] && log_trace "request=$(cat "$tmp_req")"
-    printf "%s" "$INFERENCE_ICON" >&2
+    emit_icon_tooltip "$INFERENCE_ICON" "$tmp_req"
     log_trace "endpoint=$endpoint"
 
     response_json=$(
@@ -386,9 +386,11 @@ function _infer () {
     [ -n "$LOG_QUERIES" ] && log_trace "response_json=$response_json"
 
     if jq -e '.choices[0]?.message?.reasoning_content != null' \
-        <<< "$response_json" >/dev/null 2>&1
+          <<< "$response_json" >/dev/null 2>&1
     then
-        printf "%s" "$THINK_ICON" >&2
+        thinking_response="$(jq -e '.choices[0]?.message?.reasoning_content' <<< "$response_json")"
+        thinking_response="${thinking_response:0:256}"
+        emit_icon_tooltip "$THINK_ICON" "$thinking_response"
     fi
   fi
 
