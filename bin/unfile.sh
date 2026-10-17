@@ -1,6 +1,9 @@
 #!/bin/bash
 
 # Extracts specified filename from markdown archive from stdin to stdout
+# Accepts both heading marker formats:
+#   # <filename>
+#   # file <filename>
 # Check if filename to extract argument is provided
 
 if [ $# -ne 1 ]; then
@@ -14,8 +17,9 @@ BEGIN { in_fence = 0; want = 0 }
 
 !in_fence && /^#[[:space:]]+/ {
     marker = $0
-    sub(/^#[[:space:]]+/, "", marker)   # strip heading prefix
-    sub(/[[:space:]]+$/, "", marker)    # trim trailing spaces
+    sub(/^#[[:space:]]+/, "", marker)    # strip heading prefix
+    sub(/^file[[:space:]]+/, "", marker) # strip optional "file" keyword (lx archives)
+    sub(/[[:space:]]+$/, "", marker)     # trim trailing spaces
     want = (marker == target_file)
     next
 }
