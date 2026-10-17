@@ -8,7 +8,8 @@ source "${SCRIPT_DIR}/functions.sh"
 TARGET_LANG="${1:-}"
 
 function discard_exit() {
-    printf "%s discarded\n" "$CANCELLED_ICON" >&2
+    emit_icon_tooltip "$CANCELLED_ICON cancelled by user - output discarded" ""
+    echo
     exit 1
 }
 
