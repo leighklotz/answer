@@ -10,6 +10,6 @@ printf '# Description of this system:\n'
 printf '```bash\n'
 printf '$ uname -a\n'
 uname -a
-printf '$ cat /etc/os-release\n'
+emit_icon_tooltip "$COMPUTER_ICON" "$(uname -sr)..."
 egrep -v '^[A-Z_]+_URL="http' /etc/os-release 
 printf '```\n'
