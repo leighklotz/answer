@@ -58,12 +58,14 @@ fi
 # If --tee is active, always output the text preview to stderr for human readability.
 if [[ $RAW_TEE_MODE -eq 1 ]]; then
     # stderr: assistant text
-    printf '\n%s%s\n' "$TEE_ICON" "$assistant_text" >&2
+    emit_icon_tooltip "${TEE_ICON}" "${assistant_text:0:32}"
+    printf '%s\n' "$assistant_text" >&2
 fi
 
 if [[ $MARKDOWN_TEE_MODE -eq 1 ]]; then
     # stderr: assistant text piped through markdown viewer
-    printf '\n%s%s\n' "$TEE_ICON" "$assistant_text" | $ANSWER_MD_COMMAND >&2
+    emit_icon_tooltip "${TEE_ICON}${MARKDOWN_ICON}" "${assistant_text:0:32}"
+    printf '%s\n' "$assistant_text" | $ANSWER_MD_COMMAND >&2
 fi
 
 # stdout text/json
