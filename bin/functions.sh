@@ -330,7 +330,7 @@ function _infer () {
   jq \
     --arg server_model "$server_model" \
     --argjson thinking "${ENABLE_THINKING:-true}" \
-    --argjson max_tokens "${VIA_MAX_TOKENS:-24000}" \
+    --argjson max_tokens "${VIA_MAX_TOKENS:-65536}" \
     --argjson thinking_budget "${THINKING_BUDGET:-8000}" \
     --arg reasoning_effort "${REASONING_EFFORT:-medium}" \
     --arg reasoning_budget $'\n[Budget reached. Transitioning to final response...]\n' \
