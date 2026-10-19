@@ -74,7 +74,7 @@ function _provenance_add() {
             subcmd_emoji="${emoji[$subcmd]}"
             content_type_header="${ctype[$subcmd]}"
 
-            printf "%shx provenance %s %s | git notes --ref=provenance/hallux append %s\n" \
+            printf "%shx %s %s | git notes --ref=provenance/hallux append %s\n" \
                 "$SAVE_ICON" "$subcmd" "$subcmd_emoji" "$PIN_ICON" >&2
 
             local hx_out
