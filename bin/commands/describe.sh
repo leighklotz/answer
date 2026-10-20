@@ -41,7 +41,6 @@ case "$shape" in
     predicted_ms="$(jq -r '.timings.predicted_ms // 0' <<<"$json")"
     predicted_per_second="$(jq -r '.timings.predicted_per_second // 0' <<<"$json")"
 
-    # Request-only: has .messages but no .choices[0].message (no inference captured)
     has_choices="$(jq -r '
       if (.choices? // null) and ((.choices | length) > 0) and (.choices[0].message? // null)
       then "yes" else "no" end
@@ -79,18 +78,58 @@ fi
 echo ""
 
 jq -r '
-  .[] |
+  # Build a lookup: tool_call_id -> semantic function name
+  def tool_name_map:
+    [ .[] | select(.role == "assistant") | (.tool_calls // [])[] | {(.id): (.function.name)} ] | add // {};
+
+  # Format args as human-readable key: value lines
+  def fmt_args:
+    (. // "{}" | (try fromjson catch .) |
+      if type == "object" then
+        to_entries | map("\(.key): \(.value | if type == "string" then . elif type == "number" then tostring else tojson end)") | join("\n")
+      else
+        (. | if type == "string" then . else tojson end)
+      end);
+
+  # Format tool result content (expects JSON with stdout/stderr/exit_code)
+  def fmt_result:
+    (try (fromjson |
+      {
+        stdout: (.stdout // ""),
+        stderr: (.stderr // ""),
+        exit_code: (.exit_code // 0)
+      })
+    catch { stdout: ., stderr: "", exit_code: 0 });
+
+  . as $msgs |
+  ($msgs | tool_name_map) as $tmap |
+  $msgs[] |
   if .role == "assistant" then
     "  **Assistant**" +
     (if (.content // "") != "" then "\n  \(.content)" else "" end) +
     (if ((.tool_calls? // []) | length) > 0 then
       "\n\n  **Tool Calls**" +
       ([ (.tool_calls // [])[] |
-          "  - `\((.function? // {}).name // "?")`(\((.function? // {}).arguments // "{}"))"
-        ] | join("\n"))
+        "  - \((.function? // {}).name // "?")" +
+        (if ((.function.arguments // "{}") | (try fromjson catch .) | type) == "object" and
+           (((.function.arguments) | (try fromjson catch .) | keys | length) == 1)
+        then
+          " `" + ((.function.arguments) | (try fromjson catch .) | to_entries[0].value | tostring) + "`"
+        else
+          "\n" + (((.function.arguments) | fmt_args) | gsub("^(.*)$"; "    \\1"))
+        end)
+      ] | join("\n\n"))
     else "" end)
   elif .role == "tool" then
-    "  **Tool** \(.tool_call_id // "—"):\n  \(.content // "")"
+    ($tmap[.tool_call_id] // "tool") as $tname |
+    (.content | fmt_result) as $r |
+    "  **\($tname)** → exit \($r.exit_code)" +
+    (if $r.stdout != "" then
+      "\n  ```\n\($r.stdout)\n  ```"
+    else "" end) +
+    (if $r.stderr != "" then
+      "\n  **stderr:**\n  ```\n\($r.stderr)\n  ```"
+    else "" end)
   else
     "**\(.role):** \(.content // "")\n"
   end
@@ -136,7 +175,24 @@ else
 
   if [[ -n "$last_tool_calls" ]]; then
     echo "### 🔧 **Tool Calls**"
-    jq -r '.[] | "  - `\(.function.name)`(\(.function.arguments))"' <<<"$last_tool_calls"
+    jq -r '
+      def fmt_args:
+        (. // "{}" | (try fromjson catch .) |
+          if type == "object" then
+            to_entries | map("\(.key): \(.value | if type == "string" then . elif type == "number" then tostring else tojson end)") | join("\n")
+          else
+            (. | if type == "string" then . else tojson end)
+          end);
+      .[] |
+      "  - \((.function? // {}).name // "?")" +
+      (if ((.function.arguments // "{}") | (try fromjson catch .) | type) == "object" and
+         (((.function.arguments) | (try fromjson catch .) | keys | length) == 1)
+      then
+        " `" + ((.function.arguments) | (try fromjson catch .) | to_entries[0].value | tostring) + "`"
+      else
+        "\n" + (((.function.arguments) | fmt_args) | gsub("^(.*)$"; "    \\1"))
+      end)
+    ' <<<"$last_tool_calls"
     echo ""
   fi
 fi
