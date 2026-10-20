@@ -108,7 +108,7 @@ jq -r '
     "  **Assistant**" +
     (if (.content // "") != "" then "\n  \(.content)" else "" end) +
     (if ((.tool_calls? // []) | length) > 0 then
-      "\n\n  **Tool Calls**" +
+      "\n\n  **Tool Calls**\n" +
       ([ (.tool_calls // [])[] |
         "  - \((.function? // {}).name // "?")" +
         (if ((.function.arguments // "{}") | (try fromjson catch .) | type) == "object" and
@@ -198,6 +198,7 @@ else
 fi
 
 echo "***"
+ech' "---"
 echo ""
 echo "### 📊 Statistics"
 
