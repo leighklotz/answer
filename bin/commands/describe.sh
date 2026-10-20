@@ -92,7 +92,7 @@ jq -r '
   elif .role == "tool" then
     "  **Tool** \(.tool_call_id // "—"):\n  \(.content // "")"
   else
-    "  **\(.role):** \(.content // "")"
+    "**\(.role):** \(.content // "")\n"
   end
 ' <<<"$json" || echo "  *(empty)*"
 
