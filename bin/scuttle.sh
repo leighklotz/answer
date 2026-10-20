@@ -79,7 +79,7 @@ TO_LINK_JQ_FILTER=$(cat <<'EOF'
 def formenc:
   @uri
   | gsub("%20"; "+")
-  | gsub("%2C", ",");
+  | gsub("%2C"; ",");
 
 def csv_tags:
   if .keywords == null then ""
