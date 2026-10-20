@@ -2,7 +2,7 @@
 
 ```bash
 👣$ hx help
-usage: hx model|server|load|unload|models|cache|provenance|root|again|why|what|cat|describe|stats|context
+usage: hx model|server|models|cache|provenance|root|again|why|what|cat|describe|stats|context
 ```
 
 **`hx`** is the central management utility of the Answer framework. It serves as a control plane for managing your shell environment (via integration scripts), controlling data persistence through local caching, and providing rapid access to recent LLM interactions via specialized parsing utilities or Git-backed provenance tracking.
@@ -11,19 +11,17 @@ It operates in three distinct modes depending on how it is invoked: **Environmen
 
 ## Synopsis
 
-```bash
 # 1. Environment & Session / Model Commands (Top-Level)
-hx [set-model | model | load | unload | models | provenance | root | again]
+- `hx [set-model | model | models | provenance | root | again | branch]`
 
 # 2. Interaction Provenance Subcommand
-hx provenance {add [mode] | show [hash] | refs | list}
+- `hx provenance {add [mode] | show [hash] | refs | list}`
 
 # 3. Cache, Context & Server Management / Recent Interaction Utilities (why, what, etc.)
-hx cache [args...]
-hx context [args...]
-hx server [args...]
-hx [why | what | cat | describe | stats] [-]
-```
+- `hx cache [args...]`
+- `hx context [args...]`
+- `hx server [args...]`
+- `hx [why | what | cat | describe | stats] [-]`
 
 ---
 
@@ -36,10 +34,12 @@ These commands manage the active shell environment, LLM configurations, or repla
 | Command | Purpose | Implementation Note |
 | :--- | :--- | :--- |
 | **`hx set-model [args]`** | **Set Session Model:** Quickly updates your current session's `$HX_MODEL` environment variable. | Calls `model.sh`, captures output, and prints it. |
-| **`hx model / load / unload`** | **Model Management:** Configures API endpoints or manages loaded LLM contexts via the `model.sh` script. | Calls `model.sh`. |
+| **`hx model [ "" | load | unload ] `** | **Model Management:** Shows or configures API endpoints or manages loaded LLM contexts via the `model.sh` script. | Calls `model.sh`. |
 | **`hx models [args]`** | **Model List/Management:** Lists and manages available AI model endpoints in the system configuration. | Calls `models.sh`. |
 | **`hx provenance / root`** | **Data & Metadata Management:** Interfaces with specialized scripts to manage interaction metadata (provenance) or workspace roots. | Calls `${cmd}.sh`. |
+| **`hx root`** | **Data & Metadata Management:** Active `.hallux` directory. | Calls `$root.sh`. |
 | **`hx again`** | **Replay Previous Command:** Re-runs your last command automatically wrapped with `bx`, allowing for immediate follow-up queries. | Executes `_hx_again`. |
+| **`hx branch`** | **Workspace Branch:** Use this directory for saved outputs, named after the current git branch.. Todo: Connect to active provenance branch (the `provenance/hallux` reference). | Calls `branch.sh`. |
 
 ### 2. Interaction Provenance (`hx provenance ...`)
 Leveraging Git notes (using the `provenance/hallux` reference), this subcommand allows you to "bookmark" your terminal interactions, creating an auditable trail of command history and LLM responses directly within a repository's metadata without altering the actual git log itself.
