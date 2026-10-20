@@ -198,7 +198,7 @@ else
 fi
 
 echo "***"
-ech' "---"
+echo "---"
 echo ""
 echo "### 📊 Statistics"
 
