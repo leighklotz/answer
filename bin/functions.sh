@@ -109,8 +109,8 @@ function _cleanup_run_dir() {
 
 function _find_dot_hallux_dir () {
   # Respect the user's preference first
-  if [[ -n "$HX_HOME" ]]; then
-    echo "${HX_HOME%/}"
+  if [[ -n "$HX_ROOT" ]]; then
+    echo "${HX_ROOT%/}"
     return 0
   fi
 
