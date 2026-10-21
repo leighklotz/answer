@@ -64,27 +64,30 @@ Add one line to your `~/.bashrc` (or `~/.profile`):
 ```bash
 source /path/to/hallux/bin/commands/hx-bootstrap.sh
 ```
+First time only: restart the terminal (or `source ~/.bashrc`). 
 
-Restart the terminal (or `source ~/.bashrc`). You then activate the session per-project:
+From then on, on a terminal, you then activate the session per-project with `hx`, which is a shortcut for `hx enable`.
+
+#### In bash CLI
+Do this in your bash cli, but not in scripts. (See next section.)
 
 ```bash
 $ hx enable
-👣 hallux enabled: model=gemma-4-26b-qat-batch  root=~/proj/.hallux  hist=…/bash_history
-
+👣 hallux: model=gemma-4-26b-qat-batch root=~/proj/.hallux hist=…/bash_history
 $ ask "briefly, how do I strip a file extension in bash?"
 ✨
 Use parameter expansion: `${var%.*}` removes the shortest `.*` suffix.
 ```
-
 `hx enable` does three things in one call:
-
 1. Prepends the toolchain's `bin/commands/` directory to `$PATH`.
 2. Sources project-level env overrides (`bin/commands/env.sh`) so `$HX_MODEL`, `VIA_API_CHAT_BASE`, and `OPENAI_API_KEY` are set.
 3. Sets `$PS1` to include the `👣` indicator so you can see the harness is active.
 
 ### Script (Non-Interactive / CI)
 
-Inside a `.sh` or Makefile target, source the bootstrap and enable the environment **before** calling any command:
+Instead of `hx enable` or `hx`, just use `hx core`. The remainder of the `hx enable` features relate to managing bash history, canonical git branch workdirs, etc.
+
+Inside a `.sh` or Makefile target, source the bootstrap and enable the core environment with `hx core` **before** calling any Hallux command:
 
 ```bash
 #!/usr/bin/env bash
@@ -92,7 +95,7 @@ set -euo pipefail
 
 # 1. Load the toolchain into this shell's namespace
 source /path/to/hallux/bin/commands/hx-bootstrap.sh
-hx enable   # sets PATH, env vars; no-op on PS1 in non-TTY
+hx core
 
 # 2. Plain-text one-shot (non-TTY → ask emits JSON, so pipe through answer)
 result="$(ask "Write a one-line awk to sum column 2 of a CSV" | answer)"
@@ -116,7 +119,7 @@ lx src/*.py | help "Find unused imports" | answer > report.txt
 | You need **plain text** from `ask`/`help` in a script (non-TTY) | Always pipe through `\| answer` or use `ask --answer`. Without it, stdout is the full JSON conversation array. |
 | You need the **JSON history** for further piping or storage | Do **not** pipe through `answer`. Capture stdout directly: `hist="$(ask "…")"`. |
 | Redirecting to a file | `ask "write code" \| answer > out.txt` — omitting `answer` writes the JSON blob instead. |
-| Calling `hx enable` in a script that already has a custom `PATH` | It is idempotent; it only prepends the commands directory if not already present. |
+| Calling `hx core` in a script that already has a custom `PATH` | It is idempotent; it only prepends the commands directory if not already present. |
 | You only need `unfence` or `lx` (no LLM call) | You still must source `hx-bootstrap.sh` first, because those are also functions/scripts resolved through the updated `PATH`. |
 
 ### Minimal Sourcing Checklist
@@ -126,9 +129,10 @@ What to source / run          Why
 ─────────────────────────────  ───────────────────────────────────────────
 source …/hx-bootstrap.sh      Defines the `hx` function + all command
                               wrappers in the current shell.
-hx enable                     Sets $PATH, loads env.sh, configures PS1.
-  (interactive only)          Safe to call in scripts; PS1 is a no-op.
+hx core (scripts/CI)          Sets $PATH, loads env.sh. No PS1 in non-TTY.
+hx enable (interactive)       Also configures PS1, bash history, git workdirs.
 ask / help / answer / etc.    Now resolvable as shell functions.
 ```
 
 There is no `make install`, no `pip install`, and no system-wide symlink step. Sourcing the single `hx-bootstrap.sh` file **is** the installation for a given shell session.
+
