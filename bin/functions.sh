@@ -436,14 +436,22 @@ function _hx_again() {
 }
 
 # TODO: Find a better way to pick a model of multiple models are loaded
-# TODO: `hx models` or `hx model` might take filtering arguments (words to require in model name)
+# TODO: `hx models` or `hx model` might take filtering arguments (words to require in model name, or in .architecture)
+# 
 function _get_model_name() {
     local model_names
     if [ -z "$model_names" ]; then
         model_names="$HX_MODEL"
     fi
     if [ -z "$model_names" ]; then
-        model_names="$(curl -fsS "${VIA_API_CHAT_BASE}/models" "${AUTHORIZATION_PARAMS[@]}" | jq -r ' . | .data[] | select(.status.value == "loaded") | .id')"
+        model_names="$(curl -fsS "${VIA_API_CHAT_BASE}/models" "${AUTHORIZATION_PARAMS[@]}" | jq -r '
+          .data[] | 
+          select(
+            .status.value == "loaded" and 
+            (.architecture.input_modalities | index("text") != null) and 
+            (.architecture.output_modalities | index("text") != null)
+          ) | .id
+        ')"
     fi
     if [ -z "$model_names" ] || [ "$model_names" == 'llama-server' ]; then
         model_names=$(curl -s "${VIA_API_MODEL_INFO_ENDPOINT}" "${AUTHORIZATION_PARAMS[@]}" | jq -r -e -r .model_name 2> /dev/null)
