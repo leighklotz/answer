@@ -8,11 +8,9 @@ source "${SCRIPT_DIR}/functions.sh"
 TARGET_LANG="${1:-}"
 
 function discard_exit() {
-    emit_icon_tooltip "$CANCELLED_ICON cancelled by user - output discarded" ""
-    echo
+    echo "$CANCELLED_ICON" " cancelled by user - output discarded" >&2
     exit 1
 }
-
 
 # 1. Read stdin into tmp_raw immediately
 _mktemp_reg 'input.XXXXXX.md' && tmp_raw="$MKTEMP_REG"

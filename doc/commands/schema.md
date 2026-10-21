@@ -91,4 +91,6 @@ with one of those words.
 ### Debugging
 
 Set `HALLUX_SCHEMA_DEBUG=1` to echo the parsed commands (positional args
-and flags) while building.
+and flags) while building. Note: the flag-echo field only populates on
+input paths that parse flags; the argument form (`hx schema build …`)
+has no flags, so expect the flags field to be empty there.

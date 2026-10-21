@@ -37,8 +37,7 @@ Under the hood, `decide` is a single stateless `POST /v1/systemone` to the Jev S
 $ hx schema build "Support Ticket Triage"
 > select department choice --instructions "Route to team"
 > option billing:Payments,technical:Bugs,sales:Inquiry
-> select is_urgent noul --instructions "Immediate action required?"
-> finish triage.json
+> select is_urgent noul --instructions "Immediate action required?" > triage.json
 ```
 
 **Then use it as a pipeline gate:**

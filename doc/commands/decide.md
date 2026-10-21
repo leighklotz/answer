@@ -10,24 +10,24 @@ Where `ask` and `help` are conversational and generative (natural-language in, n
 <conversation-json | raw-text> | decide [OPTIONS] <schema_file>
 ```
 
-> **Requires** `AIHUBMIX_API_KEY` (or `OPENAI_API_KEY`) in the environment. Source `hx-bootstrap.sh` and run `hx enable` before invoking.
+> **Requires** `AIHUBMIX_API_KEY` (or `OPENAI_API_KEY`) in the environment. Source `hx-bootstrap.sh` and run `hx core` (or `hx enable` interactively) before invoking. In scripts, `hx core` is sufficient — `decide` never touches `$PS1` or bash history. The default decision model is `laya-q8_0`, overridable per environment via `$HX_DECIDE_MODEL` or per invocation via `--model`.
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `<schema_file>` | Path to a JSON file defining one or more decision questions. Each key is your question name; each value declares its `type`, `instructions`, and (where applicable) `criteria`. |
+| `<schema_file>` | Path to a JSON file containing a single `questions` object; each key is your question name and each value declares its `type`, `instructions`, and (where applicable) `criteria`. This is the format `hx schema build` emits — see `doc/commands/schema.md`. |
 
 ## Options
 
 | Flag | Long form | Description |
 |------|-----------|-------------|
 | `-s` | `--schema FILE` | Path to the JSON schema (alternative to the positional argument). |
-| `--model STRING` | | Override the default decision model (`decision-model-preview`). |
+| `--model STRING` | | Override the decision model (default: `laya-q8_0`, or `$HX_DECIDE_MODEL`). |
 | `-j` | `--json` | **Data mode.** Emit only the `answers` object on `stdout` — no prose, no headers. Designed for direct piping into `jq` or downstream automation. |
 | `-t` | `--tee` | **Observation mode.** Print a human-readable summary to `stderr` while passing the full JSON response (prefixed with the pipeline magic header) through `stdout` for further piping. |
 
-When neither `--json` nor `--tee` is given and `stdout` is a TTY, `decide` pretty-prints a one-line-per-question summary.
+With no flags, `decide` pretty-prints the full response JSON on `stdout` — TTY or not. All chatter (log lines, the `✨` inference icon, the `--tee` summary) goes to `stderr`.
 
 ## Input Modes
 
@@ -36,20 +36,23 @@ When neither `--json` nor `--tee` is given and `stdout` is a TTY, `decide` prett
 | Condition | Detection | State extraction |
 |-----------|-----------|------------------|
 | **Pipeline JSON history** | First line matches the Hallux magic header (`Content-Type: application/x-llm-history+json`) | Last `assistant` message `.content` is used as the state. Enables `ask → decide` chaining. |
+| **Bare conversation array** | Stdin parses as a JSON array | Same as pipeline history: last `assistant` message `.content` is the state, without needing the magic header. |
 | **Raw text** | Anything else | The entire stdin stream is the state. Use for piping logs, command output, or `ask --answer`. |
 
 If stdin is empty or whitespace-only, `decide` exits **1** with a diagnostic on `stderr`.
 
 ## Decision Schema
 
-The schema file is a flat JSON object where each key is a question name and each value is a question definition:
+The schema file contains a single `questions` object where each key is a question name and each value is a question definition. `hx schema build` (see `doc/commands/schema.md`) is the primary way to author this file:
 
 ```json
 {
-  "<question_name>": {
-    "type": "choice | score | noul",
-    "instructions": "Natural-language prompt for the model",
-    "criteria": { ... }   // required for choice & score
+  "questions": {
+    "<question_name>": {
+      "type": "choice | score | noul",
+      "instructions": "Natural-language prompt for the model",
+      "criteria": { ... }   // required for choice & score
+    }
   }
 }
 ```
@@ -66,30 +69,50 @@ Every response also carries a top-level `usage` object with `input_tokens` and `
 
 ### Schema example (`schemas/triage.json`)
 
+Authored via `hx schema build`:
+
+```bash
+hx schema build "Support Ticket Triage" \
+  select department choice "Which team should handle this ticket?" \
+  option billing "Payment or subscription issues" \
+  option technical "Bugs or integration problems" \
+  option sales "Pricing or account questions" \
+  select urgency score "How critical or time-sensitive is this?" \
+  option 'Low – informational, no action needed|Medium – should be addressed within a day|High – blocking, needs same-day response|Critical – revenue-impacting, escalate now' \
+  select is_urgent noul "The message conveys urgency or time-sensitivity." \
+  > schemas/triage.json
+```
+
+which produces:
+
 ```json
 {
-  "department": {
-    "type": "choice",
-    "instructions": "Which team should handle this ticket?",
-    "criteria": {
-      "billing":   "Payment or subscription issues",
-      "technical": "Bugs or integration problems",
-      "sales":     "Pricing or account questions"
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "Which team should handle this ticket?",
+      "criteria": {
+        "billing":   "Payment or subscription issues",
+        "technical": "Bugs or integration problems",
+        "sales":     "Pricing or account questions"
+      },
+      "probabilities": {}
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How critical or time-sensitive is this?",
+      "criteria": [
+        {"level": "Low – informational, no action needed"},
+        {"level": "Medium – should be addressed within a day"},
+        {"level": "High – blocking, needs same-day response"},
+        {"level": "Critical – revenue-impacting, escalate now"}
+      ],
+      "probabilities": {}
+    },
+    "is_urgent": {
+      "type": "noul",
+      "instructions": "The message conveys urgency or time-sensitivity."
     }
-  },
-  "urgency": {
-    "type": "score",
-    "instructions": "How critical or time-sensitive is this?",
-    "criteria": [
-      "Low – informational, no action needed",
-      "Medium – should be addressed within a day",
-      "High – blocking, needs same-day response",
-      "Critical – revenue-impacting, escalate now"
-    ]
-  },
-  "is_urgent": {
-    "type": "noul",
-    "instructions": "The message conveys urgency or time-sensitivity."
   }
 }
 ```
@@ -98,9 +121,9 @@ Every response also carries a top-level `usage` object with `input_tokens` and `
 
 | Mode | Trigger | `stdout` | `stderr` |
 |------|---------|----------|----------|
-| **Terminal** (default) | TTY, no flags | Pretty-printed one-liner per question | ✨ inference icon |
+| **Full response** (default) | no flags | Full response JSON, pretty-printed | `decide:` logs, model/endpoint line, ✨ inference icon |
 | **Data** | `--json` / `-j` | Raw `answers` JSON object | ✨ inference icon |
-| **Observation** | `--tee` / `-t` | Magic header + full response JSON (pipeline-ready) | Human-readable summary block |
+| **Observation** | `--tee` / `-t` | Magic header + full response JSON (pipeline-ready) | Human-readable one-line-per-question summary block |
 
 ## Example Workflows
 
@@ -135,12 +158,12 @@ ask "Should this user be allowed to run 'rm -rf'?" \
   | awk '{ if ($1 < 0.5) system("./rollback.sh") }'
 ```
 
-`stderr` shows:
+`stderr` shows one `name: value` line per question:
 
 ```
---- DECISION SUMMARY ---
-risk: Score: 0.32 (Conf: 0.87)
-is_urgent: 0.74
+💬︎ decision
+risk: score=0.32 (conf=0.87)
+is_urgent: noul=0.74
 ```
 
 `stdout` carries the magic-header-prefixed JSON so any downstream Hallux command can resume the conversation.
@@ -175,6 +198,7 @@ gx diff HEAD~1..HEAD \
 | Tool | Role with `decide` |
 |------|--------------------|
 | `ask` | Upstream: produces the free-text state or JSON history that `decide` classifies. Chain with `\|`. |
+| `hx schema build` | Upstream: authors the `questions`-object schema file (see `doc/commands/schema.md`). |
 | `lx` | Upstream: stream file contents as context before `ask` or directly before `decide`. |
 | `bx` | Upstream: capture command output as structured context for the decision. |
 | `unfence` | Downstream: if a later `ask` generates a script based on the decision, `unfence` extracts it for execution. |
@@ -188,18 +212,19 @@ gx diff HEAD~1..HEAD \
 |------|---------|
 | `0` | Decision completed; answers emitted. |
 | `1` | Missing / unreadable schema file, empty stdin, API error, or `curl` failure. Diagnostic on `stderr`. |
+| `2` | Interrupted. |
 
 ## Notes & Gotchas
 
 | Situation | What to do |
 |-----------|------------|
-| You need plain text (not JSON) in a script | Omit `--json`; default TTY mode prints one line per question. In a non-TTY pipe, use `--tee` and read `stderr`, or `--json \| jq -r …`. |
+| You need plain text (not JSON) in a script | Use `--tee` and read `stderr`, or `--json \| jq -r …`. The no-flag default emits the full response JSON on `stdout`. |
 | You are chaining `ask` → `decide` and `ask` emitted JSON history | No action needed — `decide` auto-detects the magic header and extracts the last assistant message. |
+| You are piping a bare JSON conversation array (no magic header) | Also accepted — the last `assistant` message becomes the state. |
 | You are piping raw text (e.g. `cat logfile \| decide …`) | Also fine — the entire stream becomes the state. Just make sure it is non-empty. |
-| You need a different model | Pass `--model your-model-id`. Default is `decision-model-preview`. |
+| You need a different model | Pass `--model your-model-id`, or export `HX_DECIDE_MODEL` in the environment. Default is `laya-q8_0`. |
 | Multiple schema files | `decide` accepts exactly one schema per invocation. To combine, merge the JSON objects in a temp file or a second `jq -s 'add'` step upstream. |
 
 ## Model Reference
 
-<https://aihubmix.com/model/decision-model-preview>
-
+Default model: `laya-q8_0` (`$HX_DECIDE_MODEL` / `--model` override).

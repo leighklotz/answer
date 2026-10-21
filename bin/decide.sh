@@ -29,7 +29,7 @@ Usage: <conversation-json | raw-text> | decide [OPTIONS] <schema.json>
 
 Options:
   -s, --schema FILE   Schema file (alternative to the positional argument)
-  --model STRING      Decision model (default: decision-model-preview)
+  --model STRING      Decision model (default: laya-q8_0)
   -j, --json          Emit only the answers object on stdout (data mode)
   -t, --tee           Summary on stderr, full JSON response on stdout
   -h, --help          This help
