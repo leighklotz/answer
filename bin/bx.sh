@@ -26,10 +26,6 @@ s=${PIPESTATUS[0]}
 exec 3>&-
 
 [[ -z "$plain" ]] && printf '```\n'
-<<<<<<< HEAD
 emit_icon_tooltip "${SHELL_ICON}" "$*"
-=======
-[[ -n "${SHELL_ICON}" ]] && printf '%s' "${SHELL_ICON}" >&2
->>>>>>> d1adda5 (bin/bx.sh to stdout)
 
 exit "$s"
