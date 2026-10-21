@@ -16,6 +16,9 @@ case "$cmd" in
         m="$("$SCRIPT_DIR/model.sh" "$@")"
         printf '%s\\n' "$m"
         ;;
+    model|load|unload)   "$SCRIPT_DIR/model.sh" "$@" ;;
+    models)  "$SCRIPT_DIR/${cmd}.sh" "$@" ;;
+    provenance|root|home) "$SCRIPT_DIR/${cmd}.sh" "$@" ;;
     again)   _hx_again ;;
     model|provenance|root|branch|models|context|cache|server)
         "${SCRIPT_DIR}/${cmd}.sh" "$@"

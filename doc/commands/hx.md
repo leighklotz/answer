@@ -36,8 +36,9 @@ These commands manage the active shell environment, LLM configurations, or repla
 | **`hx set-model [args]`** | **Set Session Model:** Quickly updates your current session's `$HX_MODEL` environment variable. | Calls `model.sh`, captures output, and prints it. |
 | **`hx model [ "" | load | unload ] `** | **Model Management:** Shows or configures API endpoints or manages loaded LLM contexts via the `model.sh` script. | Calls `model.sh`. |
 | **`hx models [args]`** | **Model List/Management:** Lists and manages available AI model endpoints in the system configuration. | Calls `models.sh`. |
-| **`hx provenance / root`** | **Data & Metadata Management:** Interfaces with specialized scripts to manage interaction metadata (provenance) or workspace roots. | Calls `${cmd}.sh`. |
+| **`hx provenance`** | **Data & Metadata Management:** Interfaces with specialized scripts to manage interaction metadata (provenance) or workspace roots. | Calls `${cmd}.sh`. |
 | **`hx root`** | **Data & Metadata Management:** Active `.hallux` directory. | Calls `$root.sh`. |
+| **`hx home`** | **Data & Metadata Management:** Active `hallux` source directory. | Calls `$home.sh`. |
 | **`hx again`** | **Replay Previous Command:** Re-runs your last command automatically wrapped with `bx`, allowing for immediate follow-up queries. | Executes `_hx_again`. |
 | **`hx branch`** | **Workspace Branch:** Use this directory for saved outputs, named after the current git branch.. Todo: Connect to active provenance branch (the `provenance/hallux` reference). | Calls `branch.sh`. |
 

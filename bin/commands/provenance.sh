@@ -19,12 +19,12 @@ function _provenance_add() {
                 return 0
             fi
 
-            local hallux_dir
-            hallux_dir="$(_find_hallux_dir)"
+            local dot_hallux_dir
+            dot_hallux_dir="$(_find_dot_hallux_dir)"
 
-            if [[ -n "$hallux_dir" ]]; then
-                local old_bash_history_dir="${hallux_dir}/bash_history/"
-                local bash_history_dir="${hallux_dir}/.bash_history/"
+            if [[ -n "$dot_hallux_dir" ]]; then
+                local old_bash_history_dir="${dot_hallux_dir}/bash_history/"
+                local bash_history_dir="${dot_hallux_dir}/.bash_history/"
 
                 if [[ -d "$old_bash_history_dir" && ! -d "$bash_history_dir" ]]; then
                     echo >&2

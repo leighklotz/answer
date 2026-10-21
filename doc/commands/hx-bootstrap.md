@@ -28,7 +28,7 @@ The `enable` command sets up core environment variables (like updating your `PAT
 
 ```bash
  $ hx enable
- 👣 hallux [server] [model] [hallux root] [bash history file]
+ 👣 [hallux] [server] [model] [hallux root] [bash history file]
  👣$ help 2+3=
  ✨
  5

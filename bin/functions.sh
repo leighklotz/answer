@@ -107,7 +107,7 @@ function _cleanup_run_dir() {
     unset HALLUX_TMP_DIR
 }
 
-function _find_hallux_dir () {
+function _find_dot_hallux_dir () {
   # Respect the user's preference first
   if [[ -n "$HX_HOME" ]]; then
     echo "${HX_HOME%/}"
@@ -136,13 +136,13 @@ function _find_cache_dir () {
   if [ -n "$HX_NO_CACHE" ]; then
     return 0
   fi
-  hallux_dir="$(_find_hallux_dir)"
-  printf "%s/.cache" "$hallux_dir"
+  dot_hallux_dir="$(_find_dot_hallux_dir)"
+  printf "%s/.cache" "$dot_hallux_dir"
 }
 
 function _find_old_cache_dir () {
-  hallux_dir="$(_find_hallux_dir)"
-  printf "%s/cache" "$hallux_dir"
+  dot_hallux_dir="$(_find_dot_hallux_dir)"
+  printf "%s/cache" "$dot_hallux_dir"
 }
 
 function _get_newest_cache_file() {
@@ -497,4 +497,27 @@ function _unload_model() {
 
 function _strip_markdown_fence() {
     sed -e '1{/^```[A-Za-z0-9_-]*[[:space:]]*$/d;}' -e '${/^```[[:space:]]*$/d;}'
+}
+
+function _relative_path() {
+    local base target common up="" down
+
+    base="$(realpath "$1")"
+    target="$(realpath "$2")"
+    common="$base"
+
+    if [[ "$base" == "$target" ]]; then
+        printf '.\n'
+        return 0
+    fi
+
+    while [[ "$target" != "$common" && "$target" != "$common/"* ]]; do
+        common="$(dirname "$common")"
+        up+="../"
+    done
+
+    down="${target#"$common"}"
+    down="${down#/}"
+
+    printf '%s%s\n' "$up" "$down"
 }
