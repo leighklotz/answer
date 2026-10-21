@@ -42,7 +42,7 @@ USAGE
   exit 1
 }
 
-DECISION_MODEL="${HX_DECIDE_MODEL:-decision-model-preview}"
+DECISION_MODEL="${HX_DECIDE_MODEL:-laya-q8_0}"
 JSON_MODE=''
 TEE_MODE=''
 SCHEMA_FILE=''
@@ -113,9 +113,8 @@ fi
 
 if jq -e 'type == "array"' "$raw_in" >/dev/null 2>&1; then
   # Conversation: the last assistant message carries the state (doc/commands/decide.md).
-  if ! jq -r 'map(select(.role == "assistant")) | last | .content | select(type == "string" and length > 0)' \
-        "$raw_in" > "$state_file" 2>/dev/null \
-     || ! grep -q '[^[:space:]]' "$state_file"; then
+    if ! jq -r 'last | .content | select(type == "string" and length > 0)' "$raw_in" > "$state_file"  2>/dev/null ||
+       ! grep -q '[^[:space:]]' "$state_file"; then
     log_and_exit 1 "decide: no assistant message content found in conversation history."
   fi
 else
