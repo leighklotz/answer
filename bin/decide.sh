@@ -1,47 +1,185 @@
-<<<<<<< HEAD
-# Structured decision: POST /v1/systemone — every question is evaluated in parallel and in
-# isolation against the same state, and comes back typed. No text generation, nothing to parse.
-# The answers{} map is keyed by your own question names; each answer holds its value under a
-# key named after its type:
-#   noul   -> { type, noul }                                      probability of "yes", 0..1
-#   choice -> { type, choice, probabilities, confidence }          choice is one of your criteria keys
-#   score  -> { type, score, legend, probabilities, confidence }   legend maps level index -> description
-# usage carries input_tokens / output_tokens.
+#!/usr/bin/env -S bash
+#
+# decide — structured decision gate: schema + state in, typed JSON out.
+#
+#   <conversation-json | raw-text> | decide [--tee|--json] [--model M] <schema.json>
+#
+# It is a single stateless POST to /v1/systemone (Jev Structured Decision
+# API). Every question is evaluated in parallel and in isolation against the
+# same state — no text generation, nothing to parse.
+#
+# Stdin is auto-detected (see doc/commands/decide.md):
+#   - magic-header conversation JSON  -> last assistant message is the state
+#   - plain JSON conversation array   -> last assistant message is the state
+#   - anything else                   -> the entire stream is the state
+#
+# Output modes: --json (answers object on stdout), --tee (summary on stderr,
+# full response on stdout), default: full response JSON on stdout.
 
-#URL=https://aihubmix.com/v1/systemone
-#AUTH="-H \"Authorization: Bearer $AIHUBMIX_API_KEY\""
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/logging.sh"
+source "${SCRIPT_DIR}/functions.sh"
 
-URL=https://tensor-psy.klotz.me:5000/v1/systemone
-AUTH=""
+set -o pipefail
 
-curl "$URL" \
-  -H "Content-Type: application/json" \
-  $AUTH \
-  -d '{
-    "model": "decision-model-preview",
-    "state": "Hi, I have been trying to connect my Stripe account for 3 days and it keeps failing. I am losing sales. Please help ASAP.",
-    "questions": {
-      "department": {
-        "type": "choice",
-        "instructions": "Which team should handle this",
-        "criteria": {
-          "billing": "Payment or subscription issues",
-          "technical": "Bugs or integration problems",
-          "sales": "Pricing or account questions"
-        }
-      },
-      "frustration": {
-        "type": "score",
-        "instructions": "How frustrated the customer appears",
-        "criteria": [
-          "Calm, just stating facts",
-          "Frustrated but civil",
-          "Very angry, strong language"
-        ]
-      },
-      "is_urgent": {
-        "type": "noul",
-        "instructions": "The message conveys urgency or time-sensitivity"
-      }
-    }
-  }'
+usage() {
+  cat >&2 <<'USAGE'
+Usage: <conversation-json | raw-text> | decide [OPTIONS] <schema.json>
+
+Options:
+  -s, --schema FILE   Schema file (alternative to the positional argument)
+  --model STRING      Decision model (default: decision-model-preview)
+  -j, --json          Emit only the answers object on stdout (data mode)
+  -t, --tee           Summary on stderr, full JSON response on stdout
+  -h, --help          This help
+
+Input (auto-detected): pipeline JSON history (magic header), a bare JSON
+conversation array, or raw text — raw text is used verbatim as the state.
+
+Exit codes: 0 success, 1 usage/schema/API failure, 2 interrupted.
+USAGE
+  exit 1
+}
+
+DECISION_MODEL="${HX_DECIDE_MODEL:-decision-model-preview}"
+JSON_MODE=''
+TEE_MODE=''
+SCHEMA_FILE=''
+
+# --- ARGUMENT PARSING (same shape as answer.sh) ---
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -s|--schema)
+      [[ -n ${2:-} ]] || usage
+      SCHEMA_FILE="$2"; shift 2
+      ;;
+    --model)
+      [[ -n ${2:-} ]] || usage
+      DECISION_MODEL="$2"; shift 2
+      ;;
+    -j|--json)
+      JSON_MODE=1; shift
+      ;;
+    -t|--tee)
+      TEE_MODE=1; shift
+      ;;
+    -h|--help)
+      usage
+      ;;
+    --*)
+      log_error "decide: unknown option '$1'"
+      usage
+      ;;
+    *)
+      break # first positional: the schema file
+      ;;
+  esac
+done
+
+if [[ -z $SCHEMA_FILE && $# -gt 0 ]]; then
+  SCHEMA_FILE="$1"
+  shift
+fi
+if [[ $# -gt 0 ]]; then
+  log_error "decide: unexpected extra arguments: $*"
+  usage
+fi
+if [[ -z $SCHEMA_FILE ]]; then
+  log_error "decide: a schema file is required."
+  usage
+fi
+
+[[ -f $SCHEMA_FILE ]] || log_and_exit 1 "decide: schema file not found: '$SCHEMA_FILE'"
+jq -e '.questions | type == "object" and length > 0' "$SCHEMA_FILE" >/dev/null 2>&1 \
+  || log_and_exit 1 "decide: schema has no '.questions' object: '$SCHEMA_FILE'"
+
+# --- STDIN VALIDATION & STATE EXTRACTION ---
+if [ -t 0 ]; then
+  log_and_exit 1 "No stdin detected. Pipe a conversation (from ask) or raw text into decide."
+fi
+
+_ensure_workspace
+_mktemp_reg 'decide.XXXXXX.json' && raw_in="$MKTEMP_REG"
+_mktemp_reg 'decide_state.XXXXXX.txt' && state_file="$MKTEMP_REG"
+_mktemp_reg 'decide_request.XXXXXX.json' && request_file="$MKTEMP_REG"
+
+cat > "$raw_in"
+
+# Strip the magic header if present.
+if [[ "$(head -n 1 "$raw_in")" == "${PIPELINE_MAGIC_HEADER}" ]]; then
+  tail -n +2 "$raw_in" > "${raw_in}.body" && mv "${raw_in}.body" "$raw_in"
+fi
+
+if jq -e 'type == "array"' "$raw_in" >/dev/null 2>&1; then
+  # Conversation: the last assistant message carries the state (doc/commands/decide.md).
+  if ! jq -r 'map(select(.role == "assistant")) | last | .content | select(type == "string" and length > 0)' \
+        "$raw_in" > "$state_file" 2>/dev/null \
+     || ! grep -q '[^[:space:]]' "$state_file"; then
+    log_and_exit 1 "decide: no assistant message content found in conversation history."
+  fi
+else
+  # Raw text: the entire stream is the state.
+  mv "$raw_in" "$state_file"
+fi
+
+if ! grep -q '[^[:space:]]' "$state_file"; then
+  log_and_exit 1 "decide: stdin is empty or whitespace-only — nothing to decide on."
+fi
+
+# --- REQUEST CONSTRUCTION (jq, no string interpolation) ---
+jq -n \
+  --arg model "$DECISION_MODEL" \
+  --rawfile state "$state_file" \
+  --slurpfile schema "$SCHEMA_FILE" \
+  '{
+    model: $model,
+    state: ($state | sub("\\n+$"; "") | sub("^\\n+"; "")),
+    questions: $schema[0].questions
+  }' > "$request_file" \
+  || log_and_exit 1 "decide: failed to build the request body."
+
+# --- API CALL ---
+api_key="${OPENAI_API_KEY:-${AIHUBMIX_API_KEY:-}}"
+endpoint="${HX_DECIDE_ENDPOINT:-${VIA_API_CHAT_BASE}/v1/systemone}"
+
+log_info "decide: model=$DECISION_MODEL questions=$(jq '.questions | length' "$SCHEMA_FILE") state_len=$(wc -c < "$state_file")"
+emit_icon_tooltip "$INFERENCE_ICON" "$endpoint"
+
+response_json=$(_infer_request_post "$endpoint" "$request_file" "$api_key") || {
+  log_and_exit 1 "decide: API request failed (endpoint=$endpoint)"
+}
+
+if ! jq -e . >/dev/null 2>&1 <<< "$response_json"; then
+  log_and_exit 1 "decide: API response is not valid JSON: ${response_json:0:200}"
+fi
+if jq -e '.error != null' >/dev/null 2>&1 <<< "$response_json"; then
+  log_and_exit 1 "decide: API returned an error: $(jq -c '.error' <<< "$response_json")"
+fi
+
+answers=$(jq -c '.answers // empty' <<< "$response_json")
+if [[ -z $answers ]]; then
+  log_and_exit 1 "decide: API response has no answers object: $(jq -c . <<< "$response_json" | head -c 200)"
+fi
+
+# --- OUTPUT ---
+# stdout: the decision channel; stderr: chatter / human summary.
+if [[ $TEE_MODE -eq 1 ]]; then
+  # stderr: one-line-per-question human summary; stdout: magic-header-prefixed
+  # full response JSON so any downstream Hallux command can resume the pipeline.
+  emit_icon_tooltip "${TEE_ICON}" "decision"
+  jq -r '.answers | to_entries[] | "\(.key): " +
+    (if .value.type == "noul" then "noul=\(.value.noul)"
+     elif .value.type == "choice" then "choice=\(.value.choice) (conf=\(.value.confidence))"
+     elif .value.type == "score" then "score=\(.value.score) (conf=\(.value.confidence))"
+     else (.value | tostring) end)' <<< "$response_json" >&2
+  printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$(jq -c . <<< "$response_json")"
+elif [[ $JSON_MODE -eq 1 ]]; then
+  # stdout: raw answers object only — pipe straight into jq and branch.
+  jq . <<< "$answers"
+else
+  # stdout: full response, pretty-printed.
+  jq . <<< "$response_json"
+fi
+
+exit 0
