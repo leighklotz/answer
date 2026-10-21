@@ -124,7 +124,7 @@ jq -r '
     ($tmap[.tool_call_id] // "tool") as $tname |
     (.content | fmt_result) as $r |
     "  **\($tname)** → exit \($r.exit_code)" +
-    (if $r.stdout != "" then
+    (if $r.stdout? != "" then
       "\n  ```\n\($r.stdout)\n  ```"
     else "" end) +
     (if $r.stderr != "" then
