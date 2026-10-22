@@ -328,7 +328,7 @@ _schema_cmd_select() {
     _schema_fail "select: failed to initialise field '$name'"
     return 1
   fi
-  printf "  ${GREEN}✓${WOLFE} Field '%s' (type: %s) initialized.\n" "$name" "$type" >&2
+  [[ -n "${INFO:-}" ]] && printf "  ${GREEN}✓${WOLFE} Field '%s' (type: %s) initialized.\n" "$name" "$type" >&2
   current_name="$name"
   return 0
 }
@@ -374,7 +374,7 @@ _schema_cmd_option() {
       ;;
   esac
 
-  printf "  ${GREEN}✓${WOLFE} Options added to '%s'.\n" "$field" >&2
+  [[ -n "${INFO:-}" ]] && printf "  ${GREEN}✓${WOLFE} Options added to '%s'.\n" "$field" >&2
   return 0
 }
 
@@ -389,7 +389,7 @@ _schema_dispatch() {
   commands_seen=$((commands_seen + 1))
 
   if [[ ${HALLUX_SCHEMA_DEBUG:-0} == 1 ]]; then
-    printf "DBG cmd=%q positional=[%s] flags=[%s]\n" \
+    [[ -n "${INFO:-}" ]] && printf "DBG cmd=%q positional=[%s] flags=[%s]\n" \
       "$cmd" "${_SCHEMA_POSITIONAL[*]}" "${!_SCHEMA_FLAGS[*]}" >&2
   fi
 
@@ -415,7 +415,7 @@ _schema_run_args() {
   for t in "$@"; do
     if [[ $t == select || $t == option || $t == options ]] &&
        (( ${#group[@]} > 0 )); then
-      printf "%s %s\n" "${USER_INPUT_ICON:-💬︎}" "${group[*]}" >&2
+      [[ -n "${INFO:-}" ]] && printf "%s %s\n" "${USER_INPUT_ICON:-💬︎}" "${group[*]}" >&2
       _SCHEMA_TOKENS=("${group[@]}")
       group=()
       _schema_dispatch
@@ -423,7 +423,7 @@ _schema_run_args() {
     group+=("$t")
   done
   if (( ${#group[@]} > 0 )); then
-    printf "%s %s\n" "${USER_INPUT_ICON:-💬︎}" "${group[*]}" >&2
+    [[ -n "${INFO:-}" ]] && printf "%s %s\n" "${USER_INPUT_ICON:-💬︎}" "${group[*]}" >&2
     _SCHEMA_TOKENS=("${group[@]}")
     _schema_dispatch
   fi
@@ -436,8 +436,8 @@ build_mode() {
 
   log_info "Starting Schema Builder: $intent"
   # All chatter goes to stderr — stdout is the schema channel.
-  printf "\n${BLUE}Building schema for:${WOLFE} %s\n" "$intent" >&2
-  echo -e "${GRAY}Commands: select <name> <type> <instructions> | option <vals>${RESET}\n" >&2
+  [[ -n "${INFO:-}" ]] && printf "\n${BLUE}Building schema for:${WOLFE} %s\n" "$intent" >&2
+  [[ -n "${INFO:-}" ]] && echo -e "${GRAY}Commands: select <name> <type> <instructions> | option <vals>${RESET}\n" >&2
 
   current_name=""
   schema_errors=0

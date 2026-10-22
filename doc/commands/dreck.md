@@ -85,3 +85,4 @@ Use the git context command `gx` to use dreck to compare the current working-tre
 ```
 $ gx start-llama-server.sh | dreck
 $ gx start-llama-server.sh | dreck -- "Highlight any missing code blocks"
+```

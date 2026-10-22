@@ -143,11 +143,18 @@ api_key="${OPENAI_API_KEY:-${AIHUBMIX_API_KEY:-}}"
 endpoint="${HX_DECIDE_ENDPOINT:-${VIA_API_CHAT_BASE}/v1/systemone}"
 
 log_info "decide: model=$DECISION_MODEL questions=$(jq '.questions | length' "$SCHEMA_FILE") state_len=$(wc -c < "$state_file")"
-emit_icon_tooltip "$INFERENCE_ICON" "$endpoint"
+emit_icon_tooltip "$DECISION_ICON" "$endpoint"
 
 response_json=$(_infer_request_post "$endpoint" "$request_file" "$api_key") || {
+    echo "# request file" >&2
+    cat $request_file >&2
   log_and_exit 1 "decide: API request failed (endpoint=$endpoint)"
 }
+
+# echo "# request file $request_file" >&2
+# cat -n "$request_file" >&2
+# _infer_request_post "$endpoint" "$request_file" "$api_key"
+# exit 34
 
 if ! jq -e . >/dev/null 2>&1 <<< "$response_json"; then
   log_and_exit 1 "decide: API response is not valid JSON: ${response_json:0:200}"

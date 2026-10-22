@@ -19,6 +19,7 @@ if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" ]]; then
   CANCELLED_ICON='🚫'
   COMPUTER_ICON='🖥️'
   CONVO_ICON='💭'
+  DECISION_ICON='⚖️'      # not displaying?
   ERROR_ICON='❌'
   EXIT_ICON='⛔'
   GREEN_CHECK_ICON='✅'
@@ -47,6 +48,7 @@ else
   CANCELLED_ICON=$'\U0001f6ab\ufe0e'     # 🚫︎
   COMPUTER_ICON=$'\U0001f5a5\ufe0e'      # 🖥︎
   CONVO_ICON=$'\U0001f4ad\ufe0e'         # 💭︎
+  DECISION_ICON=$'\u2696\ufe0e'           # ⚖️
   ERROR_ICON=$'\U274c\ufe0e'             # ❌︎
   EXIT_ICON=$'\U26d4\ufe0e'              # ⛔︎
   GREEN_CHECK_ICON=$'\U2705\ufe0e'       # ✅︎
