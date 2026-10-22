@@ -1,4 +1,5 @@
 #!/usr/bin/env -S bash 
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 
 # ---------------------
 # 📌 Overview
@@ -14,6 +15,15 @@
 #   dreck # (for interactive input, e.g., git diff, lx output)
 
 # ---------------------
+# 📌 Enable Hallux
+# ---------------------
+# Source supporting modules (ensure they are available)
+source "${SCRIPT_DIR}/env.sh"
+source "${SCRIPT_DIR}/logging.sh"
+source "${SCRIPT_DIR}/commands/hx-bootstrap.sh"
+hx core
+
+# ---------------------
 # 📌 Configuration
 # ---------------------
 PROMPT="Perform a rigorous comparison between these two files.
@@ -23,15 +33,6 @@ PROMPT="Perform a rigorous comparison between these two files.
 3) Conclude if the changes represent a substantive improvement in quality and completeness."
 
 USER_PROMPT=""  # For user-provided prompts after '--'
-
-# ---------------------
-# 📌 Core Functions
-# ---------------------
-# Source supporting modules (ensure they are available)
-SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
-source "${SCRIPT_DIR}/env.sh"
-source "${SCRIPT_DIR}/logging.sh"
-source "${SCRIPT_DIR}/functions.sh"
 
 # ---------------------
 # 📌 Argument Parsing
@@ -57,19 +58,19 @@ if [[ -n "$1" ]] && [[ -n "$2" ]]; then
     # Check if files are identical
     if cmp --quiet "$1" "$2"; then
         echo "Files are identical."
-        exit 0
+        exit 10
     fi
 
     # Skip files starting with code fences
     if [[ "$(head -1 "$2")" == '```'* ]]; then
         echo "File $2 starts with code fence; not going further."
-        exit 1
+        exit 11
     fi
 
     # Skip files starting with an 'lx' header
     if [[ "$(head -1 "$2")" == '# file '* ]]; then
         echo "File $2 looks like it starts with an 'lx' file header; not going further."
-        exit 1
+        exit 12
     fi
 
     # Append user-supplied prompt to main prompt

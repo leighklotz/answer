@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bash -x
+#!/usr/bin/env -S bash
 shopt -s nullglob
 set -o pipefail
 
@@ -66,11 +66,15 @@ done
      checkdoc_out="${output_dir}/checkdoc-${base}"
 
      echo "=== Analysis of $old_md -> ${new_md} ===" > "$checkdoc_out"
+     dreck "${old_md}" "${new_md}" | answer >> "$checkdoc_out"
+     # Immediately save the array
+     status=("${PIPESTATUS[@]}")
 
-     # dreck produces the comparison; answer -m flattens to plain text.
-     if ! dreck "${old_md}" "${new_md}" | answer >> "$checkdoc_out"; then
-         log_and_exit 1 "dreck pipeline failed for ${old_md}"
-     fi
+     # Access specific indices (e.g., the middle command, index 1)
+     echo "First command exit code:  ${status[0]}" >&2
+     echo "Last command exit code:   ${status[1]}" >&2
+
+     exit 34
 
      # decide classifies the plain-text comparison into typed JSON.
 

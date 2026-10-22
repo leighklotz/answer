@@ -111,19 +111,36 @@ if [[ "$(head -n 1 "$raw_in")" == "${PIPELINE_MAGIC_HEADER}" ]]; then
   tail -n +2 "$raw_in" > "${raw_in}.body" && mv "${raw_in}.body" "$raw_in"
 fi
 
-if jq -e 'type == "array"' "$raw_in" >/dev/null 2>&1; then
-  # Conversation: the last assistant message carries the state (doc/commands/decide.md).
-    if ! jq -r 'last | .content | select(type == "string" and length > 0)' "$raw_in" > "$state_file"  2>/dev/null ||
+is_json_conv=false
+last_role=$(jq -r 'if type == "array" and length > 0 then last.role else empty end' "$raw_in" 2>/dev/null)
+if [[ -n $last_role ]]; then
+  is_json_conv=true
+fi
+
+if $is_json_conv; then
+  if [[ $last_role == "assistant" ]]; then
+    # Case 2: last message is an assistant response — use it directly.
+    log_info "decide: using last assistant message as state."
+    if ! jq -r 'last | .content | select(type == "string" and length > 0)' "$raw_in" > "$state_file" 2>/dev/null ||
        ! grep -q '[^[:space:]]' "$state_file"; then
-    log_and_exit 1 "decide: no assistant message content found in conversation history."
+      log_and_exit 1 "decide: last assistant message has no string content."
+    fi
+  else
+    # Case 1: last message is NOT an assistant (e.g. user) — auto-resolve via answer.
+    log_info "decide: no trailing assistant message; resolving via answer."
+    if ! jq -c . "$raw_in" | answer -m > "$state_file" 2>/dev/null ||
+       ! grep -q '[^[:space:]]' "$state_file"; then
+      log_and_exit 1 "decide: answer failed to resolve conversation history."
+    fi
   fi
 else
-  # Raw text: the entire stream is the state.
+  # Case 3: not a JSON conversation — use the entire stream verbatim as state.
+  log_info "decide: stdin is raw text; using verbatim."
   mv "$raw_in" "$state_file"
 fi
 
 if ! grep -q '[^[:space:]]' "$state_file"; then
-  log_and_exit 1 "decide: stdin is empty or whitespace-only — nothing to decide on."
+  log_and_exit 1 "decide: state is empty or whitespace-only — nothing to decide on."
 fi
 
 # --- REQUEST CONSTRUCTION (jq, no string interpolation) ---
