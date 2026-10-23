@@ -3,6 +3,7 @@
 # decide — structured decision gate: schema + state in, typed JSON out.
 #
 #   <conversation-json | raw-text> | decide [--tee|--json] [--model M] <schema.json>
+#   <conversation-json | raw-text> | decide [--tee|--json] [--model M] "<intent>" select … option …
 #
 # It is a single stateless POST to /v1/systemone (Jev Structured Decision
 # API). Every question is evaluated in parallel and in isolation against the
@@ -12,6 +13,9 @@
 #   - magic-header conversation JSON  -> last assistant message is the state
 #   - plain JSON conversation array   -> last assistant message is the state
 #   - anything else                   -> the entire stream is the state
+#
+# The schema can be supplied as a file path or as an inline DSL (same
+# grammar as `hx schema build`).
 #
 # Output modes: --json (answers object on stdout), --tee (summary on stderr,
 # full response on stdout), default: full response JSON on stdout.
@@ -25,7 +29,9 @@ set -o pipefail
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: <conversation-json | raw-text> | decide [OPTIONS] <schema.json>
+Usage:
+  <state> | decide [OPTIONS] <schema_file>
+  <state> | decide [OPTIONS] "<intent>" select <name> <type> <instr> [option …] …
 
 Options:
   -s, --schema FILE   Schema file (alternative to the positional argument)
@@ -34,10 +40,22 @@ Options:
   -t, --tee           Summary on stderr, full JSON response on stdout
   -h, --help          This help
 
+Schema (one of):
+  <schema_file>       Path to a JSON schema file.
+  "<intent>" select … Inline DSL — same grammar as `hx schema build`.
+                      The first positional is the intent (for logging),
+                      subsequent tokens are the DSL stream.
+
 Input (auto-detected): pipeline JSON history (magic header), a bare JSON
 conversation array, or raw text — raw text is used verbatim as the state.
 
 Exit codes: 0 success, 1 usage/schema/API failure, 2 interrupted.
+
+Examples:
+  echo "user ran sudo today" | decide schemas/risk.json
+  echo "user ran sudo today" | decide --json "Security Gate" \
+    select is_authorized noul "Does user have admin rights?" \
+    select risk_level score "Potential threat level" option 'low|medium|high'
 USAGE
   exit 1
 }
@@ -46,6 +64,7 @@ DECISION_MODEL="${HX_DECISION_MODEL:-laya-q8_0}"
 JSON_MODE=''
 TEE_MODE=''
 SCHEMA_FILE=''
+_dsl_built=0
 
 # --- ARGUMENT PARSING (same shape as answer.sh) ---
 while [[ $# -gt 0 ]]; do
@@ -72,11 +91,40 @@ while [[ $# -gt 0 ]]; do
       usage
       ;;
     *)
-      break # first positional: the schema file
+      break # first positional: schema file or DSL intent
       ;;
   esac
 done
 
+# --- SCHEMA SOURCE: file path OR inline DSL ---
+# DSL mode: the first positional is the intent, the second is a DSL command
+# word (select/option/options), and the rest are DSL tokens. We delegate to
+# `hx schema build` (bin/commands/schema.sh) in a subprocess and capture its
+# stdout (the finished schema JSON) into a temp file.
+if [[ -z $SCHEMA_FILE && $# -ge 2 ]]; then
+  case "$2" in
+    select|option|options)
+      _dsl_intent="$1"
+      shift # consume the intent; remaining $@ are the DSL words
+      log_info "decide: inline DSL schema (intent: ${_dsl_intent})"
+      _mktemp_reg 'decide_schema.XXXXXX.json' \
+        || log_and_exit 1 "decide: cannot create temp schema file"
+      SCHEMA_FILE="$MKTEMP_REG"
+      # stderr from schema.sh (progress, ✓ lines) passes through to the
+      # terminal; stdout (the schema JSON) is captured.
+      if ! "$SCRIPT_DIR/commands/schema.sh" build "$_dsl_intent" "$@" > "$SCHEMA_FILE"; then
+        log_and_exit 1 "decide: inline schema build failed"
+      fi
+      if ! jq empty "$SCHEMA_FILE" 2>/dev/null; then
+        log_and_exit 1 "decide: inline schema build produced invalid JSON"
+      fi
+      shift $#      # consume the DSL words from our positional params
+      _dsl_built=1
+      ;;
+  esac
+fi
+
+# File mode (or fallback): the first positional is a schema file path.
 if [[ -z $SCHEMA_FILE && $# -gt 0 ]]; then
   SCHEMA_FILE="$1"
   shift
@@ -85,8 +133,13 @@ if [[ $# -gt 0 ]]; then
   log_error "decide: unexpected extra arguments: $*"
   usage
 fi
-if [[ -z $SCHEMA_FILE || ! -f $SCHEMA_FILE ]]; then
-  log_error "decide: a schema file is required."
+if [[ -z $SCHEMA_FILE ]]; then
+  log_error "decide: a schema file or inline DSL is required."
+  usage
+fi
+# Existence check only for file-mode (DSL-mode file was just written+validated).
+if (( ! _dsl_built )) && [[ ! -f $SCHEMA_FILE ]]; then
+  log_error "decide: schema file not found: '$SCHEMA_FILE'"
   usage
 fi
 
@@ -120,14 +173,12 @@ fi
 
 if $is_json_conv; then
   if [[ $last_role == "assistant" ]]; then
-    # Case 2: last message is an assistant response — use it directly.
     log_info "decide: using last assistant message as state."
     if ! jq -r 'last | .content | select(type == "string" and length > 0)' "$raw_in" > "$state_file" 2>/dev/null ||
        ! grep -q '[^[:space:]]' "$state_file"; then
       log_and_exit 1 "decide: last assistant message has no string content."
     fi
   else
-    # Case 1: last message is NOT an assistant (e.g. user) — auto-resolve via answer.
     log_info "decide: no trailing assistant message; resolving via answer."
     if ! jq -c . "$raw_in" | answer -m > "$state_file" 2>/dev/null ||
        ! grep -q '[^[:space:]]' "$state_file"; then
@@ -135,7 +186,6 @@ if $is_json_conv; then
     fi
   fi
 else
-  # Case 3: not a JSON conversation — use the entire stream verbatim as state.
   log_info "decide: stdin is raw text; using verbatim."
   mv "$raw_in" "$state_file"
 fi
@@ -169,11 +219,6 @@ response_json=$(_infer_request_post "$endpoint" "$request_file" "$api_key") || {
   log_and_exit 1 "decide: API request failed (endpoint=$endpoint)"
 }
 
-# echo "# request file $request_file" >&2
-# cat -n "$request_file" >&2
-# _infer_request_post "$endpoint" "$request_file" "$api_key"
-# exit 34
-
 if ! jq -e . >/dev/null 2>&1 <<< "$response_json"; then
   log_and_exit 1 "decide: API response is not valid JSON: ${response_json:0:200}"
 fi
@@ -187,10 +232,7 @@ if [[ -z $answers ]]; then
 fi
 
 # --- OUTPUT ---
-# stdout: the decision channel; stderr: chatter / human summary.
 if [[ $TEE_MODE -eq 1 ]]; then
-  # stderr: one-line-per-question human summary; stdout: magic-header-prefixed
-  # full response JSON so any downstream Hallux command can resume the pipeline.
   emit_icon_tooltip "${TEE_ICON}" "decision"
   jq -r '.answers | to_entries[] | "\(.key): " +
     (if .value.type == "noul" then "noul=\(.value.noul)"
@@ -199,10 +241,8 @@ if [[ $TEE_MODE -eq 1 ]]; then
      else (.value | tostring) end)' <<< "$response_json" >&2
   printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$(jq -c . <<< "$response_json")"
 elif [[ $JSON_MODE -eq 1 ]]; then
-  # stdout: raw answers object only — pipe straight into jq and branch.
   jq . <<< "$answers"
 else
-  # stdout: full response, pretty-printed.
   jq . <<< "$response_json"
 fi
 

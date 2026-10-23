@@ -1,11 +1,3 @@
-Looking at the `decide.sh` implementation and comparing it to `doc/commands/decide.md`, I found two small factual discrepancies:
-
-1. In the "Integration with the Hallux Ecosystem" section, the doc references `log_and_error` but the script actually uses `log_and_exit` (and `log_error` for the unknown-option case, but not a function called `log_and_error`).
-2. In Example 2's stderr output, the icon shown is `💬︎` (USER_INPUT_ICON) but the script emits `${TEE_ICON}` which is `👕`.
-
-Here is the updated file:
-
-```markdown
 # decide
 
 **`decide`** is a structured decision gate in the Hallux toolchain. It transforms unstructured text or conversation history into deterministic, typed answers by applying a user-supplied JSON schema against a state via the **Jev Structured Decision API** (`POST /v1/systemone`).
@@ -15,14 +7,16 @@ Where `ask` and `help` are conversational and generative (natural-language in, n
 ## Synopsis
 
 ```
-<conversation-json | raw-text> | decide [OPTIONS] <schema_file>
+<state> | decide [OPTIONS] <schema_file>
+<state> | decide [OPTIONS] "<intent>" select <name> <type> <instructions> [option …] …
 ```
 
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `<schema_file>` | Path to a JSON file containing a single `questions` object; each key is your question name and each value declares its `type`, `instructions`, and (where applicable) `criteria`. This is the format `hx schema build` emits — see `doc/commands/schema.md`. |
+| `<schema_file>` | Path to a JSON schema file containing a `questions` object. |
+| `"<intent>"` + DSL words | Inline schema: the first positional is a human-readable intent (for log messages), and the remaining tokens form the same DSL stream accepted by `hx schema build` (see `doc/commands/schema.md`). |
 
 ## Options
 
@@ -62,6 +56,28 @@ The schema file contains a single `questions` object where each key is a questio
   }
 }
 ```
+### Inline DSL form
+
+Instead of a pre-built schema file, pass the DSL words directly to `decide`:
+
+```bash
+echo "user ran sudo; last login 3d ago" \
+  | decide "Security Gate" \
+      select is_authorized noul "Does user have admin rights?" \
+      select risk_level score "Potential threat level" option 'low|medium|high'
+```
+
+`decide` detects DSL mode when the **second** positional token is `select`,
+`option`, or `options`. It invokes `hx schema build` internally, captures the
+resulting JSON, and proceeds identically to file-mode.
+
+The grammar is identical to `hx schema build` — see
+`doc/commands/schema.md` for the full reference, caveats, and examples.
+
+**Caveat:** because the DSL is positional, the intent string must not
+itself be a DSL command word, and instruction/description text must not
+*begin* with `select`, `option`, or `options` (same restriction as
+`hx schema build`).
 
 ### Answer types
 
@@ -140,7 +156,7 @@ Use a heavy-reasoning `ask` call to summarise messy system state, then classify 
 ```bash
 bx tail -n 20 /var/log/syslog \
   | ask "Summarize the errors you see" --answer \
-  | decide schemas/triage.json --json
+  | decide schemas/triage.json --json \
 ```
 
 Output (`--json`):
@@ -151,6 +167,17 @@ Output (`--json`):
   "urgency":    { "type": "score",  "score":0.82, "legend":{…}, "probabilities":{…}, "confidence":0.88 },
   "is_urgent":  { "type": "noul",   "noul": 0.91 }
 }
+```
+
+To use the output, for example: 
+
+```bash
+$ bx tail -n 20 /var/log/syslog \
+  | ask "Summarize the errors you see" --answer \
+  | decide schemas/triage.json --json \
+  | jq '.department.choice'
+👕
+technical
 ```
 
 ### 2. Pipeline Bridge — observe *and* continue
@@ -198,6 +225,55 @@ gx diff HEAD~1..HEAD \
   | jq '.answers.breaks_api.noul' \
   | awk '{ exit ($1 > 0.7) }'   # non-zero exit → CI fails the PR
 ```
+
+### 5. One-shot DSL decision (no schema file)
+
+Skip the separate `hx schema build` step entirely:
+
+```bash
+bx tail -n 20 /var/log/auth.log \
+  | ask "Summarize access anomalies" --answer \
+  | decide --json "Access Check" \
+      select is_anomaly noul "Is there an anomalous access pattern?" \
+      select severity score "How severe is the anomaly?" option 'low|medium|high|critical'
+```
+
+This is functionally identical to:
+
+```bash
+hx schema build "Access Check" \
+  select is_anomaly noul "Is there an anomalous access pattern?" \
+  select severity score "How severe is the anomaly?" option 'low|medium|high|critical' \
+  > /tmp/access.json
+bx tail -n 20 /var/log/auth.log \
+  | ask "Summarize access anomalies" --answer \
+  | decide --json /tmp/access.json
+```
+
+## 5. Another one-shot example
+
+```bash
+echo "user 'alice' has role=admin; last sudo 2 min ago" | 
+  decide "Security Gate" \
+        select is_authorized noul "Does user have admin rights?" \
+        select risk_level score "Potential threat level" option 'low|medium|high'
+```
+
+- `decide` sees `$1 = "Security Gate"`, `$2 = select` → **DSL mode**.
+- It runs `bin/commands/schema.sh build "Security Gate" select is_authorized noul … select risk_level score … option low|medium|high` as a subprocess.
+- The subprocess writes the schema JSON to a temp file; progress chatter (`✓ Field 'is_authorized'…`) goes to your terminal on stderr.
+- `decide` then reads stdin (the state), builds the request, hits the API, and prints the result — exactly as if you had passed a `.json` file.
+
+You can pipe the result into 'help' to get a pretty report:
+
+```bash
+echo "user 'alice' has role=admin; last sudo 2 min ago" | 
+  decide "Security Gate" \
+         select is_authorized noul "Does user have admin rights?" \
+         select risk_level score "Potential threat level" option 'low|medium|high' |
+  help format pretty report
+```
+
 
 ## Integration with the Hallux Ecosystem
 

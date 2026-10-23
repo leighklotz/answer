@@ -1,8 +1,3 @@
-**Title:** `feat: add decide — structured decision gate + interactive schema builder`
-**Branch:** `decide` → `main`
-
----
-
 ## Summary
 
 This PR introduces **`decide`**, a new structured decision command for the Hallux toolchain, along with **`hx schema build`**, an interactive DSL for authoring the decision schemas it consumes.
@@ -50,22 +45,3 @@ bx tail -n 20 /var/log/syslog \
 ```
 
 `decide` auto-detects stdin — Hallux pipeline history (magic header → last assistant message) or raw text — and supports three output modes: terminal summary (default TTY), `--json` (data mode), and `--tee` (summary on stderr, full response on stdout for continued piping).
-
-## Test plan
-
-- [ ] `hx schema build` interactive flow for all three types (`select` / `option` / `finish`)
-- [ ] Piped (non-TTY) schema definition input
-- [ ] `decide` with raw-text stdin vs. `ask --answer` history stdin
-- [ ] `--json`, `--tee`, and default TTY output modes
-- [ ] Missing schema / empty stdin / missing `AIHUBMIX_API_KEY` → exit 1 with stderr diagnostics
-
-## Reviewer notes / known gaps
-
-- `schema.sh`: choice branch references `$SCHEMA_TSM` (typo for `$SCHEMA_TMP`) in the primary jq path; the fallback masks it, but should be fixed.
-- `finish [filename]` reads positional `$1` (the build intent) rather than `$args` from the read loop — the filename argument isn't wired up yet.
-- `hx schema build` is stdin-driven; the one-shot scripted form shown in `doc/hx-schema-usage.md` requires piping the commands (doc tweak or args-parsing follow-up).
-- Stray terminal artifact (`43;20M`) in `doc/hx-schema-usage.md`.
-- `bin/decide.sh` currently documents the API contract; the full CLI wrapper described in `decide.md` (flag parsing, stdin detection, output modes) lands in a follow-up.
-- Example schemas (`schemas/triage.json`, etc.) referenced in docs should be committed or generated via the DSL.
-
-Closes: structured-decision capability gap between `ask` (generation) and `nuextract`/`extract` (extraction) — `decide` covers classification and scoring.
