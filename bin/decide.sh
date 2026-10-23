@@ -85,19 +85,19 @@ if [[ $# -gt 0 ]]; then
   log_error "decide: unexpected extra arguments: $*"
   usage
 fi
-if [[ -z $SCHEMA_FILE ]]; then
+if [[ -z $SCHEMA_FILE || ! -f $SCHEMA_FILE ]]; then
   log_error "decide: a schema file is required."
   usage
 fi
 
-[[ -f $SCHEMA_FILE ]] || log_and_exit 1 "decide: schema file not found: '$SCHEMA_FILE'"
+if [ -t 0 ]; then
+  log_and_exit 1 "No stdin detected. Pipe a conversation (from ask) or raw text into decide."
+fi
+
 jq -e '.questions | type == "object" and length > 0' "$SCHEMA_FILE" >/dev/null 2>&1 \
   || log_and_exit 1 "decide: schema has no '.questions' object: '$SCHEMA_FILE'"
 
 # --- STDIN VALIDATION & STATE EXTRACTION ---
-if [ -t 0 ]; then
-  log_and_exit 1 "No stdin detected. Pipe a conversation (from ask) or raw text into decide."
-fi
 
 _ensure_workspace
 _mktemp_reg 'decide.XXXXXX.json' && raw_in="$MKTEMP_REG"
@@ -108,6 +108,7 @@ cat > "$raw_in"
 
 # Strip the magic header if present.
 if [[ "$(head -n 1 "$raw_in")" == "${PIPELINE_MAGIC_HEADER}" ]]; then
+  log_error "not supposed to happen: $raw_in"
   tail -n +2 "$raw_in" > "${raw_in}.body" && mv "${raw_in}.body" "$raw_in"
 fi
 
@@ -156,7 +157,7 @@ jq -n \
   || log_and_exit 1 "decide: failed to build the request body."
 
 # --- API CALL ---
-api_key="${OPENAI_API_KEY:-${AIHUBMIX_API_KEY:-}}"
+api_key="${OPENAI_API_KEY:-}"
 endpoint="${HX_DECIDE_ENDPOINT:-${VIA_API_CHAT_BASE}/v1/systemone}"
 
 log_info "decide: model=$DECISION_MODEL questions=$(jq '.questions | length' "$SCHEMA_FILE") state_len=$(wc -c < "$state_file")"
