@@ -1,3 +1,11 @@
+Looking at the `decide.sh` implementation and comparing it to `doc/commands/decide.md`, I found two small factual discrepancies:
+
+1. In the "Integration with the Hallux Ecosystem" section, the doc references `log_and_error` but the script actually uses `log_and_exit` (and `log_error` for the unknown-option case, but not a function called `log_and_error`).
+2. In Example 2's stderr output, the icon shown is `💬︎` (USER_INPUT_ICON) but the script emits `${TEE_ICON}` which is `👕`.
+
+Here is the updated file:
+
+```markdown
 # decide
 
 **`decide`** is a structured decision gate in the Hallux toolchain. It transforms unstructured text or conversation history into deterministic, typed answers by applying a user-supplied JSON schema against a state via the **Jev Structured Decision API** (`POST /v1/systemone`).
@@ -10,7 +18,7 @@ Where `ask` and `help` are conversational and generative (natural-language in, n
 <conversation-json | raw-text> | decide [OPTIONS] <schema_file>
 ```
 
-The default decision model is `laya-q8_0`, overridable per environment via `$HX_DECISION_MODEL` or per invocation via `--model`.
+> **Requires** `AIHUBMIX_API_KEY` (or `OPENAI_API_KEY`) in the environment. Source `hx-bootstrap.sh` and run `hx core` (or `hx enable` interactively) before invoking. In scripts, `hx core` is sufficient — `decide` never touches `$PS1` or bash history. The default decision model is `laya-q8_0`, overridable per environment via `$HX_DECISION_MODEL` or per invocation via `--model`.
 
 ## Arguments
 
@@ -161,7 +169,7 @@ ask "Should this user be allowed to run 'rm -rf'?" \
 `stderr` shows one `name: value` line per question:
 
 ```
-💬︎ decision
+👕 decision
 risk: score=0.32 (conf=0.87)
 is_urgent: noul=0.74
 ```
@@ -204,7 +212,7 @@ gx diff HEAD~1..HEAD \
 | `unfence` | Downstream: if a later `ask` generates a script based on the decision, `unfence` extracts it for execution. |
 | `hx provenance add` | Post-hoc: bookmark a successful `decide` invocation into Git metadata for audit. |
 
-`decide` sources `env.sh`, `logging.sh`, and `functions.sh` from `bin/` (loaded by `hx-bootstrap.sh`), reusing the shared `log_and_error`, `_mktemp_reg`, and pipeline-header constants. It is **not** an LLM call in the conversational sense — it is a single, stateless POST to the decision endpoint with a fixed schema, so latency and cost are predictable and low.
+`decide` sources `env.sh`, `logging.sh`, and `functions.sh` from `bin/` (loaded by `hx-bootstrap.sh`), reusing the shared `log_and_exit`, `_mktemp_reg`, and pipeline-header constants. It is **not** an LLM call in the conversational sense — it is a single, stateless POST to the decision endpoint with a fixed schema, so latency and cost are predictable and low.
 
 ## Exit Codes
 

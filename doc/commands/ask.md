@@ -29,7 +29,7 @@ Routing is mode dependent:
 | `-t` | `--tee`   | **Observation Mode:** Resolves the turn via `_infer`, prints a human-readable preview of the assistant's response to **stderr** while passing the updated JSON conversation history through **stdout**. This allows you to monitor progress without breaking pipeline chains. |
 | `--use-system-message` | | Prepends the content of the `$SYSTEM_MESSAGE` environment variable as a `system` role message at the start of the session. |
 | `--answer` | | **Answer Mode:** Forces routing through `answer` even when stdout is not a TTY. The built message payload is piped to `answer` for immediate inference and plain-text output, equivalent to interactive terminal behavior. |
-| `--help` | | Print usage information and exit. `Usage: ask [-i|--input] [--use-system-message] [--tee|-t] [prompt]` |
+| `--help` | | Print usage information and exit. `Usage: ask [-i\|--input] [--use-system-message] [--tee\|-t] [prompt]` |
 
 ## Input Modes
 
@@ -68,8 +68,8 @@ These variables control how requests are constructed and sent to your API endpoi
 |----------|-------------------------|-------------|
 | `OPENAI_API_KEY` | _(empty)_ | Bearer token used for API authentication. |
 | `VIA_API_CHAT_BASE` | N/A (Required) | The base URL of the OpenAI-compatible API endpoint. |
-| `ENABLE_THINKING` | `false` | When set to `true`, includes specialized reasoning parameters (`thinking`/`enable_thinking`) in the request payload for supported models. |
-| `VIA_MAX_TOKENS` | `24000` | The maximum number of tokens allowed for the completion response. |
+| `ENABLE_THINKING` | `true` | When set to `true`, includes specialized reasoning parameters (`thinking`/`enable_thinking`) in the request payload for supported models. |
+| `VIA_MAX_TOKENS` | `65536` | The maximum number of tokens allowed for the completion response. |
 | `SYSTEM_MESSAGE`| _(empty)_ | Text used as the initial `system` role message when `--use-system-message` is active. |
 
 ## Examples

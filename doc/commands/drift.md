@@ -1,11 +1,3 @@
-Looking at the `drift.sh` implementation and comparing it to `doc/commands/drift.md`, I found two factual discrepancies:
-
-1. The Synopsis describes `CONTEXT_FILE...` as "(one or more)" but the script explicitly allows running with just two files (FILE_A and FILE_B) and no context files — the `[CONTEXT_FILE...]` in the synopsis already implies zero-or-more.
-2. The Notes section states "`drift` is currently **in development**" but the script is fully implemented and functional.
-
-Here is the updated file:
-
-```markdown
 # drift
 
 **`drift`** is a constraint-aware comparison utility for auditing LLM output against ground truth. Unlike `dreck`, which compares two files in the absence of external constraints, `drift` ingests a candidate file alongside an original source **and** one or more context items (specs, requirements, test expectations, API contracts, or other ground-truth documents) and evaluates whether the candidate has *drifted* from what the context demands.
@@ -21,7 +13,7 @@ drift FILE_A FILE_B [CONTEXT_FILE...] [-- [EXTRA_PROMPT...]]
 * **`FILE_A`**: The original source or reference artifact.
 * **`FILE_B`**: The candidate (typically LLM-generated) version to be evaluated.
 * **`CONTEXT_FILE...`** (optional; zero or more): Ground-truth items — specifications, requirements documents, expected test output, API schemas, or any other constraints against which `FILE_B` must be judged. All context files are ingested via `lx` alongside `FILE_A` and `FILE_B`.
-* **`-- [EXTRA_PROMPT...]`**: Optional additional instruction text forwarded to `ask`, appended to the built-in drift-detection prompt.
+* **`-- [EXTRA_PROMPT...]`**: Optional additional instruction text forwarded to `ask`, prepended to the built-in drift-detection prompt.
 
 If no positional file arguments are supplied, `drift` reads a single stream from `stdin` (e.g., a multi-section bundle produced by a prior `lx` call) and passes it through `ask` with the drift prompt.
 
@@ -34,13 +26,13 @@ If at least two positional arguments are provided, it first performs an equality
 When positional files are present, the pipeline is:
 
 ```bash
-lx "$FILE_A" "$FILE_B" "$CONTEXT_FILES..." | ask "$EXTRA_PROMPT" "${PROMPT}"
+lx "$FILE_A" "$FILE_B" "$CONTEXT_FILES..." | ask "$EXTRA_PROMPT $PROMPT"
 ```
 
 When no files are given (piped input), the pipeline is:
 
 ```bash
-ask "$EXTRA_PROMPT" "${PROMPT}"
+ask "$EXTRA_PROMPT $PROMPT"
 ```
 
 ### Built-in Prompt
@@ -56,7 +48,7 @@ The fixed system prompt used for every drift comparison is:
 > 4) **Factual/code drift:** If the context includes expected test output, API contracts, or reference values, check the candidate for concrete mismatches (wrong identifiers, incorrect logic, missing edge-case handling).
 > 5) **Verdict:** Conclude with a summary table: `DRIFTED` / `ACCEPTABLE` / `NEEDS_REVISION`, listing each violation with severity (critical / minor / informational).
 
-`EXTRA_PROMPT` (words after `--`) is appended to the base prompt as a user extension, allowing the caller to focus the analysis (e.g., "Focus on the authentication flow" or "Ignore formatting differences").
+`EXTRA_PROMPT` (words after `--`) is prepended to the base prompt as a user extension, allowing the caller to focus the analysis (e.g., "Focus on the authentication flow" or "Ignore formatting differences").
 
 ## Input Modes
 

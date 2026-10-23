@@ -5,7 +5,7 @@
 ## Synopsis
 
 ```bash
-<conversation-json> | tools <module>[:<capability[=pattern]]] [<module>...]
+<conversation-json> | tools [options] <module>[:<capability[=pattern]]] [<module>...]
 ```
 
 The arguments specify which modules are available to the LLM and what restrictions apply. These arguments are passed as `--tools` flags to the underlying engine (`toolex.py`). You can mix multiple modules with different levels of permission (e.g., `file:read=*.txt git:all bash:run=*`).
@@ -47,6 +47,7 @@ Note that you may need to use quoting on the module argument if it contains bsah
 | `TOOLEX_SH` | `$HOME/wip/toolex/toolex.sh` | Path to the `toolex.sh` execution engine. |
 | `TOOLS_FLAGS` | _(empty)_ | Additional flags passed to `toolex.sh`. |
 | `TRACE` | _(empty)_ | When set and `stdout` is a TTY, raw tool output is teed to `stderr` for debugging. |
+| `DEBUG` | _(empty)_ | When set, the default log level for the underlying `toolex` call is raised to `DEBUG` (unless `--log-level` is explicitly provided). |
 
 ## Visual Feedback (`stderr`)
 
