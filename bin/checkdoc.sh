@@ -2,7 +2,7 @@
 shopt -s nullglob
 set -o pipefail
 
-SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/logging.sh"
 CMD_DIR="${SCRIPT_DIR}/../doc/commands"
 
@@ -32,7 +32,7 @@ if [[ ! -f "${SCRIPT_DIR}/checkdoc-schema.json" ]]; then
    option OLD       "The .new file is stale, reverted, or rejected; keep the old file." \
    option IDENTICAL "The two files are substantively the same (whitespace, trivial edits only)." \
    option NEITHER   "The relationship is unclear, divergent, or otherwise does not fit the above." \
-   > ${SCRIPT_DIR}/checkdoc-schema.json
+   > "${SCRIPT_DIR}/checkdoc-schema.json"
 fi
 
 # --- PHASE 1: PRE-FLIGHT VALIDATION (Error Checking) ---
@@ -42,8 +42,8 @@ fi
 
 for new_md in *.md.new; do
     old_md="${new_md%.new}"
-    base="${new_md%.new}"                                   # foo.md
-    checkdoc_out="${output_dir}/checkdoc-${base}"           # checkdoc-foo.md
+    base="${new_md%.new}"
+    checkdoc_out="${output_dir}/checkdoc-${base}"
 
     # CRITICAL ERROR: If the source file is missing, we cannot complete
     # a full run of this script safely. Exit now.
@@ -66,59 +66,70 @@ done
      checkdoc_out="${output_dir}/checkdoc-${base}"
 
      echo "=== Analysis of $old_md -> ${new_md} ===" > "$checkdoc_out"
-     dreck "${old_md}" "${new_md}" | answer >> "$checkdoc_out"
-     # Immediately save the array
-     status=("${PIPESTATUS[@]}")
 
-     # Access specific indices (e.g., the middle command, index 1)
-     echo "First command exit code:  ${status[0]}" >&2
-     echo "Last command exit code:   ${status[1]}" >&2
+     # Run dreck separately so we can inspect its exit code cleanly.
+     dreck_out="$(dreck "${old_md}" "${new_md}")"
+     dreck_rc=$?
 
-     exit 34
+    case "$dreck_rc" in
+        0)
+            # Normal path: dreck produced a real comparison → pipe into answer
+            printf '%s\n' "$dreck_out" | answer >> "$checkdoc_out"
+            ;;
+        10)
+            # Files are byte-identical
+            printf '%s\n' "$dreck_out" >> "$checkdoc_out"
+            log_info "Identical files: ${old_md} == ${new_md}"
+            rm "${new_md}"
+            continue
+            ;;
+        11)
+            # Second file starts with a code fence
+            printf '%s\n' "$dreck_out" >> "$checkdoc_out"
+            log_warn "Code-fence header in ${new_md}; treating as NEITHER."
+            mv "${new_md}" "${new_md}.odd"
+            continue
+            ;;
+        12)
+            # Second file starts with an 'lx' header
+            printf '%s\n' "$dreck_out" >> "$checkdoc_out"
+            log_warn "lx header in ${new_md}; treating as NEITHER."
+            mv "${new_md}" "${new_md}.odd"
+            continue
+            ;;
+        *)
+            log_and_exit 1 "dreck exited with unexpected code ${dreck_rc} (${old_md} vs ${new_md})."
+            ;;
+    esac
 
-     # decide classifies the plain-text comparison into typed JSON.
+    # --- decide (only reached for dreck_rc == 0) ---
+    if ! decision_json="$(cat "$checkdoc_out" | decide "${SCRIPT_DIR}/checkdoc-schema.json")"; then
+        log_and_exit 1 "decide failed"
+    fi
 
-     if false; then
-         echo "# checkdoc_out=$checkdoc_out"
-         cat "$checkdoc_out"
-         echo
-         echo "# ${SCRIPT_DIR}/checkdoc-schema.json"
-         cat "${SCRIPT_DIR}/checkdoc-schema.json"
-         echo
-         exit 33
-     fi
+    choice="$(printf '%s' "$decision_json" | jq -r '.verdict.choice')"
+    confidence="$(printf '%s' "$decision_json" | jq -r '.verdict.confidence')"
 
-     if ! decision_json="$(cat "$checkdoc_out" | decide "${SCRIPT_DIR}/checkdoc-schema.json")";
-     then
-         log_and_exit 1 "decide failed"
-     fi
+    if [[ -n "$choice" && -n "$confidence" ]]; then
+        echo
+        ls -l "${old_md}" "${new_md}"
+        printf '\n⚖️  Verdict: %s (confidence %s)\n\n' "$choice" "$confidence"
 
-     printf "# decision_json\n%s\n" "$decision_json" >&2
+        if awk "BEGIN{exit !($confidence < 0.80)}"; then
+            printf '  ⚠ low confidence, defaulting to .odd\n'
+            choice="NEITHER"
+        fi
 
-     choice="$(printf '%s' "$decision_json" | jq -r '.verdict.choice')"
-     confidence="$(printf '%s' "$decision_json" | jq -r '.verdict.confidence')"
+        case "$choice" in
+            NEW)       mv "${new_md}" "${old_md}" ;;
+            OLD)       mv "${new_md}" "${new_md}.reject" ;;
+            IDENTICAL) rm "${new_md}" ;;
+            *)         mv "${new_md}" "${new_md}.odd" ;;
+        esac
 
-     if [[ -n "$choice" && -n "$confidence" ]]; then
-         echo
-         ls -l "${old_md}" "${new_md}"
-         printf '\n⚖️  Verdict: %s (confidence %s)\n\n' "$choice" "$confidence"
-         
-         # Gate on confidence: below 0.80, treat as NEITHER (safe default → .odd).
-         if awk "BEGIN{exit !($confidence < 0.80)}"; then
-             printf '  ⚠ low confidence, defaulting to .odd\n'
-             choice="NEITHER"
-         fi
-         
-         case "$choice" in
-             NEW)       mv "${new_md}" "${old_md}" ;;
-             OLD)       mv "${new_md}" "${new_md}.reject" ;;
-             IDENTICAL) rm "${new_md}" ;;
-             *)         mv "${new_md}" "${new_md}.odd" ;;
-         esac
-         
-         printf '\n== End %s → %s: %s ==\n' "$old_md" "$new_md" "$choice"
-     else
-         log_and_exit 1 "failed to decide"
-     fi
-     read -rp "Press enter to continue (Ctrl-C to abort): "
- done
+        printf '\n== End %s → %s: %s ==\n' "$old_md" "${new_md}" "$choice"
+    else
+        log_and_exit 1 "failed to decide"
+    fi
+    read -rp "Press enter to continue (Ctrl-C to abort): "
+done
