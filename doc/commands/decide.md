@@ -10,7 +10,7 @@ Where `ask` and `help` are conversational and generative (natural-language in, n
 <conversation-json | raw-text> | decide [OPTIONS] <schema_file>
 ```
 
-> **Requires** `AIHUBMIX_API_KEY` (or `OPENAI_API_KEY`) in the environment. Source `hx-bootstrap.sh` and run `hx core` (or `hx enable` interactively) before invoking. In scripts, `hx core` is sufficient — `decide` never touches `$PS1` or bash history. The default decision model is `laya-q8_0`, overridable per environment via `$HX_DECIDE_MODEL` or per invocation via `--model`.
+The default decision model is `laya-q8_0`, overridable per environment via `$HX_DECISION_MODEL` or per invocation via `--model`.
 
 ## Arguments
 
@@ -23,7 +23,7 @@ Where `ask` and `help` are conversational and generative (natural-language in, n
 | Flag | Long form | Description |
 |------|-----------|-------------|
 | `-s` | `--schema FILE` | Path to the JSON schema (alternative to the positional argument). |
-| `--model STRING` | | Override the decision model (default: `laya-q8_0`, or `$HX_DECIDE_MODEL`). |
+| `--model STRING` | | Override the decision model (default: `laya-q8_0`, or `$HX_DECISION_MODEL`). |
 | `-j` | `--json` | **Data mode.** Emit only the `answers` object on `stdout` — no prose, no headers. Designed for direct piping into `jq` or downstream automation. |
 | `-t` | `--tee` | **Observation mode.** Print a human-readable summary to `stderr` while passing the full JSON response (prefixed with the pipeline magic header) through `stdout` for further piping. |
 
@@ -222,9 +222,9 @@ gx diff HEAD~1..HEAD \
 | You are chaining `ask` → `decide` and `ask` emitted JSON history | No action needed — `decide` auto-detects the magic header and extracts the last assistant message. |
 | You are piping a bare JSON conversation array (no magic header) | Also accepted — the last `assistant` message becomes the state. |
 | You are piping raw text (e.g. `cat logfile \| decide …`) | Also fine — the entire stream becomes the state. Just make sure it is non-empty. |
-| You need a different model | Pass `--model your-model-id`, or export `HX_DECIDE_MODEL` in the environment. Default is `laya-q8_0`. |
+| You need a different model | Pass `--model your-model-id`, or export `HX_DECISION_MODEL` in the environment. Default is `laya-q8_0`. |
 | Multiple schema files | `decide` accepts exactly one schema per invocation. To combine, merge the JSON objects in a temp file or a second `jq -s 'add'` step upstream. |
 
 ## Model Reference
 
-Default model: `laya-q8_0` (`$HX_DECIDE_MODEL` / `--model` override).
+Default model: `laya-q8_0` (`$HX_DECISION_MODEL` / `--model` override).
