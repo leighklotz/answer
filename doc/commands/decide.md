@@ -18,8 +18,6 @@ Where `ask` and `help` are conversational and generative (natural-language in, n
 <conversation-json | raw-text> | decide [OPTIONS] <schema_file>
 ```
 
-> **Requires** `AIHUBMIX_API_KEY` (or `OPENAI_API_KEY`) in the environment. Source `hx-bootstrap.sh` and run `hx core` (or `hx enable` interactively) before invoking. In scripts, `hx core` is sufficient — `decide` never touches `$PS1` or bash history. The default decision model is `laya-q8_0`, overridable per environment via `$HX_DECISION_MODEL` or per invocation via `--model`.
-
 ## Arguments
 
 | Argument | Description |

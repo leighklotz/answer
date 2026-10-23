@@ -44,6 +44,7 @@ You can use the `ask` and `help` commands to ask one-shot questions, right in th
     # Output: image.tar
     ```
     klotz@snapback:~/wip/answer👣$ 
+
 ````
 
 
@@ -114,6 +115,14 @@ $ ask -i What is this emoji? 🥟 [Press Ctrl+D]
 This emoji is a **dumpling** (🥟).
 ```
 
+### 7. Decisions (`decide`)
+`decide` is an extractive, deterministic counterpart to `ask`/`help`: it takes a JSON schema file plus free-text or conversation history on stdin and returns typed answers (`choice`, `score`, `noul`) as JSON. Use it when a script needs to *branch* on a model's classification rather than read prose.
+
+```bash
+hx schema ... > triage.json
+bx tail -n 20 /var/log/syslog | ask "Summarize errors" --answer | decide triage.json --json
+```
+
 ---
 
 ## The Minimalist Toolchain
@@ -124,6 +133,7 @@ The harness relies on a suite of single-purpose scripts and a core engine primit
 * **`answer`**: consumes the structured request or conversation history, performs or retrieves the inference, and writes the assistant's plain-text response to `stdout`. You normally do not call it explicitly at an interactive terminal, because `ask` and `help` do that automatically. Add it when you want to terminate the structured conversation pipeline and send plain text to a file or an ordinary Unix command.
     > **⚠️ Crucial Redirection Note:** When redirecting output to a file (e.g., `ask "code" > script.sh`), explicitly call `answer` before the redirection (`ask "code" | answer > script.sh`). Otherwise, you will capture the JSON conversation history instead of the plain-text response.
 * **`unfence`** Extracts markdown code blocks from LLM output and provides an interactive pager/confirmation prompt to ensure you don't execute dangerous code without reviewing it first.
+* **`decide`**: Structured decision gate. Consumes a JSON schema and a text/JSON-stdin, POSTs to the decision API, and emits typed answers (`choice`, `score`, `noul`) as JSON. Designed for `ask | decide --json | jq …` in scripts that need to branch on a model's classification.
 * **`lx`**: A file-ingestion utility that streams multiple target files into your pipeline, automatically wrapping them in clean markdown syntax blocks for downstream parsing.
 * **`bx`**: A command-execution bridge. It executes shell commands and captures their output inside markdown fences so the results can be injected directly back into an LLM query.
 * **`tools`**: A wrapper that routes conversation arrays to `toolex.py` to handle native LLM tool calls (function calling).
@@ -256,6 +266,10 @@ The framework uses local JSON files for caching to ensure speed and reduce API c
 * **`hx cache enable / disable`**: Enable or disable automated caching for the session.
 * **`hx cache drop`**: Removes only the single most recent cache entry after a preview/confirmation.
 * **`hx why`** and **`hx what`**: Retrieve reasoning (**🧠**) or standard interaction/output (**💭**) from your most recent `answer` inference.
+
+### 4. HX decision schema (`hx schema ...`)
+**`hx schema build`** is DSL front-end that authors the `questions`-object JSON files consumed by `decide`. See `doc/commands/schema.md`.
+- The DSL verbs are `select` and `option`/`options`; the three answer types are `choice`, `score`, `noul`.
 
 ---
 
