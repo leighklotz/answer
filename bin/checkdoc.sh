@@ -86,14 +86,14 @@ done
         11)
             # Second file starts with a code fence
             printf '%s\n' "$dreck_out" >> "$checkdoc_out"
-            log_warn "Code-fence header in ${new_md}; treating as NEITHER."
+            log_warn "Code-fence header in ${new_md}; treating as ODD."
             mv "${new_md}" "${new_md}.odd"
             continue
             ;;
         12)
             # Second file starts with an 'lx' header
             printf '%s\n' "$dreck_out" >> "$checkdoc_out"
-            log_warn "lx header in ${new_md}; treating as NEITHER."
+            log_warn "lx header in ${new_md}; treating as ODD."
             mv "${new_md}" "${new_md}.odd"
             continue
             ;;
@@ -107,29 +107,32 @@ done
         log_and_exit 1 "decide failed"
     fi
 
-    choice="$(printf '%s' "$decision_json" | jq -r '.verdict.choice')"
-    confidence="$(printf '%s' "$decision_json" | jq -r '.verdict.confidence')"
+    log_info "decision_json=$decision_json"
 
-    if [[ -n "$choice" && -n "$confidence" ]]; then
-        echo
-        ls -l "${old_md}" "${new_md}"
-        printf '\n⚖️  Verdict: %s (confidence %s)\n\n' "$choice" "$confidence"
+    choice="$(printf '%s' "$decision_json" | jq -r '.answers.verdict.choice // empty')"
+    confidence="$(printf '%s' "$decision_json" | jq -r '.answers.verdict.confidence // empty')"
 
-        if awk "BEGIN{exit !($confidence < 0.80)}"; then
-            printf '  ⚠ low confidence, defaulting to .odd\n'
-            choice="NEITHER"
-        fi
-
-        case "$choice" in
-            NEW)       mv "${new_md}" "${old_md}" ;;
-            OLD)       mv "${new_md}" "${new_md}.reject" ;;
-            IDENTICAL) rm "${new_md}" ;;
-            *)         mv "${new_md}" "${new_md}.odd" ;;
-        esac
-
-        printf '\n== End %s → %s: %s ==\n' "$old_md" "${new_md}" "$choice"
-    else
+    if [[ -z "$choice" || -z "$confidence" ]]; then
         log_and_exit 1 "failed to decide"
     fi
+
+    ls -l "${old_md}" "${new_md}"
+    printf '\n⚖️  Verdict: %s (confidence %s)\n\n' "$choice" "$confidence"
+
+    if awk "BEGIN{exit !($confidence < 0.80)}"; then
+        printf '  ⚠ low confidence, defaulting to .odd\n'
+        choice="NEITHER"
+    fi
+
+    case "$choice" in
+        NEW)       mv "${new_md}" "${old_md}" ;;
+        OLD)       mv "${new_md}" "${new_md}.reject" ;;
+        IDENTICAL) rm "${new_md}" ;;
+        NEITHER)   mv "${new_md}" "${new_md}.reject" ;;
+        *)         mv "${new_md}" "${new_md}.odd" ;;
+    esac
+
+    printf '\n== End %s → %s: %s ==\n' "$old_md" "${new_md}" "$choice"
+
     read -rp "Press enter to continue (Ctrl-C to abort): "
 done
