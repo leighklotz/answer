@@ -160,8 +160,8 @@ _mktemp_reg 'decide_request.XXXXXX.json' && request_file="$MKTEMP_REG"
 cat > "$raw_in"
 
 # Strip the magic header if present.
+# todo: make this convo/text part simpler, like in ask and answer.
 if [[ "$(head -n 1 "$raw_in")" == "${PIPELINE_MAGIC_HEADER}" ]]; then
-  log_error "not supposed to happen: $raw_in"
   tail -n +2 "$raw_in" > "${raw_in}.body" && mv "${raw_in}.body" "$raw_in"
 fi
 

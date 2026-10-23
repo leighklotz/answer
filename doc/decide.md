@@ -4,7 +4,7 @@ This PR introduces **`decide`**, a new structured decision command for the Hallu
 
 Where `ask` and `help` are conversational and generative (NL in, NL out), `decide` is extractive and deterministic: **schema + context in, typed JSON out**. It's the command you reach for when a shell script needs to *branch* on an answer rather than *read* one.
 
-Under the hood, `decide` is a single stateless `POST /v1/systemone` to the Jev Structured Decision API (model: `decision-model-preview`). Every question is evaluated in parallel and in isolation against the same state — no text generation, nothing to parse, predictable latency and cost.
+Under the hood, `decide` is a single stateless `POST /v1/systemone` to the Structured Decision API. Every question is evaluated in parallel and in isolation against the same state — no text generation, nothing to parse, predictable latency and cost.
 
 ## What's included
 
