@@ -17,6 +17,7 @@ NOCOLOR='\e[0m'
 if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" ]]; then
   CACHE_HIT_ICON='🎯'
   CANCELLED_ICON='🚫'
+  CAT_ICON='🐱️'
   COMPUTER_ICON='🖥️'
   CONVO_ICON='💭'
   DECISION_ICON='⚖️'      # not displaying?
@@ -46,6 +47,7 @@ if [[ "${HX_ICON_STYLE:-emoji}" == "emoji" ]]; then
 else
   CACHE_HIT_ICON=$'\U0001f3af\ufe0e'     # 🎯︎
   CANCELLED_ICON=$'\U0001f6ab\ufe0e'     # 🚫︎
+  CAT_ICON=$'\U1f431\ufe0e'              # 🐱︎
   COMPUTER_ICON=$'\U0001f5a5\ufe0e'      # 🖥︎
   CONVO_ICON=$'\U0001f4ad\ufe0e'         # 💭︎
   DECISION_ICON=$'\u2696\ufe0e'           # ⚖️
