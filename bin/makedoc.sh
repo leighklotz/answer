@@ -11,7 +11,7 @@ shopt -s nullglob
 mkdir -p doc
 
 CMDS="answer ask bx decide dreck drift gx help-commit help hx lx makedoc systype tools unfence unfile"
-: "${MAKEDOC_PREREADING:=}"
+: "${MAKEDOC_PREREADING:../HALLUX.md}"
 
 if [ -n "$1" ]; then
     CMDS=$@
