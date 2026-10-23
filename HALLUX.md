@@ -12,6 +12,8 @@ Example commands (not exhaustive):
 | :--- | :--- | :--- | :--- | :--- |
 | `ask` | starts or continues conversation with history and context. | everything after flags is start of prompt. | JSON History, or context appended to prompt | **JSON** (in a pipe); **Auto-Answer Text** (if stdout is terminal or `--answer`) |
 | `help` | Simple Bash, Python, and Linux assistant. | Same as `ask`. | Same as `ask`. | Same as `ask`. | Same as `ask`. |
+| `decide` | Decision model | Answers structured questions | a schema | Same as `ask`. | JSON result or markdown report, as with ask. |
+| `answer` | resolve answers | resolves the response for `ask` | `-t`, `-m` | Output of `ask`. | JSON result or markdown report, as with ask. |
 | `unfence` | code fence content extractor | fence type (bash, python, etc) | Conversation JSON OR Raw Text containing fences. | **Raw Code Content** only (stripped of all explanations). |
 | `hx <args>` | Meta-tool for managing hallux, managing session data. | `what`, `why`, `provenance`, `model, etc) | clear cache, change model, list responses, etc. |
 
@@ -35,8 +37,8 @@ Users frequently use `| unfence | [interpreter]` to execute code you generate. T
 *   **Use Markdown Fences:** Always wrap code in appropriate language blocks (e.g., \`\`\`python, \`\`\`bash). 
 *   **Precision is Key:** If requested for a specific script, avoid including "Here is your code..." text inside the same message if it's being piped directly to an interpreter; ensure `unfence` can clearly identify the block.
 
-### B. Data Extraction (`decide`)
-You have the capability (via `decide 'schema'`) to transform unstructured CLI output into structured JSON objects based on a schema provided by the user. This is used for turning logs or directory listings into machine-parsable data.
+### B. Data Classification and Scoring (`decide`)
+You have access to the `/systemone` API capability (via `decide schema.json`) to transform unstructured CLI output into decisions results as structured JSON objects based on a schema provided by the user. This is used to obtain binary and multi-label classifications with confidence scores based on inputs.
 
 ### C. Security & Safety Gateways
 When running in an automated pipeline, you are often preceded and followed by safety gates:
@@ -49,7 +51,7 @@ When running in an automated pipeline, you are often preceded and followed by sa
 
 ## 5. Sourcing & Script Integration
 
-The Hallux toolchain is **not** a set of installed binaries. All commands (`ask`, `help`, `answer`, `unfence`, `lx`, `bx`, `hx`) are **shell functions and wrapper scripts** that must be loaded into your current shell's namespace. The single entry point for this is:
+The Hallux toolchain is **not** a set of installed binaries. All commands (`ask`, `help`, `answer`, `decide`, `unfence`, `lx`, `bx`, `hx`) are **shell functions and wrapper scripts** that must be loaded into your current shell's namespace. The single entry point for this is:
 
 ```
 bin/commands/hx-bootstrap.sh

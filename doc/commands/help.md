@@ -34,6 +34,7 @@ When used in a pipeline, `help` behaves exactly like `ask`, managing conversatio
 |------|-----------|-------------|
 | `-i` | `--input` | **Attachment Mode:** Treats `stdin` (from a pipe or TTY) as raw text to be appended with an `ATTACHMENT:` label. In a terminal, this enables multi-line input via Ctrl+D. |
 | `-t` | `--tee`   | **Observation Mode:** Prints the human-readable response to **stderr** while passing the updated JSON conversation history through **stdout**. This is essential for mid-pipeline inspection without breaking chains. |
+| `--answer` | | **Answer Mode:** Forces routing through `answer` even when stdout is not a TTY, producing immediate plain-text output. |
 | `--help` | | Print usage information and exit. |
 
 ## Input Modes

@@ -25,43 +25,39 @@ else
 fi
 
 if [[ -n "$MODEL_DATA" ]]; then
-    # Wrap everything in a group to pipe the whole stream into 'column' at once
     {
-        # Print the Header Row first (using tabs)
-        printf "Name\tSize(GB)\tReasoning\tContext\n"
+        printf "Name\tSize(GB)\tReasoning\tContext\tInput\tOutput\n"
 
-        # Loop through each model object line by line
         while read -r row; do
             [ -z "$row" ] && continue
 
             NAME=$(echo "$row" | jq -r '.id')
-            
-            # Extract Size from .meta.size (convert bytes to GB via awk)
+
             SIZE_BYTES=$(echo "$row" | jq -r '.meta.size // 0')
             if [[ -z "$SIZE_BYTES" || "$SIZE_BYTES" == "null" ]]; then
-                SIZE_GB="0.00"
+                SIZE_GB="-"
             else
                 SIZE_GB=$(awk "BEGIN {printf \"%.2f\", $SIZE_BYTES/1073741824}")
             fi
 
-            # Check if reasoning is enabled via a single robust JQ call
-            if echo "$row" | jq -e 'any(.status.args[]; . == "--reasoning") or (.preset // "" | contains("reasoning = on"))' >/dev/null 2>&1; then
+            if echo "$row" | jq -e 'any(.status.args[]; . == "--reasoning")' >/dev/null 2>&1; then
                 REASONING="Yes"
             else
                 REASONING="No"
             fi
 
-            # Context length per model - llama.cpp reports it in meta.n_ctx
-            CTX=$(echo "$row" | jq -r '.meta.n_ctx // .n_ctx // empty')
+            CTX=$(echo "$row" | jq -r '.context_length // empty')
             if [[ -z "$CTX" || "$CTX" == "null" ]]; then
-                CTX="?"
+                CTX="-"
             fi
 
-            # Output current model row: Name [TAB] Size_GB [TAB] Reasoning [TAB] Context
-            printf "%s\t%s\t%s\t%s\n" "$NAME" "$SIZE_GB" "$REASONING" "$CTX"
+            INPUT=$(echo "$row" | jq -r '.architecture.input_modalities | join(":")')
+            OUTPUT=$(echo "$row" | jq -r '.architecture.output_modalities | join(":")')
+
+            printf "%s\t%s\t%s\t%s\t%s\t%s\n" "$NAME" "$SIZE_GB" "$REASONING" "$CTX" "$INPUT" "$OUTPUT"
 
         done <<< "$(echo "$MODEL_DATA")"
-    } | column -t  # <--- This handles the alignment for everything above it
+    } | column -t -s$'\t'
 else
     if [[ "$MODE" == "all" ]]; then
        echo "No models available." >&2

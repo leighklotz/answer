@@ -1,3 +1,15 @@
+Looking at the `lx.sh` implementation, I found one factual discrepancy with the documentation:
+
+**In the script:**
+```bash
+DEFAULT_AFTER=$'````\n---\n'
+```
+
+The default `--after` uses **four** backticks, not triple. The doc's "Key Features" section says "a standard triple-backtick separator with dashes" and the Options table shows triple backticks (```) for the `--after` default. The "Default Behavior" example correctly shows four backticks, making the descriptive text internally inconsistent as well.
+
+Here is the updated file with only those two corrections:
+
+```markdown
 # lx
 
 **`lx`** is the **Context Ingestor** of the Answer framework. It streams target files into a pipeline, automatically wrapping their content in Markdown code fences with appropriate language tags and metadata headers. This ensures that when multiple files are piped into an `ask`, `help`, or `bx` command, they arrive as structured, machine-readable context rather than raw text blocks, allowing the LLM to distinguish between different file contents easily.
@@ -19,7 +31,7 @@ The command accepts file paths as positional arguments or reads a list of paths 
 * **Flexible Input Streams:** Supports direct command-line arguments, piping from other commands (`find | lx`), or reading filenames via `stdin`. If running in a non-interactive TTY (e.g., in a pipe), it reads names line-by-line; empty lines are skipped.
 * **Dynamic Placeholders:** Uses `{filename}` and `{language}` placeholders in `--before` to inject real-time metadata into the stream. Escape sequences like `\n` are interpreted via `printf '%b'`.
 * **Line Numbers:** Optional `--line-numbers` / `-n` adds line numbers (`cat -n`) to file output.
-* **Markdown Orchestration:** Automatically handles fence opening/closing and provides customizable delimiters using `--before` and `--after` options. By default, it uses four backticks (```` ``` ````) for the starting block header and a standard triple-backtick separator with dashes (` ```\n---\n ``) for the ending block.
+* **Markdown Orchestration:** Automatically handles fence opening/closing and provides customizable delimiters using `--before` and `--after` options. By default, it uses four backticks (```` ``` ````) for the starting block header and a standard four-backtick separator with dashes (` ````\n---\n ``) for the ending block.
 * **Error Handling:** If an argument is not a regular file or is unreadable, `lx` will output an error to `stderr` and exit with status 1, terminating the pipeline.
 
 ## Options
@@ -28,7 +40,7 @@ The command accepts file paths as positional arguments or reads a list of paths 
 |------|-----------|-------------|
 | `-n` | `--line-numbers` | Prepend line numbers to file contents by passing `-n` to `cat`. |
 | `--before=STR` | | A custom string to print before each code block. Supports placeholders `{filename}` and `{language}`, and escape sequences (e.g., `\n`). Example: `### File: {filename} \n ```{language}` Placeholders are expanded only for `--before`. |
-| `--after=STR`  | | A custom string to print after each code block. Escape sequences are interpreted via `printf '%b'`. No placeholders are expanded. Useful for adding separators or manual closing fences if needed. Defaults to a standard Markdown close and separator (`` ```\n---\n ``). |
+| `--after=STR`  | | A custom string to print after each code block. Escape sequences are interpreted via `printf '%b'`. No placeholders are expanded. Useful for adding separators or manual closing fences if needed. Defaults to a standard Markdown close and separator (`` ````\n---\n ``). |
 | `--help`        | | Displays the usage information and exits. |
 
 ### Placeholders (for `--before`)
@@ -91,3 +103,4 @@ $ lx script.js utils.py | help "Refactor these" --after="\n\`\`\`\n--- \n"
 Include line numbers for easier reference in LLM analysis.
 ```bash
 $ lx -n src/main.py | help "Find off-by-one errors"
+```

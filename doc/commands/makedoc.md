@@ -18,7 +18,7 @@ makedoc command_name1 command_name2 ...
 
 ### Default Commands
 If no arguments are provided, `makedoc` processes the following set:
-`answer`, `ask`, `bx`, `dreck`, `gx`, `help-commit`, `help`, `hx`, `lx`, `makedoc`, `systype`, `tools`, and `unfence`.
+`answer`, `ask`, `bx`, `decide`, `dreck`, `drift`, `gx`, `help-commit`, `help`, `hx`, `lx`, `makedoc`, `systype`, `tools`, `unfence`, and `unfile`.
 
 ## How It Works
 
@@ -69,7 +69,7 @@ The following must be present in your shell environment:
 **Process the default set**
 ```bash
 $ makedoc
-CMDS=answer ask bx dreck help-commit help hx lx makedoc systype tools unfence
+CMDS=answer ask bx decide dreck drift gx help-commit help hx lx makedoc systype tools unfence unfile
 MAKEDOC_PREREADING=
 cmd=answer->.../bin/answer.sh
 ...

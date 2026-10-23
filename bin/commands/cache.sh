@@ -23,7 +23,7 @@ case "$1" in
         printf "%s Are you sure you want to remove %s?\n" "$WARNING_ICON" "$cache_dir" >&2
         read -r -p "Delete directory? (y/N): " reply < /dev/tty
         if [[ "$reply" =~ ^[Yy]$ ]]; then
-            rm -- "$cache_dir"/*.json && echo "${TRASH_ICON}Cache cleared." || echo "$ERROR_ICON Deletion failed." >&2
+            rm -- "$cache_dir"/*:*.json && echo "${TRASH_ICON}Cache cleared." || echo "$ERROR_ICON Deletion failed." >&2
         else
             echo "$CANCELLED_ICON Cancelled."
         fi
