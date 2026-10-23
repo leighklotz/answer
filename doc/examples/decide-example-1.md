@@ -6,12 +6,13 @@ source "${SCRIPT_DIR}/../bin/commands/hx-bootstrap.sh"
 hx core
 
 # --- 1. Create the schema ---
-hx schema build "Support Ticket Triage" <<'EOF'
-select department choice --instructions "Route to team"
-option billing:Payments,technical:Bugs,sales:Inquiry
-select is_urgent noul --instructions "Immediate action required?"
-finish triage.json
-EOF
+hx schema build "Support Ticket Triage" \
+  select department choice "Route to team" \
+  option billing "Payments" \
+  option technical "Bugs" \
+  option sales "Inquiry" \
+  select is_urgent noul "Immediate action required?" \
+  > triage.json
 
 # --- 2. Pipe raw text through decide (data mode) ---
 echo "User reports: my invoice was charged twice for the Pro plan on 06/15 and I was told it's a billing glitch but it's been 3 weeks." \
@@ -51,6 +52,6 @@ fi
 
 **Key points:**
 
-- `triage.json` is a flat map — each key is a question, each value declares `type`, `instructions`, and (for `choice`/`score`) `criteria`.
+- `triage.json` holds a `questions` map — each key is a question, each value declares `type`, `instructions`, and (for `choice`/`score`) `criteria`.
 - `decide` auto-detects raw text on stdin; no magic header needed here.
 - `--json` emits only the `answers` object so you can pipe straight into `jq` and branch in your script.

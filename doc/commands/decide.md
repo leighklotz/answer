@@ -203,26 +203,36 @@ is_urgent: noul=0.74
 
 ### 3. Automated Incident Response
 
-Trigger a PagerDuty-style alert only when `decide` classifies the incident as auth-related *and* urgent:
+Trigger a PagerDuty-style alert only when `decide` classifies the incident as auth-related *and* urgent. This uses an auth-specific schema whose `category` choice includes `auth`:
+
+```bash
+hx schema build "Incident Triage" \
+  select category choice "What kind of incident is this?" \
+  option auth "Login failures, credential abuse, permission errors" \
+  option network "Connectivity or latency problems" \
+  option other "Anything else" \
+  select is_urgent noul "Is immediate action required?" \
+  > schemas/auth-triage.json
+```
 
 ```bash
 cat /var/log/auth.log \
   | ask --answer \
-  | decide schemas/triage.json --json \
+  | decide schemas/auth-triage.json --json \
   | jq -r '
-      if (.department.choice == "auth" and .is_urgent.noul > 0.8)
+      if (.category.choice == "auth" and .is_urgent.noul > 0.8)
       then "PAGE" else "OK" end' \
   | { read -r verdict; [[ "$verdict" == "PAGE" ]] && curl -X POST "$PAGERDUTY_URL"; }
 ```
 
-### 4. Git-Commit Quality Gate (with `gx`)
+### 4. Git-Commit Quality Gate
 
 Score a diff before merge:
 
 ```bash
-gx diff HEAD~1..HEAD \
+git diff HEAD~1..HEAD \
   | decide schemas/commit-quality.json --json \
-  | jq '.answers.breaks_api.noul' \
+  | jq '.breaks_api.noul' \
   | awk '{ exit ($1 > 0.7) }'   # non-zero exit → CI fails the PR
 ```
 

@@ -26,13 +26,16 @@ Under the hood, `decide` is a single stateless `POST /v1/systemone` to the Jev S
 
 ## Usage
 
-**Sculpt a schema interactively:**
+**Build a schema from positional DSL arguments:**
 
 ```bash
-$ hx schema build "Support Ticket Triage"
-> select department choice --instructions "Route to team"
-> option billing:Payments,technical:Bugs,sales:Inquiry
-> select is_urgent noul --instructions "Immediate action required?" > triage.json
+hx schema build "Support Ticket Triage" \
+  select department choice "Route to team" \
+  option billing "Payments" \
+  option technical "Bugs" \
+  option sales "Inquiry" \
+  select is_urgent noul "Immediate action required?" \
+  > triage.json
 ```
 
 **Then use it as a pipeline gate:**
