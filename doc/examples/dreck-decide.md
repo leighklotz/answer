@@ -1,5 +1,6 @@
 ```
-klotz:~/wip/phone-answer💰$ dreck bin/cx.sh bin/cx-2.sh | decide "Dreck Gate" \
+klotz:~/wip/phone-answer💰$ dreck bin/cx.sh bin/cx-2.sh |
+  decide "Dreck Gate" \
     select is_better noul "Is the second file better?" \
     select risk_level score "Are any security issues introduced" option 'zero|low|medium|high'  | 
     help format pretty in text with ascii bar charts
