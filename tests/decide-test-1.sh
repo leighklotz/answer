@@ -21,12 +21,13 @@ hx schema build "Support Ticket Triage" \
   > triage.json
 
 # --- 2. Pipe raw text through decide (data mode) ---
+# Note: options must precede the positional schema file.
 echo "User reports: my invoice was charged twice for the Pro plan on 06/15 and I was told it's a billing glitch but it's been 3 weeks." \
-  | decide triage.json --json
+  | decide --json triage.json
 
 # --- 3. Branch on the result ---
 answer=$(echo "My API integration started returning 502 errors after the deploy and the staging env is down." \
-  | decide triage.json --json)
+  | decide --json triage.json)
 
 dept=$(echo "$answer" | jq -r '.department.choice')
 urgent=$(echo "$answer" | jq -r '.is_urgent.noul')
