@@ -4,9 +4,9 @@
 klotz@snapback:~/wip/answer👣$ help summarize logs and diffs since main |
   tools git |
   help write a PR for the changes |
-  ask avoid emoji
+  ask avoid emoji |
+  innomd -P
 💬✨🤖 git log main..HEAD --oneline✨🤖 git diff main..HEAD✨💬✨✨
-```
 
 ## Title: Refactor project structure to `bin/` directory and enhance CLI visual feedback
 
@@ -41,3 +41,6 @@ Introduced character-based status indicators for terminal output to provide imme
 - [x] Code structure follows the new organization standards.
 - [x] Tests pass with updated directory paths and streamlined pipelines.
 - [x] No breaking changes to core command logic; improvements are structural and UX-focused.
+
+klotz@snapback:~/wip/answer👣$▮
+```
