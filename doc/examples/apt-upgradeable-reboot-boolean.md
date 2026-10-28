@@ -1,4 +1,8 @@
-klotz@tensor:~👣$ (systype; bx apt list --upgradable)| ask will it need to reboot
+```
+klotz@tensor:~👣$ (systype; bx apt list --upgradable) |
+    ask will it need to reboot |
+    innomd
+```
 
 WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
 
