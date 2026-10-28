@@ -2,7 +2,7 @@
 klotz@tensor:~👣$ (systype; bx apt list --upgradable) |
     ask will it need to reboot |
     innomd
-🐚✨🧠🐚💬🎯✨🧠
+🐚✨🧠
 ```
 **No, it does not need to reboot.**
 
@@ -35,10 +35,5 @@ cat /var/run/reboot-required
 
 If that file does **not** exist, you do not need to reboot.
 
-**Summary:** You are safe to apply these updates and contin
-ue working without restarting your machine.
-klotz@tensor:~👣$ (systype; bx apt list --upgradable)| ask 
-will it need to reboot| ask output exactly eithet true or false
-
-WARNING: apt does not have a stable CLI interface. Use with
- caution in scripts.
+**Summary:** You are safe to apply these updates and continue 
+working without restarting your machine.
