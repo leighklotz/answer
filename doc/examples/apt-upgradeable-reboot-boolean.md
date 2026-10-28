@@ -2,11 +2,8 @@
 klotz@tensor:~👣$ (systype; bx apt list --upgradable) |
     ask will it need to reboot |
     innomd
-```
-
-WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
-
 🐚✨🧠
+```
 **No, it does not need to reboot.**
 
 Here is why:
