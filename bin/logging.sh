@@ -202,3 +202,96 @@ emit_icon_tooltip() {
             "$OSC8_CLOSE" >&2
     fi
 }
+
+### Out-of-band telemetry (JSON Lines to a Unix domain socket)
+###
+### Active only if a `.hallux/.telemetry/` directory exists (found by walking up
+### from $PWD, or under $HX_ROOT) containing a `socket-*` Unix socket and `socat`
+### or `nc` (OpenBSD, -U) is installed. Otherwise a silent no-op; stderr logging is unaffected.
+###
+### Usage: emit_telemetry EVENT [JSON_OBJECT_OF_EXTRA_FIELDS]
+###   EVENT is one of: process_start, stream_pip, process_end
+_telemetry_socket() {
+    if [[ -n "${HX_TELEMETRY_SOCKET+x}" ]]; then
+        printf '%s' "$HX_TELEMETRY_SOCKET"
+        return 0
+    fi
+    local dir sock found=""
+    if [[ -n "${HX_ROOT:-}" ]]; then
+        dir="${HX_ROOT%/}"
+        [[ "$(basename "$dir")" != ".hallux" && -d "$dir/.hallux" ]] && dir="$dir/.hallux"
+        [[ -d "$dir/.telemetry" ]] && found="$dir/.telemetry"
+    else
+        dir="$PWD"
+        while [[ -n "$dir" ]]; do
+            if [[ -d "$dir/.hallux/.telemetry" ]]; then
+                found="$dir/.hallux/.telemetry"
+                break
+            fi
+            [[ "$dir" == "/" ]] && break
+            dir="$(dirname "$dir")"
+        done
+    fi
+    sock=""
+    if [[ -n "$found" ]]; then
+        for f in "$found"/socket-*; do
+            [[ -S "$f" ]] && sock="$f"
+        done
+    fi
+    # Cache the result (possibly empty) for the rest of this process.
+    HX_TELEMETRY_SOCKET="$sock"
+    printf '%s' "$sock"
+}
+
+emit_telemetry() {
+    local event="${1:-}" extra="${2:-}"
+    [[ -z "$event" ]] && return 0
+    local sender=""
+    if command -v socat >/dev/null 2>&1; then sender=socat
+    elif command -v nc >/dev/null 2>&1; then sender=nc
+    else return 0; fi
+    command -v jq >/dev/null 2>&1 || return 0
+    local sock
+    sock="$(_telemetry_socket)"
+    [[ -z "$sock" ]] && return 0
+    [[ -z "$extra" ]] && extra='{}'
+    if [[ -z "${HX_TELEMETRY_SESSION:-}" ]]; then
+        HX_TELEMETRY_SESSION="$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')"
+        HX_TELEMETRY_SESSION="${HX_TELEMETRY_SESSION:-$PPID}"
+    fi
+    local ts
+    ts="$(date +%s%3N)"
+    jq -cn --arg event "$event" --arg session "$HX_TELEMETRY_SESSION" \
+        --argjson pid "$$" --arg prog "$(basename "$0")" --argjson ts "$ts" \
+        --argjson extra "$extra" \
+        '{event: $event, session_id: $session, process_id: $pid, program: $prog, timestamp: $ts} + $extra' \
+        2>/dev/null |
+        if [[ "$sender" == socat ]]; then
+            socat -t0 - "UNIX-CONNECT:${sock}" >/dev/null 2>&1 || true
+        else
+            nc -U -N "$sock" >/dev/null 2>&1 || nc -U -w1 "$sock" >/dev/null 2>&1 || true
+        fi
+    return 0
+}
+
+# Emit process_start with the command line. Usage: telemetry_start "$@"
+telemetry_start() {
+    local args
+    args="$(jq -cn '$ARGS.positional' --args -- "$@" 2>/dev/null)" || return 0
+    emit_telemetry process_start "$(jq -cn --argjson a "$args" --arg c "$(basename "$0")" '{command: $c, args: $a}' 2>/dev/null)"
+}
+
+# Emit process_end on exit with the exit code. Usage: telemetry_end_on_exit
+# _ensure_workspace (functions.sh) replaces the EXIT trap, so it also calls
+# _telemetry_on_exit; the armed flag keeps the event from being emitted twice.
+_telemetry_on_exit() {
+    local rc="${1:-0}"
+    [[ -z "${_TELEMETRY_END_ARMED:-}" || "$BASHPID" != "$$" ]] && return 0
+    _TELEMETRY_END_ARMED=""
+    emit_telemetry process_end "{\"exit_code\": ${rc}}"
+}
+
+telemetry_end_on_exit() {
+    _TELEMETRY_END_ARMED=1
+    trap '_telemetry_on_exit $?' EXIT
+}

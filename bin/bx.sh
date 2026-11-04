@@ -4,6 +4,8 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
+telemetry_start "$@"
+telemetry_end_on_exit
 
 plain=""
 if [[ "$1" == "-p" || "$1" == "--plain" ]]; then
