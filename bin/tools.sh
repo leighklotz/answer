@@ -6,6 +6,8 @@
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
+telemetry_start "$@"
+telemetry_end_on_exit
 source "${SCRIPT_DIR}/functions.sh"
 
 # Configuration defaults

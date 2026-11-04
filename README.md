@@ -371,3 +371,7 @@ This LLM agent harness in Bash was derived from https://github.com/leighklotz/ll
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Telemetry (optional)
+
+If a Unix domain socket named `.hallux/.telemetry/socket-*` exists (found by walking up from the current directory, or under `$HX_ROOT`) and `socat` or OpenBSD `nc` is installed, `ask`, `answer`, `bx`, `lx`, `unfence` and `tools` emit JSON Lines events to it: `process_start` (command and args), `stream_pip` (`chunk_count`, one per streaming pip) and `process_end` (`exit_code`). Each event carries `session_id` (process group), `process_id`, `program` and `timestamp` (epoch ms). Without the socket, nothing changes; stderr logging is unaffected. A TUI visualizer can listen on that socket. See `tests/telemetry-test.sh`.

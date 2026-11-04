@@ -5,6 +5,8 @@ SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE}")")"
 source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
+telemetry_start "$@"
+telemetry_end_on_exit
 
 # --- ARGUMENT PARSING ---
 USE_SYSTEM_MSG=false
