@@ -329,6 +329,7 @@ function _infer () {
   # - REASONING_EFFORT=xhigh -> THINKING_BUDGET=32768
   jq \
     --arg server_model "$server_model" \
+    --arg provider_order "${HX_PROVIDERS:-}" \
     --argjson thinking "${ENABLE_THINKING:-true}" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-65536}" \
     --argjson thinking_budget "${THINKING_BUDGET:-8000}" \
@@ -341,7 +342,13 @@ function _infer () {
       enable_thinking: $thinking,
       thinking_budget_tokens: $thinking_budget,
       chat_template_kwargs: { reasoning_effort: $reasoning_effort }
-    }' < "$tmp_json" > "$tmp_req"
+     } | if $provider_order == "" then .
+       else . + {provider: {
+         order: ($provider_order | split(",") | map(gsub("^\\s+|\\s+$"; ""))),
+         allow_fallbacks: false
+       }}
+       end' < "$tmp_json" > "$tmp_req"
+
 
   local fingerprint request_hash cache_dir cache_file response_json
 
@@ -431,7 +438,7 @@ function _infer () {
 function _hx_again() {
     local cmd
     cmd=$(fc -ln -1)
-    # TODO: We need it to execute inside bx.
+    # Note: We need it to execute inside bx.
     bx ${cmd/#bx /} 2>&1
 }
 

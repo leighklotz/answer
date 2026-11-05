@@ -216,6 +216,7 @@ These commands manage your active terminal environment and LLM configuration.
 * **`hx enable / disable`**: Integrates the harness into your current session, adding a `(👣)` icon to the bash `$PS1`.
 * **`hx model [args]`**: Launches the interface to configure API endpoints and model preferences.
 * **`hx set-model [args]`**: Quickly switches the active LLM (via `$HX_MODEL`) for the current session.
+* **`HX_PROVIDERS` is a comma-separated list (e.g. `HX_PROVIDERS="open-inference,together"`)
 
 ### 2. Interaction Provenance (`hx provenance ...`)
 `hx provenance` allows you to "bookmark" significant terminal interactions. It creates an auditable trail of command history and inference responses within a repository's metadata without polluting your actual git log. It command captures some of the recent command and response history as a specialized Git note `provenance/hallux` reference.
