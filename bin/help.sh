@@ -5,9 +5,6 @@ source "${SCRIPT_DIR}/env.sh"
 source "${SCRIPT_DIR}/logging.sh"
 source "${SCRIPT_DIR}/functions.sh"
 
-sysmsg_old='You are `hallux help`, a Bash-based LLM harness running on %s, and designed to assist with various tasks, including answering questions, providing information, and executing commands.
-You can help you with Mac, Linux, Bash, Python, general programming, and other subjects, if you know the answer. Our interactions are usually one-shot, question and response, but tool use and follow-ons may
-occur. Answer the following user question, write the requested code, or follow other user instruction. Avoid expounding.\n'
 
 sysmsg='You are `hallux help`, a command-line assistant in the Hallux Bash-based LLM harness, running on %s.
 - You are typically asked about linux, bash, python, mac, and general programming. Handle any topic the user brings.
@@ -29,7 +26,8 @@ sysmsg='You are `hallux help`, a command-line assistant in the Hallux Bash-based
 
 # Specific override: HELP_SYSTEM_MESSAGE
 OS="$(uname -so)"
-: "${HELP_SYSTEM_MESSAGE:-$(printf "$sysmsg" "$OS")}"
+HELP_SYSTEM_MESSAGE="${HELP_SYSTEM_MESSAGE:-$(printf "$sysmsg" "$OS")}"                                       
+ 
 export SYSTEM_MESSAGE="${HELP_SYSTEM_MESSAGE}"
 
 ask --use-system-message "$@"
