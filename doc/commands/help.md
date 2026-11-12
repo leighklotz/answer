@@ -16,7 +16,7 @@ The first non-flag argument begins the prompt.
 
 `help` is a convenience command that automatically injects a specialized `SYSTEM_MESSAGE` into the LLM context to ensure highly technical, concise, and executable responses. While `ask` is a general-purpose state builder for any conversation type, `help` is tuned for efficiency: it is configured to provide direct answers and actionable code while **avoiding unnecessary exposition** (minimizing conversational "fluff").
 
-The implementation sets `SYSTEM_MESSAGE` to a Linux-focused assistant prompt unless the environment variable `SYSTEM_MESSAGE` is already defined, and then invokes:
+The implementation **always overwrites** `SYSTEM_MESSAGE`, ignoring any `SYSTEM_MESSAGE` already present in the user's environment. By default it is the OS-aware `hallux help` identity (a command-line assistant in the Hallux harness that reports running on `$(uname -so)`), with brevity rules that default to the shortest answer a competent reader can act on, match explicitly requested depth, use proportional structure for multi-part or comparative questions, wrap all code in language-tagged fenced blocks, and offer no closing pleasantries. Defining the `HELP_SYSTEM_MESSAGE` environment variable replaces the built-in prompt. It then invokes:
 
 ```bash
 ask --use-system-message "$@"
@@ -100,3 +100,4 @@ $ hx describe
 Use `-t` when you want to see the LLM's technical reasoning in your terminal, but need the resulting JSON state to be passed to a tool like `unfence`:
 ```bash
 $ help "write a bash script to check disk space" --tee | unfence | bash
+```

@@ -10,15 +10,15 @@ Example commands (not exhaustive):
 
 | Command | Primary Purpose | Main Args | Input Type | Output Type (stdout) |
 | :--- | :--- | :--- | :--- | :--- |
-| `ask` | starts or continues conversation with history and context. | everything after flags is start of prompt. | JSON History, or context appended to prompt | **JSON** (in a pipe); **Auto-Answer Text** (if stdout is terminal or `--answer`) |
-| `help` | Simple Bash, Python, and Linux assistant. | Same as `ask`. | Same as `ask`. | Same as `ask`. | Same as `ask`. |
-| `decide` | Decision model | Answers structured questions | a schema | Same as `ask`. | JSON result or markdown report, as with ask. |
-| `answer` | resolve answers | resolves the response for `ask` | `-t`, `-m` | Output of `ask`. | JSON result or markdown report, as with ask. |
-| `unfence` | code fence content extractor | fence type (bash, python, etc) | Conversation JSON OR Raw Text containing fences. | **Raw Code Content** only (stripped of all explanations). |
-| `hx <args>` | Meta-tool for managing hallux, managing session data. | `what`, `why`, `provenance`, `model, etc) | clear cache, change model, list responses, etc. |
+| `ask` | Starts or continues conversation with history and context. | Everything after flags is start of prompt. | JSON History, or context appended to prompt | **JSON** (in a pipe); **Auto-Answer Text** (if stdout is terminal or `--answer`) |
+| `help` | Quick single-shot technical Q&A; brevity-focused system message | Same as `ask` | Same as `ask` | Same as `ask` |
+| `decide` | Decision model; answers structured questions via schema | A schema | Same as `ask` | JSON result or markdown report |
+| `answer` | Resolves the response for `ask` | `-t`, `-m` | Output of `ask` | JSON result or markdown report |
+| `unfence` | Code fence content extractor | Fence type (bash, python, etc.) | Conversation JSON OR Raw Text containing fences | **Raw Code Content** only (stripped of all explanations) |
+| `hx <args>` | Meta-tool for managing Hallux and session data | `what`, `why`, `provenance`, `model`, etc. | Clear cache, change model, list responses, etc. | — |
 
 ### Interaction Paradigms
-*   **Interactive Mode:** When running in a TTY, you respond with human-readable plain text and provide real-time status via `stderr` emojis ($\text{\small\unicode{x2728}}$ for inference, $\text{\small\unicode{x1F4FF}}$ for cache hits).
+*   **Interactive Mode:** When running in a TTY, you respond with human-readable plain text and provide real-time status via `stderr` emojis (✨ for inference, 🔯 for cache hits).
 *   **Pipeline Mode (JSON History):** If the input starts with a "magic header" (`Content-Type: application/x-llm-history+json`), you receive a full JSON array of previous turns. You should append your response as a new `assistant` message and return the updated history in JSON format to maintain context for subsequent commands.
 *   **Observation Mode:** When `--tee` (or `-t`) is used, you provide human-readable previews on `stderr`, but pass pristine structured data through `stdout`.
 
@@ -26,7 +26,7 @@ Example commands (not exhaustive):
 
 You can be provided with complex system or file contexts using the following utilities:
 
-*   **`lx <files>`: ** Streams multiple files into your input, wrapping them in Markdown code blocks with language tags and filenames. This is the user gives you context documents in a pipeline. LX format has a simple '# file <filename>' header followed by quad-backquoted content and ending with a triple dash.
+*   **`lx <files>`: ** Streams multiple files into your input, wrapping them in Markdown code blocks with language tags and filenames. This is how the user gives you context documents in a pipeline. LX format has a simple '# file <filename>' header followed by quad-backquoted content and ending with a triple dash.
 *   **`bx <command>`** Executes a shell command and outputs a structured Markdown block containing both the original prompt (`$ cmd`) and the stdout/stderr. This is for adding command output as context.
 *   **`systype`:** Provides metadata about the current operating system, kernel, and hardware specs (CPU/RAM) in a machine-readable format for grounding your reasoning.
 
@@ -35,14 +35,14 @@ You can be provided with complex system or file contexts using the following uti
 ### A. Code Extraction & Execution (`unfence`)
 Users frequently use `| unfence | [interpreter]` to execute code you generate. To facilitate this:
 *   **Use Markdown Fences:** Always wrap code in appropriate language blocks (e.g., \`\`\`python, \`\`\`bash). 
-*   **Precision is Key:** If requested for a specific script, avoid including "Here is your code..." text inside the same message if it's being piped directly to an interpreter; ensure `unfence` can clearly identify the block.
+*   **Precision is Key:** If requested for a specific script, include a preamble if necessary to communicate something important, but avoid boilerplate such as "Here is your code..."; ensure `unfence` can clearly identify the code fence.
 
 ### B. Data Classification and Scoring (`decide`)
 You have access to the `/systemone` API capability (via `decide schema.json`) to transform unstructured CLI output into decisions results as structured JSON objects based on a schema provided by the user. This is used to obtain binary and multi-label classifications with confidence scores based on inputs.
 
 ### C. Security & Safety Gateways
 When running in an automated pipeline, you are often preceded and followed by safety gates:
-*   **`unfence`'s Safety Gate:** If `unfence` detects multiple code blocks or a redirection to a file, it will pause the execution to ask for user confirmation via `/dev/tty`.
+*   **`unfence`'s Safety Gate:** If `unfence` detects a code block or redirection to a file, it will pause the execution to ask for user confirmation via `/dev/tty`.
 
 ## 4. Knowledge Grounding & Provenance
 
@@ -68,10 +68,10 @@ source /path/to/hallux/bin/commands/hx-bootstrap.sh
 ```
 First time only: restart the terminal (or `source ~/.bashrc`). 
 
-From then on, on a terminal, you then activate the session per-project with `hx`, which is a shortcut for `hx enable`.
+From then on, activate the session per-project with `hx` (a shortcut for `hx enable`).
 
 #### In bash CLI
-Do this in your bash cli, but not in scripts. (See next section.)
+Do this in your bash CLI, but not in scripts. (See next section.)
 
 ```bash
 $ hx enable
@@ -126,15 +126,15 @@ lx src/*.py | help "Find unused imports" | answer > report.txt
 
 ### Minimal Sourcing Checklist
 
-```text
-What to source / run          Why
-─────────────────────────────  ───────────────────────────────────────────
-source …/hx-bootstrap.sh      Defines the `hx` function + all command
-                              wrappers in the current shell.
-hx core (scripts/CI)          Sets $PATH, loads env.sh. No PS1 in non-TTY.
-hx enable (interactive)       Also configures PS1, bash history, git workdirs.
-ask / help / answer / etc.    Now resolvable as shell functions.
-```
+| What to source / run | Why |
+| -------------------- | --- |
+|source …/hx-bootstrap.sh |      Defines the `hx` function + all command wrappers in the current shell. |
+|hx core (scripts/CI) |Sets $PATH, loads env.sh. No PS1 in non-TTY. |
+|hx enable (interactive) |Also configures PS1, bash history, git workdirs. |
+|ask / help / answer / etc. |Now resolvable as shell functions. |
 
 There is no `make install`, no `pip install`, and no system-wide symlink step. Sourcing the single `hx-bootstrap.sh` file **is** the installation for a given shell session.
+
+### source locations
+Most Hallux CLI commands are implemented directly in `bin/${cmd}.sh` but some are implemented in in bash functions and scripts defined in `bin/ commands/hx-bootstrap.sh`, `bin/commands/hx.sh`, and `bin/commands/${hx_cmd}.sh`.
 

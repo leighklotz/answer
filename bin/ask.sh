@@ -136,9 +136,8 @@ elif [ -t 1 ] || [ -n "$ANSWER_MODE" ]; then
     printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages" | "${SCRIPT_DIR}/answer"
 else
     # Contract Rule: Inside a pipe, forward the updated full JSON history state
-    printf "%s" "$MESSAGES" >&2
-    messages_tooltip=$(jq -r '[.[] | select(.role=="user")] | last | .content' <<< "$messages" 2>/dev/null)                                                                                                         
-    messages_tooltip="${messages_tooltip:0:32}"                                                                                                                                                                     
+    messages_tooltip=$(jq -r '[.[] | select(.role=="user")] | last | .content' <<< "$messages" 2>/dev/null)
+    messages_tooltip="${messages_tooltip:0:32}"
     emit_icon_tooltip "$USER_INPUT_ICON" "$messages_tooltip"
     printf "%s\n%s\n" "${PIPELINE_MAGIC_HEADER}" "$messages"
 fi
