@@ -135,3 +135,6 @@ lx src/*.py | help "Find unused imports" | answer > report.txt
 
 There is no `make install`, no `pip install`, and no system-wide symlink step. Sourcing the single `hx-bootstrap.sh` file **is** the installation for a given shell session.
 
+### source locations
+Most Hallux CLI commands are implemented directly in `bin/${cmd}.sh` but some are implemented in in bash functions and scripts defined in `bin/ commands/hx-bootstrap.sh`, `bin/commands/hx.sh`, and `bin/commands/${hx_cmd}.sh`.
+
