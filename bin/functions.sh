@@ -321,34 +321,53 @@ function _infer () {
 
   log_info "model=$server_model"
 
-  # TODO: Should we map these for model agnosticism
-  # or let the user set them individually as needed.
-  # For qwen3.8-27b:
-  # - REASONING_EFFORT=low -> THINKING_BUDGET=2000
-  # - REASONING_EFFORT=medium -> THINKING_BUDGET=8000
-  # - REASONING_EFFORT=xhigh -> THINKING_BUDGET=32768
+  local enable_thinking="${ENABLE_THINKING:-true}"
+  local reasoning_effort="${REASONING_EFFORT:-medium}"
+  local thinking_budget="${THINKING_BUDGET:-}"
+
+  if [[ "$enable_thinking" == "false" || "$reasoning_effort" == "none" || "$reasoning_effort" == "off" ]]; then
+    enable_thinking="false"
+    reasoning_effort="none"
+    thinking_budget=0
+  elif [[ -z "$thinking_budget" ]]; then
+    case "$reasoning_effort" in
+      low)      thinking_budget=2000 ;;
+      medium)   thinking_budget=8000 ;;
+      high)     thinking_budget=16384 ;;
+      xhigh)    thinking_budget=32768 ;;
+      *)        thinking_budget=8000 ;;
+    esac
+  fi
+
   jq \
     --arg server_model "$server_model" \
     --arg provider_order "${HX_PROVIDERS:-}" \
-    --argjson thinking "${ENABLE_THINKING:-true}" \
+    --argjson thinking "$enable_thinking" \
     --argjson max_tokens "${VIA_MAX_TOKENS:-65536}" \
-    --argjson thinking_budget "${THINKING_BUDGET:-8000}" \
-    --arg reasoning_effort "${REASONING_EFFORT:-medium}" \
-    --arg reasoning_budget $'\n[Budget reached. Transitioning to final response...]\n' \
+    --argjson thinking_budget "$thinking_budget" \
+    --arg reasoning_effort "$reasoning_effort" \
     '{
       model: $server_model,
       messages: .,
       max_tokens: $max_tokens,
-      enable_thinking: $thinking,
-      thinking_budget_tokens: $thinking_budget,
-      chat_template_kwargs: { reasoning_effort: $reasoning_effort }
-     } | if $provider_order == "" then .
-       else . + {provider: {
-         order: ($provider_order | split(",") | map(gsub("^\\s+|\\s+$"; ""))),
-         allow_fallbacks: false
-       }}
-       end' < "$tmp_json" > "$tmp_req"
-
+      chat_template_kwargs: {
+        enable_thinking: $thinking,
+        reasoning_effort: $reasoning_effort
+      }
+    }
+    | if $thinking then
+        . + { thinking_budget_tokens: $thinking_budget }
+      else
+        . + { reasoning_budget: 0 }
+      end
+    | if $provider_order == "" then .
+      else . + {
+        provider: {
+          order: ($provider_order | split(",") | map(gsub("^\\s+|\\s+$"; ""))),
+          allow_fallbacks: false
+        }
+      }
+      end' < "$tmp_json" > "$tmp_req" || return 1
 
   local fingerprint request_hash cache_dir cache_file response_json
 
