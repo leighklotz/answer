@@ -91,12 +91,12 @@ hx core
 result="$(ask "Write a one-line awk to sum column 2 of a CSV" | answer)"
 
 # 3. Multi-turn pipeline, terminated by answer for plain text
-script="$(ask "Write a bash script that lists files over 10 MB" \
-       | ask "Add error handling and a --verbose flag" \
-       | unfence bash \
-       | cat)"
+ask "Write a bash script that lists files over 10 MB" \
+    | ask "Add error handling and a --verbose flag" \
+    | unfence bash
 
 # 4. File-ingestion context inside a script
+# answer is needed because stdout is not a TTY
 lx src/*.py | help "Find unused imports" | answer > report.txt
 ```
 
@@ -104,11 +104,10 @@ lx src/*.py | help "Find unused imports" | answer > report.txt
 
 | Situation | What to do |
 |---|---|
-| You need **plain text** from `ask`/`help` in a script (non-TTY) | Always pipe through `\| answer` or use `ask --answer`. Without it, stdout is the full JSON conversation array. |
-| You need the **JSON history** for further piping or storage | Do **not** pipe through `answer`. Capture stdout directly: `hist="$(ask "…")"`. |
+| You need **plain text** from `ask`/`help` in a script (non-TTY, not output directly to TTY) | Pipe through `\| answer` before consuming results. Without `answer`, stdout is the full JSON conversation array if, stdout is not a tty. |
+| You need the **JSON history** for further piping or storage | Do **not** pipe through `answer`. |
 | Redirecting to a file | `ask "write code" \| answer > out.txt` — omitting `answer` writes the JSON blob instead. |
 | Calling `hx core` in a script that already has a custom `PATH` | It is idempotent; it only prepends the commands directory if not already present. |
-| You only need `unfence` or `lx` (no LLM call) | You still must source `hx-bootstrap.sh` first, because those are also functions/scripts resolved through the updated `PATH`. |
 
 ### Minimal Sourcing Checklist
 
@@ -126,10 +125,6 @@ Project-level environment overrides are managed in config file `bin/commands/env
 
 ## 3. EXTENDING Hallux
 *This section describes the underlying architecture and source locations for developers and maintainers.*
-
-### Security & Safety Gateways
-When running in an automated pipeline, you are often preceded and followed by safety gates:
-*   **`unfence`'s Safety Gate:** If `unfence` detects a code block or redirection to a file, it will pause the execution to ask for user confirmation via `/dev/tty`.
 
 ### Source Locations
 Most Hallux CLI commands are implemented directly in `bin/${cmd}.sh` but some are implemented in bash functions and scripts defined in:
