@@ -17,6 +17,8 @@ Most chat interfaces and agent harnesses work hard to preserve session state, re
 * **Chained commands (`ask | ask`)** pass the JSON conversation history forward, acting as the **Elephant**.
 * **A new command (`lx ... | ask`)** starts with zero conversation history by default, acting as the **Goldfish**.
 * **Writing to disk (`| answer > doc/spec.md`)** creates a clean boundary between drafting and review.
+* **Inference history is bash history:** chain `ask` commands together to continue a conversation, or append a new command to have multiple forked conversations, all sharing zero context with each other, in the same shell.
+* **A cache facility** gives cached answers for exact-match previous inferences of idempotent commands so you can freely use your shell history navigation to scroll through previous avenues that would otherwise be unwieldy forks to manage in multiple tabs or windows in a web UI.
 
 ---
 
