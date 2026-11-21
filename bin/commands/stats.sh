@@ -9,7 +9,7 @@ if [ -t 0 ]; then
     log_and_exit 1 "No stdin detected. Requires inference response."
 fi
 
-printf "%s\n" "$SCROLL_ICON" >&2
+emit_icon_tooltip "$SCROLL_ICON" ""
 
 jq -r --arg stats_icon "$STATS_ICON" '
     "***\n### \($stats_icon) Statistics\n" +
