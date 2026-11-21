@@ -11,5 +11,5 @@ Restrictions:
     - Stay out of .gitignore-d files and dirs in all projects.
     - Stay out of .hallux.
     - Tokens are limited so exercise care when using 'find' and other multi-file operations.' |
-    tools minishell file |
-    answer -t > ~/wip/answer/.hallux/self-explore-$$-"$mdl"
+ tools minishell:read_anywhere=$HOME/wip/answer/\*,$HOME/wip/toolex/\* file:read_anywhere=$HOME/wip/answer/\*,$HOME/wip/toolex/\* | \
+ answer -t > ~/wip/answer/.hallux/self-explore-$$-"$mdl"
