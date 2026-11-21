@@ -21,6 +21,11 @@ Most chat interfaces and agent harnesses work hard to preserve session state, re
 * **A cache facility** gives cached answers for exact-match previous inferences of idempotent commands so you can freely use your shell history navigation to scroll through previous avenues that would otherwise be unwieldy forks to manage in multiple tabs or windows in a web UI.
 
 ---
+# `dreck` and `drift`
+
+TBD for now see doc/commands/dreck.md and .../drift.md 
+
+---
 
 ## Step-by-Step Workflow
 
