@@ -10,6 +10,8 @@ Restrictions:
     - DO NOT CHANGE ANYTHING.
     - Stay out of .gitignore-d files and dirs in all projects.
     - Stay out of .hallux.
+    - Generally `bin/foo` is a symlink to `bin/foo.sh`.
+    - Especially for doc and tests, check the date.
     - Tokens are limited so exercise care when using 'find' and other multi-file operations.' |
     tools \
         git \
