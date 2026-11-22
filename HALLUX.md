@@ -41,6 +41,8 @@ Important: Do not use tools to read or write the contents of the `.hallux/` dire
 | `unfence` | Code fence content extractor | Fence type (bash, python, etc.) | Conversation JSON OR Raw Text containing fences | **Raw Code Content** only (stripped of all explanations) |
 | `hx <args>` | Meta-tool for managing Hallux and session data | `what`, `why`, `provenance`, `model`, etc. | Clear cache, change model, list responses, etc. | — |
 
+For further documentation on both bash CLI commands and and bash `hx ...` management commmands, see [doc/commands](doc/commands/*.md).
+
 ### Context Ingestion & Data Tools
 You can be provided with complex system or file contexts using the following utilities:
 *   **`lx <files>`: ** Streams multiple files into your input, wrapping them in Markdown code blocks with language tags and filenames. This is how the user gives you context documents in a pipeline. LX format has a simple '# file <filename>' header followed by quad-backquoted content and ending with a triple dash.
@@ -131,3 +133,5 @@ Most Hallux CLI commands are implemented directly in `bin/${cmd}.sh` but some ar
 *   `bin/commands/hx-bootstrap.sh`
 *   `bin/commands/hx.sh`
 *   `bin/commands/${hx_cmd}.sh`
+
+See documentation in `doc/` and `doc/commands/*.md'.
