@@ -12,9 +12,9 @@ function cap_read_dir {
     local dir="$1"
     local cap=""
     if [[ "$dir" != "$PWD" ]]; then
-        printf -v cap "minishell:read=$%s,$%s/\*" "$dir" "$dir"
+        printf -v cap "minishell:read=%s,%s/**" "$dir" "$dir"
     else
-        printf -v cap "minishell:read_anywhere=$%s,$%s/\*" "$dir" "$dir"
+        printf -v cap "minishell:read_anywhere=%s,%s/**" "$dir" "$dir"
     fi
     if [[ -n "$cap" ]]; then
         log_info "$cap"
@@ -43,14 +43,13 @@ Restrictions:
     printf -v prompt "$prompt_template" "$round" | ask "$prompt" | tools git "$capabilities" --drop-tool-reasoning
 }
 
-round_1_out="${HOME}/wip/answer/.hallux/self-explore-$$-round-1-${mdl}"
-round_2_out="${HOME}/wip/answer/.hallux/self-explore-$$-round-2-${mdl}"
+d="${HOME}/wip/answer/.hallux/self-explore"
+mkdir -p "$d"
+round_1_out="$d/round-1-$$-${mdl}"
+round_2_out="$d/round-2-$$-${mdl}"
 
-ask "$(round 1 "$(cap_read_dir "$HOME/wip/answer")")" |
-    answer > "$round_1_out"
-
-cat "$round_1_out" | ask "$(round 2 "$(cap_read_dir "$HOME/wip/toolex")")" |
-    answer > "$round_2_out"
+ask "$(round 1 "$(cap_read_dir "$HOME/wip/answer")")" | answer > "$round_1_out"
+cat "$round_1_out" | ask "$(round 2 "$(cap_read_dir "$HOME/wip/toolex")")" | answer > "$round_2_out"
 
 echo "$round_1_out"
 echo "$round_2_out"
