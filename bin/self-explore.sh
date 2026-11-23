@@ -4,6 +4,8 @@ source ~/wip/answer/bin/commands/hx-bootstrap.sh && hx enable
 source ~/wip/answer/bin/env.sh
 source ~/wip/answer/bin/logging.sh
 
+export INFO=1
+
 mdl="$(hx model)"
 mdl="${mdl/\//_}"
 
