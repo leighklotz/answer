@@ -40,7 +40,7 @@ Restrictions:
     - Due to context limits, Explore answer first. Look in toolex only for specific questions.
     - Round 2 gets the output of Round 1.
 '
-    printf -v prompt "$prompt_template" "$round" | ask "$prompt" | tools git $CAP_READ --drop-tool-reasoning
+    printf -v prompt "$prompt_template" "$round" | ask "$prompt" | tools git "$capabilities" --drop-tool-reasoning
 }
 
 round_1_out="${HOME}/wip/answer/.hallux/self-explore-$$-round-1-${mdl}"
