@@ -12,9 +12,9 @@ function cap_read_dir {
     local dir="$1"
     local cap=""
     if [[ "$dir" == "$PWD" ]]; then
-        printf -v cap "minishell:read=*"
+        printf -v cap "minishell:read"
     else
-        printf -v cap "minishell:read_anywhere=%s,%s/**" "$dir" "$dir"
+        printf -v cap "minishell:read_anywhere=%s" "$dir"
     fi
     if [[ -n "$cap" ]]; then
         log_info "$cap"
