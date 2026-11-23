@@ -32,7 +32,7 @@ function round {
 The current pipeline running is `~/wip/answer/bin/self-explore.sh`.
 Rounds: Explore the two directories individually in two rounds. This is round %d. Round 2 gets the output of Round 1.
 Goal: Read the python and bash code and give an assessment of the harness.
-Resources: Use provided tools to read `answer/HALLUX.md` or `toolex/HALLUX.MD` for introductions; they are identical. git is available, but you should focus primarily on current source.
+Resources: Use provided tools to read `answer/HALLUX.md` or `toolex/HALLUX.MD` for introductions; they are identical. Focus primarily on current source code and use git sparingly to resolve questions.
 Restrictions:
     - DO NOT CHANGE ANYTHING.
     - Stay out of `.gitignore`-d files and dirs and `.hallux/` in all projects.
