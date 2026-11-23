@@ -34,8 +34,8 @@ Rounds: Explore the two directories individually in two rounds. This is round %d
 Goal: Read the python and bash code and give an assessment of the harness.
 Resources: Use provided tools to read `answer/HALLUX.md` or `toolex/HALLUX.MD` for introductions; they are identical. Focus primarily on current source code and use git sparingly to resolve questions.
 Restrictions:
-    - DO NOT CHANGE ANYTHING.
-    - Stay out of `.gitignore`-d files and dirs and `.hallux/` in all projects.
+    - IMPORTANT: DO NOT CHANGE ANYTHING.
+    - IMPORTANT: Stay out of `.gitignore`-d files and dirs. Stay out of `.hallux/`.
     - Generally `bin/foo` is a symlink to `bin/foo.sh`.
     - Before believing for `docs/` and `tests/`, check the date for staleness wrt to commits.
     - Tokens are limited so exercise care when using `find` and other multi-file operations.
