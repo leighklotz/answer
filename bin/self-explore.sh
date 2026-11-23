@@ -48,7 +48,10 @@ mkdir -p "$d"
 round_1_out="$d/round-1-$$-${mdl}"
 round_2_out="$d/round-2-$$-${mdl}"
 
+log_info "Round 1"
 ask "$(round 1 "$(cap_read_dir "$HOME/wip/answer")")" | answer > "$round_1_out"
+
+log_info "Round 2"
 cat "$round_1_out" | ask "$(round 2 "$(cap_read_dir "$HOME/wip/toolex")")" | answer > "$round_2_out"
 
 echo "$round_1_out"
