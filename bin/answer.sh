@@ -37,8 +37,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Read stdin and pass through the core infer engine to guarantee a resolved state.
-if ! resolved_history=$(_infer); then
-  log_and_exit 1 "Inference failed."
+
+resolved_history=$(_infer)
+if [[ ! $? ]]; then
+   if [[ -n "${LOG_QUERIES}" ]]; then
+       printv -v msg "Cannot extract assistant message content from\n%s\n" "$resolved_history"
+       log_and_exit 1 "$msg"
+   else
+       log_and_exit 1 "Inference failed."
+   fi
 fi
 
 # Print a newline to stderr to move the cursor past the cache icons 
@@ -51,7 +58,12 @@ fi
 assistant_text=$(jq -r '.[-1].content | select (. != null) | tostring // empty' <<< "$resolved_history")
 
 if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ]; then
-  log_and_exit 1 "Cannot extract assistant message content."
+   if [[ -n "${LOG_QUERIES}" ]]; then
+       printv -v msg "Cannot extract assistant message content from\n%s\n" "$resolved_history"
+       log_and_exit 1 "$msg"
+   else
+       log_and_exit 1 "Cannot extract assistant message content."
+   fi
 fi
 
 # --tee 
