@@ -11,8 +11,8 @@ mdl="${mdl/\//_}"
 function cap_read_dir {
     local dir="$1"
     local cap=""
-    if [[ "$dir" != "$PWD" ]]; then
-        printf -v cap "minishell:read=%s,%s/**" "$dir" "$dir"
+    if [[ "$dir" == "$PWD" ]]; then
+        printf -v cap "minishell:read=*"
     else
         printf -v cap "minishell:read_anywhere=%s,%s/**" "$dir" "$dir"
     fi
