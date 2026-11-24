@@ -47,7 +47,7 @@ function _ensure_workspace() {
     log_trace "Creating $HALLUX_TMP_DIR pid=$HALLUX_RUNTIME_PID"
   fi
 
-  trap '_cleanup_run_dir' EXIT
+  trap '_telemetry_on_exit $?; _cleanup_run_dir' EXIT
 }
 
 function _mktemp_reg() {
@@ -199,10 +199,15 @@ function _infer_request_streaming() {
             -v icon="${STREAMING_ICON}" '
             /^data: / && !/\[DONE\]/ {
                 ++n
-                if (n % every == 0)
+                if (n % every == 0) {
                     printf "%s", icon > "/dev/stderr"
+                    print n
+                }
             }
-        ' > /dev/null
+        ' |
+        while read -r chunk_count; do
+            emit_telemetry stream_pip "{\"chunk_count\": ${chunk_count}}"
+        done
     ) || return 1
 
     # Phase 2: reassemble SSE chunks into a normal chat completion object.
