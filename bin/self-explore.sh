@@ -35,12 +35,12 @@ Goal: Read the python and bash code and give an assessment of the harness.
 Restrictions:
     - IMPORTANT: DO NOT CHANGE ANYTHING.
     - IMPORTANT: Stay out of `.gitignore`-d files and dirs. DO NOT ATTEMPT TO ACCESS `.hallux/`.
+    - IMPORTANT: Focus primarily on current source code and use git sparingly to resolve questions.
     - Generally `bin/foo` is a symlink to `bin/foo.sh`.
     - Before believing for `docs/` and `tests/`, check the date for staleness wrt to commits.
     - Tokens are limited so exercise care when using `find` and other multi-file operations.
-    - Focus primarily on current source code and use git sparingly to resolve questions.
 '
-    (cat ~/wip/answer/HALLUX.md; echo ""; printf -v prompt "$prompt_template" "$round") | ask "$prompt" | tools git "$capabilities" --drop-tool-reasoning
+    (bx cat ~/wip/answer/HALLUX.md; echo ""; printf -v prompt "$prompt_template" "$round") | ask "$prompt" | tools git "$capabilities" --drop-tool-reasoning
 }
 
 d="${HOME}/wip/answer/.hallux/self-explore"
@@ -51,8 +51,12 @@ round_2_out="$d/round-2-$$-${mdl}"
 log_info "Round 1"
 ask "$(round 1 "$(cap_read_dir "$HOME/wip/answer")")" | answer > "$round_1_out"
 
+echo >&2
+
 log_info "Round 2"
 cat "$round_1_out" | ask "$(round 2 "$(cap_read_dir "$HOME/wip/toolex")")" | answer > "$round_2_out"
+
+echo >&2
 
 echo "$round_1_out"
 echo "$round_2_out"
