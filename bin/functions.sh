@@ -169,7 +169,7 @@ function _infer_request_post() {
         auth_flags=(-H "Authorization: Bearer ${api_key}")
     fi
 
-    curl -fsS -X POST "$endpoint" \
+    curl --fail-with-body -sS -X POST "$endpoint" \
         "${auth_flags[@]}" \
         -H "Content-Type: application/json" \
         -d @"$request_file"
@@ -191,7 +191,7 @@ function _infer_request_streaming() {
             .stream = true
             | .stream_options = ((.stream_options // {}) + {include_usage: true})
         ' "$request_file" |
-        curl -fsS -N -X POST "$endpoint" "${auth_flags[@]}" \
+        curl --fail-with-body -sS -N -X POST "$endpoint" "${auth_flags[@]}" \
             -H "Content-Type: application/json" \
             -d @- |
         tee "$sse" |
