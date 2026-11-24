@@ -59,7 +59,7 @@ assistant_text=$(jq -r '.[-1].content | select (. != null) | tostring // empty' 
 
 if [ -z "$assistant_text" ] || [ "$assistant_text" = "null" ]; then
    if [[ -n "${LOG_QUERIES}" ]]; then
-       printv -v msg "Cannot extract assistant message content from\n%s\n" "$resolved_history"
+       printf -v msg "Cannot extract assistant message content from\n%s\n" "$resolved_history"
        log_and_exit 1 "$msg"
    else
        log_and_exit 1 "Cannot extract assistant message content."
