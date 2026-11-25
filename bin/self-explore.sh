@@ -12,9 +12,9 @@ mdl="${mdl/\//_}"
 # round n
 function round {
     local round="$1"; shift
-    local prompt_template='This is your source code: `~/wip/answer` and `~/wip/toolex/`. 
+    local prompt_template='Your source code is two git repos named `answer` and `toolex`.
 The current pipeline running is `'"$0"'`.
-Rounds: This is round %d. Round 1 explores `answer/` and round 2 explores `toolex/`. You cannot cross-access but you can output whatever you need for round 2 in round 1.
+Rounds: This is round %d and you are exploring %s. You cannot access other repos, but you can output whatever you need for round 2 in round 1.
 Goal: Read the python and bash code and give an assessment of the harness.
 Restrictions:
     - Generally `bin/foo` is a symlink to `bin/foo.sh`.
@@ -26,7 +26,7 @@ Restrictions:
     - IMPORTANT: Focus primarily on current source code and use git sparingly to resolve questions.
     - IMPORTANT: DO NOT CHANGE ANYTHING.
 '
-    printf -v prompt "$prompt_template" "$round"
+    printf -v prompt "$prompt_template" "$round" "$(pwd)"
     (bx cat -n HALLUX.md; bx cat README.md; bx ls -l)  | ask "$prompt" | tools git minishell:read --total-iterations=60
 }
 
