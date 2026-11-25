@@ -10,7 +10,7 @@ source "${SCRIPT_DIR}/functions.sh"
 
 # Configuration defaults
 : "${TOOLEX_SH:=$HOME/wip/toolex/toolex.sh}"
-: "${TOOLS_FLAGS:=}"
+: "${TOOLS_FLAGS:=--drop-tool-reasoning}"
 DEFAULT_LOGLEVEL="INFO" # Fallback if not specified via command line
 
 if [ $# -eq 0 ] || [[ "$*" == *"--help"* ]] || [[ "$*" == *"-h"* ]]; then

@@ -28,7 +28,7 @@ Restrictions:
     - IMPORTANT: Focus primarily on current source code and use git sparingly to resolve questions.
     - IMPORTANT: DO NOT CHANGE ANYTHING.
 '
-    (bx cat ~/wip/answer/HALLUX.md; echo ""; printf -v prompt "$prompt_template" "$round") | ask "$prompt" | tools git "$CAPABILITIES" --drop-tool-reasoning
+    (bx cat ~/wip/answer/HALLUX.md; echo ""; printf -v prompt "$prompt_template" "$round") | ask "$prompt" | tools git "$CAPABILITIES"
 }
 
 d="${HOME}/wip/answer/.hallux/self-explore"
