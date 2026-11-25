@@ -27,7 +27,7 @@ Restrictions:
     - IMPORTANT: DO NOT CHANGE ANYTHING.
 '
     printf -v prompt "$prompt_template" "$round"
-    (bx cat -n HALLUX.md; bx cat README.md; bx ls -l)  | ask "$prompt" | tools git minishell:read
+    (bx cat -n HALLUX.md; bx cat README.md; bx ls -l)  | ask "$prompt" | tools git minishell:read --total-iterations=60
 }
 
 d="${HOME}/wip/answer/.hallux/self-explore"
