@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bash -e
 
-source ~/wip/answer/bin/commands/hx-bootstrap.sh && hx enable
+source ~/wip/answer/bin/commands/hx-bootstrap.sh && hx core
 source ~/wip/answer/bin/env.sh
 source ~/wip/answer/bin/logging.sh
 
@@ -26,7 +26,8 @@ Restrictions:
     - IMPORTANT: Focus primarily on current source code and use git sparingly to resolve questions.
     - IMPORTANT: DO NOT CHANGE ANYTHING.
 '
-    (bx cat ~/wip/answer/HALLUX.md; echo ""; printf -v prompt "$prompt_template" "$round") | ask "$prompt" | tools git minishell:read
+    printf -v prompt "$prompt_template" "$round"
+    bx cat -n ~/wip/answer/HALLUX.md | ask "$prompt" | tools git minishell:read
 }
 
 d="${HOME}/wip/answer/.hallux/self-explore"
