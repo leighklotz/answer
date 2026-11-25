@@ -30,7 +30,7 @@ function round {
     local capabilities="$1"
     local prompt_template='This is your source code: `~/wip/answer` and `~/wip/toolex/`. 
 The current pipeline running is `~/wip/answer/bin/self-explore.sh`.
-Rounds: Explore the two directories individually in two rounds. This is round %d. Round 2 gets the output of Round 1.
+Rounds: This is round %d. Round 2 gets the output of Round 1. Round 1 explores answer and round 2 explores toolex. You cannot cross-access but you can output whatever you need for round 1 in round 1.
 Goal: Read the python and bash code and give an assessment of the harness.
 Restrictions:
     - IMPORTANT: DO NOT CHANGE ANYTHING.
