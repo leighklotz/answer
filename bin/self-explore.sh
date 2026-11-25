@@ -22,7 +22,7 @@ Restrictions:
     - Tokens are limited so exercise care when using `find` and other multi-file operations.
     - Minishell does not accept semicolon command separators.
     - IMPORTANT: Stay out of `.gitignore`-d files and dirs.
-    - IMPORTANT: Stay out of `.hallux/` directory. It contains many large temp files of indescribable provenance.
+    - IMPORTANT: Stay out of any `.hallux/` directory. They contain many large temp files of indescribable provenance.
     - IMPORTANT: Focus primarily on current source code and use git sparingly to resolve questions.
     - IMPORTANT: DO NOT CHANGE ANYTHING.
 '
