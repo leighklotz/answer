@@ -39,6 +39,7 @@ Restrictions:
     - Generally `bin/foo` is a symlink to `bin/foo.sh`.
     - Before believing for `docs/` and `tests/`, check the date for staleness wrt to commits.
     - Tokens are limited so exercise care when using `find` and other multi-file operations.
+    - always put a space before shell semicolon
 '
     (bx cat ~/wip/answer/HALLUX.md; echo ""; printf -v prompt "$prompt_template" "$round") | ask "$prompt" | tools git "$capabilities" --drop-tool-reasoning
 }
