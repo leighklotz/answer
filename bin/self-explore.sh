@@ -32,8 +32,8 @@ Restrictions:
 
 d="${HOME}/wip/answer/.hallux/self-explore"
 mkdir -p "$d"
-round_1_out="$d/round-1-$$-${mdl}"
-round_2_out="$d/round-2-$$-${mdl}"
+round_1_out="$d/round-1-$$-${mdl}.md"
+round_2_out="$d/round-2-$$-${mdl}.md"
 
 log_info "Round 1"
 cd $HOME/wip/answer
