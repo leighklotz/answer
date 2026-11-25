@@ -49,11 +49,13 @@ round_1_out="$d/round-1-$$-${mdl}"
 round_2_out="$d/round-2-$$-${mdl}"
 
 log_info "Round 1"
+cd $HOME/wip/answer
 ask "$(round 1 "$(cap_read_dir "$HOME/wip/answer")")" | answer > "$round_1_out"
 
 echo >&2
 
 log_info "Round 2"
+cd $HOME/wip/toolex
 cat "$round_1_out" | ask "$(round 2 "$(cap_read_dir "$HOME/wip/toolex")")" | answer > "$round_2_out"
 
 echo >&2
