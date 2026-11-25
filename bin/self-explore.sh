@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env -S bash -e
 
 source ~/wip/answer/bin/commands/hx-bootstrap.sh && hx enable
 source ~/wip/answer/bin/env.sh
@@ -8,8 +8,6 @@ export INFO=1
 
 mdl="$(hx model)"
 mdl="${mdl/\//_}"
-
-CAPABILITIES="minishell:read"
 
 # round n
 function round {
@@ -28,7 +26,7 @@ Restrictions:
     - IMPORTANT: Focus primarily on current source code and use git sparingly to resolve questions.
     - IMPORTANT: DO NOT CHANGE ANYTHING.
 '
-    (bx cat ~/wip/answer/HALLUX.md; echo ""; printf -v prompt "$prompt_template" "$round") | ask "$prompt" | tools git "$CAPABILITIES"
+    (bx cat ~/wip/answer/HALLUX.md; echo ""; printf -v prompt "$prompt_template" "$round") | ask "$prompt" | tools git minishell:read
 }
 
 d="${HOME}/wip/answer/.hallux/self-explore"
@@ -38,15 +36,13 @@ round_2_out="$d/round-2-$$-${mdl}"
 
 log_info "Round 1"
 cd $HOME/wip/answer
-ask "$(round 1)" | answer > "$round_1_out"
-
+round 1 | answer > "$round_1_out"
 echo >&2
+log_info "$round_1_out"
 
 log_info "Round 2"
 cd $HOME/wip/toolex
-cat "$round_1_out" | ask "$(round 2)" | answer > "$round_2_out"
-
+cat "$round_1_out" | round 2 | answer > "$round_2_out"
 echo >&2
-
-echo "$round_1_out"
-echo "$round_2_out"
+log_info "$round_1_out"
+log_info "$round_2_out"
